@@ -1,7 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 // Created March 25, 2018
-// Updated March 30, 2018
 
 // Chunk size in blocks.
 #define CHUNK_SIZE 16
@@ -53,6 +52,7 @@ struct World
 	Chunk** loadedChunks;
 
 	vec3 spawn;
+	ivec3 lastLoadPos;
 };
 
 static World* NewWorld(int width, int length)
@@ -331,23 +331,28 @@ static void DestroyChunk(World* world, Chunk* chunk, int i)
 // Loads chunks around the chunk position 'pos'.
 static void LoadSurroundingChunks(World* world, ivec3 pos)
 {
-	ivec3 max = world->sizeInChunks;
-
-	int minX = Max(pos.x - world->loadRangeH, 0);
-	int maxX = Min(pos.x + world->loadRangeH, max.x - 1);
-	int minZ = Max(pos.z - world->loadRangeH, 0);
-	int maxZ = Min(pos.z + world->loadRangeH, max.z - 1);
-
-	for (int x = minX; x <= maxX; x++)
+	if (pos != world->lastLoadPos)
 	{
-		for (int z = minZ; z <= maxZ; z++)
-		{
-			Chunk* chunk = CreateChunk(world, x, z);
-			Assert(chunk != NULL);
+		ivec3 max = world->sizeInChunks;
 
-			if (chunk->state == CHUNK_GENERATED)
-				BuildChunk(world, chunk);
+		int minX = Max(pos.x - world->loadRangeH, 0);
+		int maxX = Min(pos.x + world->loadRangeH, max.x - 1);
+		int minZ = Max(pos.z - world->loadRangeH, 0);
+		int maxZ = Min(pos.z + world->loadRangeH, max.z - 1);
+
+		for (int x = minX; x <= maxX; x++)
+		{
+			for (int z = minZ; z <= maxZ; z++)
+			{
+				Chunk* chunk = CreateChunk(world, x, z);
+				Assert(chunk != NULL);
+
+				if (chunk->state == CHUNK_GENERATED)
+					BuildChunk(world, chunk);
+			}
 		}
+
+		world->lastLoadPos = pos;
 	}
 }
 

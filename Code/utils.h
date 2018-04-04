@@ -1,7 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 // Created March 28, 2018
-// Updated March 30, 2018
 
 #define Min(A, B) ((A < B) ? (A) : (B))
 #define Max(A, B) ((A > B) ? (A) : (B))

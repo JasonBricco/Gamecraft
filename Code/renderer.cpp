@@ -1,7 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 // Created March 24, 2018
-// Updated March 29, 2018
 
 static vec3 g_worldUp = vec3(0.0f, 1.0f, 0.0f);
 static int g_windowWidth = 1024;
@@ -335,6 +334,7 @@ static GLFWwindow* InitRenderer()
 	glViewport(0, 0, g_windowWidth, g_windowHeight);
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 
 	#if ASSERTIONS
 

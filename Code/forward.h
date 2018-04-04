@@ -1,7 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 // Created March 23, 2018
-// Updated March 29, 2018
 
 struct World;
 struct Chunk;
