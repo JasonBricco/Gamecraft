@@ -1,0 +1,24 @@
+{
+	"cmd": ["Build_Release.bat"],
+	"file_regex": "^[.\\\\/]*([a-z]?:?[\\w.\\\\/]+)[(:]([0-9]+)[):]([0-9]+)?:?(.*)$",
+	"working_dir": "W:/Misc/",
+	"selector": "source.dosbatch",
+
+	"shell": true,
+
+	"variants":
+	[
+		{
+			"name": "Debug",
+			"shell_cmd": "@echo off && W:/Misc/Build_Debug.bat"
+		},
+		{
+			"name": "Run (Release)",
+			"shell_cmd": "@echo off && W:/Misc/Run.bat"
+		},
+		{
+			"name": "Run (Debug)",
+			"shell_cmd": "@echo off && W:/Misc/Run_Debug.bat"
+		}
+	]
+}
