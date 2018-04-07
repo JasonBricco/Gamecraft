@@ -238,7 +238,7 @@ int main()
 	LoadTextureArray(&texture, paths, true);
 	sb_free(paths);
 
-	World* world = NewWorld(600, 600);
+	World* world = NewWorld(10, 10);
 
 	Player* player = NewPlayer(world->spawn);
 	Camera* cam = player->camera;

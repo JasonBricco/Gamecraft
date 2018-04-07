@@ -8,7 +8,7 @@
 #define CHUNK_SIZE_3 32768
 
 // World limits in chunks.
-#define WORLD_MAX_H 615
+#define WORLD_MAX_H 512
 
 typedef FastNoiseSIMD Noise;
 

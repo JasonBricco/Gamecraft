@@ -7,10 +7,49 @@ struct AABB
 	float rx, ry, rz;
 };
 
-static bool TestAABB(AABB a, AABB b);
+// Test to see if two AABBs overlap.
+static bool OverlapAABB(AABB a, AABB b);
+
 inline AABB NewAABB(vec3 center, float rx, float ry, float rz);
 inline AABB MoveAABB(AABB a, vec3 amount);
-inline bool TestBlock(AABB a, int bX, int bY, int bZ);
+inline bool OverlapBlock(AABB a, int bX, int bY, int bZ);
+
+// Sphere with center c and radius r.
+struct Sphere
+{
+	vec3 c;
+	float r;
+};
+
+inline Sphere NewSphere(vec3 center, float r);
+
+// Test to see if two spheres overlap.
+static bool OverlapSphere(Sphere a, Sphere b);
+
+// Capsule from points a and b and radius r. 
+struct Capsule
+{
+	vec3 a;
+	vec3 b;
+	float r;
+};
+
+// Test to see if two capsules overlap.
+static bool OverlapCapsule(Capsule a, Capsule b);
+
+// Test to see if a sphere overlaps with a capsule.
+static bool OverlapSphereCapsule(Sphere s, Capsule capsule);
+
+struct Slab
+{
+	vec3 normal;
+
+	// Signed distance from origin for the near plane.
+	float dNear;
+
+	// Signed distance from origin for the far plane.
+	float dFar;
+};
 
 struct Plane
 {
@@ -23,6 +62,11 @@ struct Plane
 
 // Compute the plane given three noncollinear points (ordered counterclockwise).
 static Plane ComputePlane(vec3 a, vec3 b, vec3 c);
+
+// Returns the signed distance of point a to the plane.
+inline float DistPointPlane(vec3 a, Plane p)
+
+inline vec3 ClosestPointOnPlane(vec3 a, Plane p);
 
 // Computes the signed area of a triangle;
 inline float TriArea(float x1, float y1, float x2, float y2, float x3, float y3);

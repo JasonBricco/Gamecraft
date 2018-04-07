@@ -1,7 +1,12 @@
 // Voxel Engine
 // Jason Bricco
 
-static bool TestAABB(AABB a, AABB b)
+inline AABB NewAABB(vec3 center, float rx, float ry, float rz)
+{
+	return { center, rx, ry, rz };
+}
+
+static bool OverlapAABB(AABB a, AABB b)
 {
 	if (abs(a.rx - b.rx) > (a.rx + b.rx)) return false;
 	if (abs(a.ry - b.ry) > (a.ry + b.ry)) return false;
@@ -10,20 +15,55 @@ static bool TestAABB(AABB a, AABB b)
 	return true;
 }
 
-inline AABB NewAABB(vec3 center, float rx, float ry, float rz)
-{
-	return { center, rx, ry, rz };
-}
-
 inline AABB MoveAABB(AABB a, vec3 amount)
 {
 	return NewAABB(a.center + amount, a.rx, a.ry, a.rz);
 }
 
-inline bool TestBlock(AABB a, int bX, int bY, int bZ)
+inline bool OverlapBlock(AABB a, int bX, int bY, int bZ)
 {
-	return TestAABB(a, NewAABB(vec3(bX, bY, bZ), 1.0f, 1.0f, 1.0f));
+	return OverlapAABB(a, NewAABB(vec3(bX, bY, bZ), 1.0f, 1.0f, 1.0f));
 }
+
+inline Sphere NewSphere(vec3 center, float r)
+{
+	return { center, r };
+}
+
+static bool OverlapSphere(Sphere a, Sphere b)
+{
+	// Squared distance between sphere centers.
+	vec3 d = a.c - b.c;
+	float dist2 = dot(d, d);
+
+	// If squared distance is less than the sum of the radii, an intersection occurred.
+	float sum = a.r + b.r;
+	return dist2 <= sum * sum;
+}
+
+#if 0
+static bool OverlapSphereCapsule(Sphere s, Capsule capsule)
+{
+	// Compute squared distance between the sphere center and capsule line segment.
+	float dist2 = SqDist(capsule.a, capsule.b, s.c);
+
+	// Collision if the squared distance is smalle than the squared sum of the radii.
+	float radius = s.r + capsule.r;
+	return dist2 <= radius * radius;
+}
+
+static bool OverlapCapsule(Capsule a, Capsule b)
+{
+	// Compute the squared distance between the inner capsule structures.
+	float s, t;
+	vec3 c1, c2;
+	float dist2 = ClosestPoint(a.a, a.b, b.a, b.b, s, t, c1, c2);
+
+	// If squared distance is smaller than the squared sum of the radii, they collide.
+	float radius = a.r + b.r;
+	return dist2 <= radius * radius;
+}
+#endif
 
 static Plane ComputePlane(vec3 a, vec3 b, vec3 c)
 {
@@ -31,6 +71,16 @@ static Plane ComputePlane(vec3 a, vec3 b, vec3 c)
 	p.n = normalize(cross(b - a, c - a));
 	p.d = dot(p.n, a);
 	return p;
+}
+
+inline vec3 ClosestPointOnPlane(vec3 a, Plane p)
+{
+	return a - DistPointPlane(a, p) * p.n;
+}
+
+inline float DistPointPlane(vec3 a, Plane p)
+{
+	return (dot(p.n, q) - p.d);
 }
 
 inline float TriArea(float x1, float y1, float x2, float y2, float x3, float y3)

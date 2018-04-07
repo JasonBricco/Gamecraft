@@ -24,7 +24,7 @@ static bool WillCollide(World* world, AABB a)
 			{
 				int block = GetBlock(world, bX + x, bY + y, bZ + z);
 				
-				if (block != 0 && TestBlock(a, x, y, z))
+				if (block != 0 && OverlapBlock(a, x, y, z))
 					return true;
 			}
 		}
