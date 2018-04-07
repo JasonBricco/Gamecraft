@@ -38,7 +38,6 @@ struct Camera
 	// Angles in degrees.
 	float yaw, pitch;
 
-	float speed;
 	float sensitivity;
 };
 
@@ -152,7 +151,6 @@ static Camera* NewCamera(vec3 pos)
 {
 	Camera* cam = Calloc(Camera);
 	cam->pos = pos;
-	cam->speed = 25.0f;
 	cam->sensitivity = 0.1f;
 	return cam;
 }
@@ -179,12 +177,6 @@ static void UpdateCameraVectors(Camera* cam)
 
 	cam->look = look;
 	cam->target = cam->pos + look;
-}
-
-inline void MoveCamera(Camera* cam, vec3 amount)
-{
-	cam->pos += amount;
-	UpdateCameraVectors(cam);
 }
 
 static void RotateCamera(Camera* cam, float yaw, float pitch)
@@ -300,6 +292,7 @@ static GLFWwindow* InitRenderer()
 		return NULL;
 	}
 
+	// Window creation.
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -314,6 +307,8 @@ static GLFWwindow* InitRenderer()
 	}
 
 	glfwMakeContextCurrent(window);
+
+	// Set vertical synchronization to the monitor refresh rate.
 	glfwSwapInterval(1);
 
 	if (glewInit() != GLEW_OK)
@@ -324,6 +319,7 @@ static GLFWwindow* InitRenderer()
 
 	glewExperimental = GL_TRUE;
 
+	// Allow granular sleeping for FPS control.
 	if (timeBeginPeriod(1) != TIMERR_NOERROR)
 	{
 		DisplayError("Failed to set sleep granularity.");
