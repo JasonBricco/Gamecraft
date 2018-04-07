@@ -1,12 +1,5 @@
 // Voxel Engine
 // Jason Bricco
-// Created April 3, 2018
-
-struct AABB
-{
-	vec3 center;
-	float rx, ry, rz;
-};
 
 static bool TestAABB(AABB a, AABB b)
 {
@@ -32,16 +25,6 @@ inline bool TestBlock(AABB a, int bX, int bY, int bZ)
 	return TestAABB(a, NewAABB(vec3(bX, bY, bZ), 1.0f, 1.0f, 1.0f));
 }
 
-struct Plane
-{
-	// Plane's normal. Points on the plane satisfy dot(n, x) = d;
-	vec3 n; 
-
-	// d = dot(n, p) for a given point, p, on the plane.
-	float d;
-};
-
-// Compute the plane given three noncollinear points (ordered counterclockwise).
 static Plane ComputePlane(vec3 a, vec3 b, vec3 c)
 {
 	Plane p;
@@ -50,13 +33,11 @@ static Plane ComputePlane(vec3 a, vec3 b, vec3 c)
 	return p;
 }
 
-// Computes the signed area of a triangle (page 52).
 inline float TriArea(float x1, float y1, float x2, float y2, float x3, float y3)
 {
 	return (x1 - x2) * (y2 - y3) - (x2 - x3) * (y1 - y2);
 }
 
-// Compute barycentric coordinates (u, v, w) for point p with respect to triangle (a, b, c).
 static void Barycentric(vec3 a, vec3 b, vec3 c, vec3 p, float* u, float* v, float* w)
 {
 	// Unnormalized triangle normal.
@@ -101,7 +82,6 @@ static void Barycentric(vec3 a, vec3 b, vec3 c, vec3 p, float* u, float* v, floa
 	*w = 1.0f - *u - *v;
 }
 
-// Determines if a point, p, is contained within the triangle (a, b, c).
 static int PointInTriangle(vec3 p, vec3 a, vec3 b, vec3 c)
 {
 	float u, v, w;

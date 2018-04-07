@@ -9,7 +9,7 @@ set libs=-incremental:no -opt:ref winmm.lib gdi32.lib user32.lib Shell32.lib ope
 set link=/LIBPATH:W:\Common\Lib /LTCG /SUBSYSTEM:WINDOWS /ENTRY:"mainCRTStartup"
 set inc=-I W:\Common\Include
 
-cl %inc% %flags% %defines% W:\Code\main.cpp /link %libs% %link%
+cl %inc% %flags% %defines% W:\Code\engine.cpp /link %libs% %link%
 
 robocopy W:\Shaders\ W:\Builds\Release\Shaders\ /NJS /NJH /np /ndl /nfl
 robocopy W:\Assets\ W:\Builds\Release\Assets\ /XC /XN /XO /NJS /NJH /np /ndl /nfl

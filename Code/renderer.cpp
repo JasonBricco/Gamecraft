@@ -1,6 +1,5 @@
 // Voxel Engine
 // Jason Bricco
-// Created March 24, 2018
 
 static vec3 g_worldUp = vec3(0.0f, 1.0f, 0.0f);
 static int g_windowWidth = 1024;
@@ -8,53 +7,6 @@ static int g_windowHeight = 768;
 
 static unordered_map<string, GLint> g_uniformMap;
 static int g_paramCount = 12;
-
-#define Texture2D GLuint
-#define TextureArray GLuint
-
-#define CAMERA_FOV 45.0f
-
-enum ShaderType
-{
-	VERTEX_SHADER,
-	FRAGMENT_SHADER,
-	SHADER_PROGRAM
-};
-
-struct Mesh
-{
-	GLuint vb, ib, va;
-
-	vector<float> vertices;
-	vector<int> indices;
-};
-
-// Standard first-person camera.
-struct Camera
-{
-	vec3 pos, target, up;
-	vec3 look, right;
-
-	// Angles in degrees.
-	float yaw, pitch;
-
-	float sensitivity;
-};
-
-// Camera that orbits around a center point, 'pos'.
-struct OrbitCamera
-{
-	vec3 pos, target;
-	float yaw, pitch;
-	float radius;
-	float sensitivity;
-};
-
-struct Renderer
-{
-	Camera* cam;
-	OrbitCamera* orbit;
-};
 
 static void InitializeMesh(Mesh* mesh)
 {
@@ -68,11 +20,13 @@ static void InitializeMesh(Mesh* mesh)
 	glEnableVertexAttribArray(0);
 
 	// Texture coordinates (UVs).
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, g_paramCount * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, g_paramCount * sizeof(GLfloat), 
+		(GLvoid*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
 
 	// Vertex color attribute buffer.
-	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, g_paramCount * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, g_paramCount * sizeof(GLfloat), 
+		(GLvoid*)(6 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(2);
 
 	// Index buffer.
@@ -89,7 +43,8 @@ static void DestroyMesh(Mesh* mesh)
 	glDeleteVertexArrays(1, &mesh->va);
 }
 
-inline void SetVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex, float r, float g, float b, float a)
+inline void SetVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex, 
+	float r, float g, float b, float a)
 {
 	mesh->vertices.push_back(x);
 	mesh->vertices.push_back(y);
@@ -121,7 +76,6 @@ inline void SetIndices(Mesh* mesh)
 	mesh->indices.push_back(offset);
 }
 
-// Transfers mesh data on the CPU to the GPU.
 static void FillMeshData(Mesh* mesh)
 {
 	int vertexCount = (int)mesh->vertices.size();
@@ -188,7 +142,6 @@ static void RotateCamera(Camera* cam, float yaw, float pitch)
 	UpdateCameraVectors(cam);
 }
 
-// Rotation in degrees.
 static void RotateCamera(OrbitCamera* cam)
 {
 	float yaw = radians(cam->yaw);
@@ -219,7 +172,7 @@ inline void SetCameraRadius(OrbitCamera* cam, float radius)
 	cam->radius = clamp(radius, 2.0f, 80.0f);
 }
 
-static void LoadTexture(Texture2D* tex, char* path, bool mipMaps = true)
+static void LoadTexture(Texture2D* tex, char* path, bool mipMaps)
 {
 	int width, height, components;
 
@@ -242,7 +195,7 @@ static void LoadTexture(Texture2D* tex, char* path, bool mipMaps = true)
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-static void LoadTextureArray(TextureArray* tex, char** paths, bool mipMaps = true)
+static void LoadTextureArray(TextureArray* tex, char** paths, bool mipMaps)
 {
 	int count = sb_count(paths);
 	uint8_t** dataList = (uint8_t**)malloc(count * sizeof(uint8_t*));
@@ -262,7 +215,8 @@ static void LoadTextureArray(TextureArray* tex, char** paths, bool mipMaps = tru
 
 	for (int i = 0; i < count; i++)
 	{
-		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, dataList[i]);
+		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, 
+			GL_UNSIGNED_BYTE, dataList[i]);
 		stbi_image_free(dataList[i]);
 	}
 
@@ -276,8 +230,8 @@ static void LoadTextureArray(TextureArray* tex, char** paths, bool mipMaps = tru
 	free(dataList);
 }
 
-// Called when OpenGL encounters an error. Replaces need for glGetError() calls.
-static void OnOpenGLMessage(GLenum src, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* msg, const void* param)
+static void OnOpenGLMessage(GLenum src, GLenum type, GLuint id, GLenum severity, 
+	GLsizei length, const GLchar* msg, const void* param)
 {
 	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n", 
 		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, msg);

@@ -1,14 +1,5 @@
 // Voxel Engine
 // Jason Bricco
-// Created April 3, 2018
-
-struct Player
-{
-	Camera* camera;
-	vec3 pos;
-	AABB collider;
-	float speed;
-};
 
 static Player* NewPlayer(vec3 pos)
 {
