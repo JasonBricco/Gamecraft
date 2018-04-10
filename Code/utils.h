@@ -14,3 +14,8 @@ inline int Square(int value)
 {
 	return value * value;
 }
+
+inline float Square(float value)
+{
+	return value * value;
+}

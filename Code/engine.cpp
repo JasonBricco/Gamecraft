@@ -72,13 +72,11 @@ static char* PathToAsset(char* fileName)
 #include "utils.h"
 #include "renderer.h"
 #include "world.h"
-#include "collision.h"
-#include "entity.h"
+#include "simulation.h"
 
 #include "renderer.cpp"
-#include "collision.cpp"
+#include "simulation.cpp"
 #include "world.cpp"
-#include "entity.cpp"
 
 static bool g_shiftHeld;
 static bool g_paused = false;
@@ -182,22 +180,26 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 	glfwSetCursorPos(window, cX, cY);
 
+	vec3 accel = vec3(0.0f);
+
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) 
-		Move(world, player, player->speed * deltaTime * cam->look);
+		accel = cam->look;
 
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) 
-		Move(world, player, player->speed * deltaTime * -cam->look);
+		accel = -cam->look;
 
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) 
-		Move(world, player, player->speed * deltaTime * -cam->right);
+		accel = -cam->right;
 
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) 
-		Move(world, player, player->speed * deltaTime * cam->right);
+		accel = cam->right;
 
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) 
-		Move(world, player, player->speed * deltaTime * g_worldUp);
+		accel = g_worldUp;
 
-	if (g_shiftHeld) Move(world, player, player->speed * deltaTime * -g_worldUp);
+	if (g_shiftHeld) accel = -g_worldUp;
+
+	Move(world, player, accel, deltaTime);
 }
 
 int main()
