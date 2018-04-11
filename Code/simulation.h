@@ -1,6 +1,15 @@
 // Voxel Engine
 // Jason Bricco
 
+// Provides information about which side of an entity collided.
+enum CollisionFlags
+{
+	HIT_NONE = 0,
+	HIT_UP = 1,
+	HIT_DOWN = 2,
+	HIT_OTHER = 4
+};
+
 // Axis-aligned bounding box with center c and radius r.
 struct AABB
 {
@@ -16,12 +25,7 @@ struct Player
 	vec3 velocity;
 	float speed;
 	float friction;
-};
-
-struct Ray
-{
-	vec3 origin;
-	vec3 dir;
+	uint8_t collisionFlags;
 };
 
 static Player* NewPlayer(vec3 pos);
@@ -31,11 +35,5 @@ static bool OverlapAABB(AABB a, AABB b);
 
 inline AABB NewAABB(vec3 center, vec3 radius);
 inline AABB MoveAABB(AABB a, vec3 amount);
-
-// Casts a ray with unit direction 'dir' against an AABB with origin
-// org, lower-back position lb and right-top position rt. 
-static bool RaycastAABB(vec3 dir, vec3 org, vec3 lb, vec3 rt, float* t);
-
-static bool WillCollide(World* world, AABB a, Ray ray);
 
 static void Move(World* world, Player* player, vec3 accel, float deltaTime);

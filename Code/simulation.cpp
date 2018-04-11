@@ -9,6 +9,7 @@ static Player* NewPlayer(vec3 pos)
 	player->collider = NewAABB(pos, vec3(0.5f, 0.9f, 0.5f));
 	player->speed = 200.0f;
 	player->friction = -8.0f;
+	player->collisionFlags = HIT_NONE;
 
 	return player;
 }
@@ -32,29 +33,6 @@ inline AABB MoveAABB(AABB a, vec3 amount)
 	return NewAABB(a.c + amount, a.r);
 }
 
-static bool WillCollide(World* world, AABB a, Ray ray)
-{
-	int bX = (int)round(a.c.x), bY = (int)round(a.c.y), bZ = (int)round(a.c.z);
-
-	for (int y = -1; y <= 1; y++)
-	{
-		for (int z = -1; z <= 1; z++)
-		{
-			for (int x = -1; x <= 1; x++)
-			{
-				int block = GetBlock(world, bX + x, bY + y, bZ + z);
-				vec3 bPos(bX, bY, bZ);
-				AABB b = NewAABB(bPos, vec3(0.5f));
-				
-				if (block != 0 && OverlapAABB(a, b))
-					return true;
-			}
-		}
-	}
-
-	return false;
-}
-
 static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 {
 	accel = accel * player->speed;
@@ -75,13 +53,33 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	vec3 delta = accel * 0.5f * Square(deltaTime) + player->velocity * deltaTime;
 	player->velocity = accel * deltaTime + player->velocity;
 
+	// Position to try to move to.
 	vec3 target = player->pos + delta;
-	AABB test = MoveAABB(player->collider, delta);
 
-	Ray ray = { player->pos, normalize(delta) };
+	AABB a = player->collider;
+	AABB test = MoveAABB(a, delta);
 
-	if (WillCollide(world, test, ray))
-		return;
+	int bX = (int)round(a.c.x), bY = (int)round(a.c.y), bZ = (int)round(a.c.z);
+
+	for (int y = -1; y <= 1; y++)
+	{
+		for (int z = -1; z <= 1; z++)
+		{
+			for (int x = -1; x <= 1; x++)
+			{
+				int block = GetBlock(world, bX + x, bY + y, bZ + z);
+
+				if (block != 0)
+				{
+					vec3 bPos(bX, bY, bZ);
+					AABB b = NewAABB(bPos, vec3(0.5f));
+					
+					if (OverlapAABB(a, b))
+						return;
+				}
+			}
+		}
+	}
 
 	player->pos += delta;
 	player->camera->pos += delta;
