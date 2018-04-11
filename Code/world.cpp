@@ -173,6 +173,11 @@ static int GetBlock(World* world, int x, int y, int z)
 	return GetBlock(chunk, x & (CHUNK_SIZE - 1), y, z & (CHUNK_SIZE - 1));
 }
 
+inline int GetBlock(World* world, ivec3 pos)
+{
+	return GetBlock(world, pos.x, pos.y, pos.z);
+}
+
 static void BuildBlock(World* world, Chunk* chunk, float x, float y, float z, ivec3 wPos)
 {
 	Mesh* mesh = &chunk->mesh;

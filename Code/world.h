@@ -78,6 +78,7 @@ inline bool BlockInsideWorld(World* world, int x, int y, int z);
 // Returns air if the block is outside of the world.
 inline int GetBlock(Chunk* chunk, int x, int y, int z);
 static int GetBlock(World* world, int x, int y, int z);
+inline int GetBlock(World* world, ivec3 pos);
 
 static void BuildBlock(World* world, Chunk* chunk, float x, float y, float z, ivec3 wPos);
 static void BuildChunk(World* world, Chunk* chunk);

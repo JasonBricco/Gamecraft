@@ -10,18 +10,38 @@ enum CollisionFlags
 	HIT_OTHER = 4
 };
 
-// Axis-aligned bounding box with center c and radius r.
-struct AABB
+struct Wall
 {
-	vec3 c;
-	vec3 r;
+	// Position of the wall on the axis being tested.
+    float pos;
+
+    // 'deltaA' is the movement along the axis being tested. The others are
+    // the movement on the other axes.
+    float deltaA, deltaB, deltaC;
+
+    // Differences in position between the wall and entity being tested.
+    // 'relA' is the difference on the axis being tested.
+    float relA, relB, relC;
+   
+   	// Block boundaries on the axes not being tested, to ensure collision is
+   	// confined to the boundaries of the block being tested.
+    float minB, maxB, minC, maxC;
+    
+    vec3 normal;
+    CollisionFlags flag;
+};
+
+struct Collider
+{
+	vec3 offset;
+	vec3 size;
 };
 
 struct Player
 {
 	Camera* camera;
 	vec3 pos;
-	AABB collider;
+	Collider col;
 	vec3 velocity;
 	float speed;
 	float friction;
@@ -29,11 +49,5 @@ struct Player
 };
 
 static Player* NewPlayer(vec3 pos);
-
-// Test to see if two AABBs overlap.
-static bool OverlapAABB(AABB a, AABB b);
-
-inline AABB NewAABB(vec3 center, vec3 radius);
-inline AABB MoveAABB(AABB a, vec3 amount);
 
 static void Move(World* world, Player* player, vec3 accel, float deltaTime);

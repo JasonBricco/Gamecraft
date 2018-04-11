@@ -34,10 +34,6 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-#pragma warning(push, 0) 
-#include "Bullet/btBulletCollisionCommon.h"
-#pragma warning(pop)
-
 #if DEBUG_MEMORY
 #define _CRTDBG_MAP_ALLOC 1
 #include <crtdbg.h>  
