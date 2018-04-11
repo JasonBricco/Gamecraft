@@ -70,28 +70,17 @@ static char* PathToAsset(char* fileName)
 }
 
 #include "utils.h"
+#include "input.h"
 #include "renderer.h"
 #include "world.h"
 #include "simulation.h"
 
+#include "input.cpp"
 #include "renderer.cpp"
 #include "simulation.cpp"
 #include "world.cpp"
 
-static bool g_shiftHeld;
-static bool g_paused = false;
-
-static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mode)
-{
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-	{
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		g_paused = true;
-	}
-
-	if (mode == GLFW_MOD_SHIFT) g_shiftHeld = true;
-	else g_shiftHeld = false;
-}
+static bool g_paused;
 
 static void OnMouseMove(GLFWwindow* window, double posX, double posY)
 {
@@ -158,12 +147,21 @@ static void ShowFPS(GLFWwindow* window)
 
 static void Update(GLFWwindow* window, Player* player, World* world, float deltaTime)
 {
+	if (KeyPressed(KeyEscape))
+	{
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		g_paused = true;
+	}
+
+	if (g_paused) return;
+
 	ivec3 pos = ToChunkPos(player->pos);
 
 	UnloadChunks(world, pos);
 	LoadSurroundingChunks(world, pos);
 
-	if (g_paused) return;
+	if (KeyPressed(KeyTab))
+		player->flying = !player->flying;
 
 	double mouseX, mouseY;
 
@@ -182,22 +180,21 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 	vec3 accel = vec3(0.0f);
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) 
-		accel = cam->look;
+	if (KeyHeld(KeyUp)) accel = MoveDirXZ(cam->forward);
+	if (KeyHeld(KeyDown)) accel = MoveDirXZ(-cam->forward);
+	if (KeyHeld(KeyLeft)) accel = MoveDirXZ(-cam->right);
+	if (KeyHeld(KeyRight)) accel = MoveDirXZ(cam->right);
 
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) 
-		accel = -cam->look;
+	if (player->flying)
+	{
+		player->speed = 200.0f;
 
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) 
-		accel = -cam->right;
+		if (KeyHeld(KeySpace))
+			accel = g_worldUp;
 
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) 
-		accel = cam->right;
-
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) 
-		accel = g_worldUp;
-
-	if (g_shiftHeld) accel = -g_worldUp;
+		if (KeyHeld(KeyShift)) accel = -g_worldUp;
+	}
+	else player->speed = 50.0f;
 
 	Move(world, player, accel, deltaTime);
 }
@@ -256,7 +253,9 @@ int main()
 
 	while (!glfwWindowShouldClose(window))
 	{
+		ResetInput();
 		glfwPollEvents();
+
 		Update(window, player, world, deltaTime);
 		
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

@@ -120,17 +120,17 @@ static OrbitCamera* NewOrbitCamera(vec3 pos, float radius)
 
 static void UpdateCameraVectors(Camera* cam)
 {
-	vec3 look;
-	look.x = cosf(cam->pitch) * sinf(cam->yaw);
-	look.y = sinf(cam->pitch);
-	look.z = cosf(cam->pitch) * cosf(cam->yaw);
+	vec3 forward;
+	forward.x = cosf(cam->pitch) * sinf(cam->yaw);
+	forward.y = sinf(cam->pitch);
+	forward.z = cosf(cam->pitch) * cosf(cam->yaw);
 
-	look = normalize(look);
-	cam->right = normalize(cross(look, g_worldUp));
-	cam->up = normalize(cross(cam->right, look));
+	forward = normalize(forward);
+	cam->right = normalize(cross(forward, g_worldUp));
+	cam->up = normalize(cross(cam->right, forward));
 
-	cam->look = look;
-	cam->target = cam->pos + look;
+	cam->forward = forward;
+	cam->target = cam->pos + forward;
 }
 
 static void RotateCamera(Camera* cam, float yaw, float pitch)

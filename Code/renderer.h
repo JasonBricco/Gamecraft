@@ -25,7 +25,7 @@ struct Mesh
 struct Camera
 {
 	vec3 pos, target, up;
-	vec3 look, right;
+	vec3 forward, right;
 
 	// Angles in degrees.
 	float yaw, pitch;

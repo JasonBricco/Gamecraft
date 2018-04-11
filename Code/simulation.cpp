@@ -7,9 +7,11 @@ static Player* NewPlayer(vec3 pos)
 	player->camera = NewCamera(pos);
 	player->pos = pos;
 	player->col = { vec3(0.0f), vec3(0.5f, 0.9f, 0.5f) };
-	player->speed = 200.0f;
+	player->velocity = vec3(0.0f);
+	player->speed = 50.0f;
 	player->friction = -8.0f;
 	player->collisionFlags = HIT_NONE;
+	player->flying = false;
 
 	return player;
 }
@@ -18,6 +20,9 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 {
 	accel = accel * player->speed;
 	accel = accel + player->velocity * player->friction;
+
+	// Gravity.
+	if (!player->flying) accel.y = -30.0f;
 
 	// Using the following equations of motion:
 
@@ -33,6 +38,15 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	// we can integrate back up.
 	vec3 delta = accel * 0.5f * Square(deltaTime) + player->velocity * deltaTime;
 	player->velocity = accel * deltaTime + player->velocity;
+
+	// Skip collision detection if flying.
+	if (player->flying)
+	{
+		player->pos += delta;
+		player->camera->pos = player->pos;
+		UpdateCameraVectors(player->camera);
+		return;
+	}
 
 	// Find all blocks between where the entity was and where the entity will be. Determine if 
 	// any of those blocks are obstacles to collide with. If so, test against its six walls by 
@@ -166,13 +180,22 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 				}
 			}
 		}
+
+		// Move the entity based on the percentage we're allowed to move, determined by tMin.
+		vec3 move = delta * tMin;
+		player->pos += move;
+
+		// Update the delta and velocity based on the collision, to allow sliding along walls.
+		// Removes the component of the vector that matches the wall normal, but leaves the
+		// other component untouched.
+		player->velocity = player->velocity - normal * dot(player->velocity, normal);
+		delta = target - player->pos;
+		delta = delta - normal * dot(delta, normal);
+
+		// New position we will try to move to now that delta has been modified.
+		target = player->pos + delta;
 	}
 
-	// CONTINUE COLLISION DETECTION HERE
-
-	/*
-	player->pos += delta;
-	player->camera->pos += delta;
-	player->col = test;
-	UpdateCameraVectors(player->camera);*/
+	player->camera->pos = player->pos;
+	UpdateCameraVectors(player->camera);
 }

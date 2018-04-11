@@ -46,3 +46,9 @@ inline vec3 GetVec3(ivec3 v)
 {
 	return vec3(v.x, v.y, v.z);
 }
+
+inline vec3 MoveDirXZ(vec3 value)
+{
+	vec3 zeroY = vec3(value.x, 0.0f, value.z);
+	return normalize(zeroY);
+}

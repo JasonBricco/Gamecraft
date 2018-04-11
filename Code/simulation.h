@@ -46,6 +46,7 @@ struct Player
 	float speed;
 	float friction;
 	uint8_t collisionFlags;
+	bool flying;
 };
 
 static Player* NewPlayer(vec3 pos);
