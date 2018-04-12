@@ -3,28 +3,33 @@
 
 enum KeyType
 {
-    KeyUp,
-    KeyDown,
-    KeyLeft,
-    KeyRight,
-    KeySpace,
-    KeyShift,
-    KeyEscape,
-    KeyTab,
-    KeyCount
+    KEY_UP,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+    KEY_SPACE,
+    KEY_SHIFT,
+    KEY_ESCAPE,
+    KEY_TAB,
+    KEY_P,
+    KEY_COUNT
 };
  
 struct GameInput
 {   
-    bool mouseDown;
-    bool keys[KeyCount];
-    bool single[KeyCount];
+    bool mousePressed, mouseHeld;
+    bool keys[KEY_COUNT];
+    bool single[KEY_COUNT];
 };
  
 inline bool KeyHeld(KeyType type);
 inline bool KeyPressed(KeyType type);
+
+inline bool MousePressed();
 inline bool MouseHeld();
+
 static void SetKey(KeyType type, int action);
 inline void ResetInput();
 
 static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mode);
+static void OnMouseButton(GLFWwindow* window, int button, int action, int mods);

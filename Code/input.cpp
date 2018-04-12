@@ -13,9 +13,14 @@ inline bool KeyPressed(KeyType type)
 	return g_input.single[type];
 }
 
+inline bool MousePressed()
+{
+	return g_input.mousePressed;
+}
+
 inline bool MouseHeld()
 {
-	return g_input.mouseDown;
+	return g_input.mouseHeld;
 }
 
 static void SetKey(KeyType type, int action)
@@ -34,6 +39,7 @@ static void SetKey(KeyType type, int action)
 inline void ResetInput()
 {
 	memset(&g_input.single, 0, sizeof(g_input.single));
+	g_input.mousePressed = false;
 }
 
 static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mode)
@@ -41,35 +47,56 @@ static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mod
 	switch (key)
 	{
 		case GLFW_KEY_W:
-			SetKey(KeyUp, action);
+			SetKey(KEY_UP, action);
 			break;
 
 		case GLFW_KEY_S:
-			SetKey(KeyDown, action);
+			SetKey(KEY_DOWN, action);
 			break;
 
 		case GLFW_KEY_A:
-			SetKey(KeyLeft, action);
+			SetKey(KEY_LEFT, action);
 			break;
 
 		case GLFW_KEY_D:
-			SetKey(KeyRight, action);
+			SetKey(KEY_RIGHT, action);
 			break;
 
 		case GLFW_KEY_SPACE:
-			SetKey(KeySpace, action);
+			SetKey(KEY_SPACE, action);
 			break;
 
 		case GLFW_KEY_ESCAPE:
-			SetKey(KeyEscape, action);
+			SetKey(KEY_ESCAPE, action);
 			break;
 
 		case GLFW_KEY_TAB:
-			SetKey(KeyTab, action);
+			SetKey(KEY_TAB, action);
+			break;
+
+		case GLFW_KEY_P:
+			SetKey(KEY_P, action);
 			break;
 	}
 
 	if (mode == GLFW_MOD_SHIFT) 
-		SetKey(KeyShift, GLFW_PRESS);
-	else SetKey(KeyShift, GLFW_RELEASE);
+		SetKey(KEY_SHIFT, GLFW_PRESS);
+	else SetKey(KEY_SHIFT, GLFW_RELEASE);
+}
+
+static void OnMouseButton(GLFWwindow* window, int button, int action, int mods)
+{
+	if (button == GLFW_MOUSE_BUTTON_LEFT)
+	{
+		switch (action)
+		{
+			case GLFW_PRESS:
+		    	g_input.mousePressed = true;
+		    	g_input.mouseHeld = true;
+		    	break;
+
+		    case GLFW_RELEASE:
+		    	g_input.mouseHeld = false;
+		}
+	}
 }

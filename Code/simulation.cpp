@@ -72,6 +72,19 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	// Player size in blocks.
 	ivec3 bSize(CeilToInt(col.size.x), CeilToInt(col.size.y), CeilToInt(col.size.z));
 
+	ivec3 curBlock = BlockPos(player->pos + col.offset);
+	ivec3 tarBlock = BlockPos(target + col.offset);
+
+	// Compute the range of blocks we could touch with our movement. We'll test for collisions
+	// with the blocks in this range.
+	int minX = Min(curBlock.x, tarBlock.x) - bSize.x;
+	int minY = Min(curBlock.y, tarBlock.y) - bSize.y;
+	int minZ = Min(curBlock.z, tarBlock.z) - bSize.z;
+
+	int maxX = Max(curBlock.x, tarBlock.x) + bSize.x;
+	int maxY = Max(curBlock.y, tarBlock.y) + bSize.y;
+	int maxZ = Max(curBlock.z, tarBlock.z) + bSize.z;
+
 	player->collisionFlags = HIT_NONE;
 
 	// Try to resolve collisions for four iterations.
@@ -85,16 +98,14 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 		if (Approx(length(delta), 0.0f)) break;
 
 		vec3 normal = vec3(0.0f);
-		ivec3 bPos = BlockPos(player->pos + col.offset);
 
-		for (int y = -1; y <= 1; y++)
+		for (int y = minY; y <= maxY; y++)
 		{
-			for (int z = -1; z <= 1; z++)
+			for (int z = minZ; z <= maxZ; z++)
 			{
-				for (int x = -1; x <= 1; x++)
+				for (int x = minX; x <= maxX; x++)
 				{
-					ivec3 targetBlock(bPos.x + x, bPos.y + y, bPos.z + z);
-					int block = GetBlock(world, targetBlock);
+					int block = GetBlock(world, x, y, z);
 
 					if (block != 0)
 					{
@@ -103,11 +114,11 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 						float diaY = 1.0f + col.size.y;
 						float diaZ = 1.0f + col.size.z;
 
-						vec3 diff = (player->pos + col.offset) - GetVec3(targetBlock); 
+						vec3 diff = (player->pos + col.offset) - vec3(x, y, z); 
 
 						// Locations of the sides of the object we are colliding with relative to its center. 
 						vec3 min = vec3(-diaX, -diaY, -diaZ) * 0.5f;
-						vec3 max = vec3(diaX, diaY, diaZ) * 0.5f;
+						vec3 max = (vec3(diaX, diaY, diaZ) * 0.5f) - EPSILON;
 
 						Wall walls[] = 
 						{
@@ -153,8 +164,8 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 
 								// See the value of the movement vector's perpendicular coordinate (from the 
 								// wall we're testing) at the point of collision to determine if it's inside 
-								// the block we're testing. If not, 
-								// we can ignore it. If it is, it's a valid collision.
+								// the block we're testing. If not, we can ignore it. If it is, it's a valid 
+								// collision.
 								float perpB = wall->relB + (tResult * wall->deltaB);
 								float perpC = wall->relC + (tResult * wall->deltaC);
 

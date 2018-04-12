@@ -242,7 +242,7 @@ static GLFWwindow* InitRenderer()
 {
 	if (!glfwInit())
 	{
-		DisplayError("GLFW failed to initialize.");
+		LogError("GLFW failed to initialize.");
 		return NULL;
 	}
 
@@ -256,7 +256,7 @@ static GLFWwindow* InitRenderer()
 
 	if (window == NULL) 
 	{
-		DisplayError("Failed to create window.");
+		LogError("Failed to create window.");
 		return NULL;
 	}
 
@@ -267,7 +267,7 @@ static GLFWwindow* InitRenderer()
 
 	if (glewInit() != GLEW_OK)
 	{
-		DisplayError("Failed to initialize GLEW.");
+		LogError("Failed to initialize GLEW.");
 		return NULL;
 	}
 
@@ -276,7 +276,7 @@ static GLFWwindow* InitRenderer()
 	// Allow granular sleeping for FPS control.
 	if (timeBeginPeriod(1) != TIMERR_NOERROR)
 	{
-		DisplayError("Failed to set sleep granularity.");
+		LogError("Failed to set sleep granularity.");
 		return NULL;
 	}
 
@@ -317,7 +317,7 @@ static char* ShaderFromFile(char* fileName)
 		if (inputBuffer) file.close();
 		else
 		{
-			DisplayError("Failed to read shader file!");
+			LogError("Failed to read shader file!");
 			file.close();
 			delete[] inputBuffer;
 			return NULL;
@@ -328,8 +328,8 @@ static char* ShaderFromFile(char* fileName)
 	}
 	else
 	{
-		DisplayError("Could not find the shader: ");
-		DisplayError(path);
+		LogError("Could not find the shader: ");
+		LogError(path);
 		return NULL;
 	}
 
@@ -352,8 +352,8 @@ static bool ShaderHasErrors(GLuint handle, ShaderType type)
 			GLchar* errorLog = (GLchar*)malloc(length);
 			glGetProgramInfoLog(handle, length, NULL, errorLog);
 			
-			DisplayError("Error! Shader program failed to link.");
-			DisplayError(errorLog);
+			LogError("Error! Shader program failed to link.");
+			LogError(errorLog);
 			free(errorLog);
 			return true;
 		}
@@ -369,8 +369,8 @@ static bool ShaderHasErrors(GLuint handle, ShaderType type)
 			GLchar* errorLog = (GLchar*)malloc(length);
 			glGetShaderInfoLog(handle, length, NULL, errorLog);
 			
-			DisplayError("Error! Shader failed to compile.");
-			DisplayError(errorLog);
+			LogError("Error! Shader failed to compile.");
+			LogError(errorLog);
 			free(errorLog);
 			return true;
 		}
@@ -385,7 +385,7 @@ static GLuint LoadShaders(char* vertexPath, char* fragPath)
 
 	if (vertex == NULL)
 	{
-		DisplayError("Failed to load vertex shader from file.");
+		LogError("Failed to load vertex shader from file.");
 		abort();
 	}
 
@@ -395,7 +395,7 @@ static GLuint LoadShaders(char* vertexPath, char* fragPath)
 	
 	if (ShaderHasErrors(vS, VERTEX_SHADER))
 	{
-		DisplayError("Failed to compile the vertex shader.");
+		LogError("Failed to compile the vertex shader.");
 		abort();
 	}
 
@@ -403,7 +403,7 @@ static GLuint LoadShaders(char* vertexPath, char* fragPath)
 
 	if (frag == NULL)
 	{
-		DisplayError("Failed to load fragment shader from file.");
+		LogError("Failed to load fragment shader from file.");
 		abort();
 	}
 
@@ -413,7 +413,7 @@ static GLuint LoadShaders(char* vertexPath, char* fragPath)
 	
 	if (ShaderHasErrors(fS, FRAGMENT_SHADER))
 	{
-		DisplayError("Failed to compile the fragment shader.");
+		LogError("Failed to compile the fragment shader.");
 		abort();
 	}
 
@@ -424,7 +424,7 @@ static GLuint LoadShaders(char* vertexPath, char* fragPath)
 	
 	if (ShaderHasErrors(program, SHADER_PROGRAM))
 	{
-		DisplayError("Failed to link the shaders into the program.");
+		LogError("Failed to link the shaders into the program.");
 		abort();
 	}
 

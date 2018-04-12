@@ -51,30 +51,13 @@ using namespace std;
 #define Malloc(type) (type*)malloc(sizeof(type))
 #define Calloc(type) (type*)calloc(1, sizeof(type))
 
-inline void DisplayError(char* message)
-{
-	fprintf(stderr, "%s\n", message);
-}
-
-static char* PathToAsset(char* fileName)
-{
-	int size = MAX_PATH * 2;
-	char* path = (char*)malloc(size);
-	GetModuleFileName(NULL, path, size);
-
-	char* pos = strrchr(path, '\\');
-	*(pos + 1) = '\0';
-
-	strcat(path, fileName);
-	return path;
-}
-
 #include "utils.h"
 #include "input.h"
 #include "renderer.h"
 #include "world.h"
 #include "simulation.h"
 
+#include "utils.cpp"
 #include "input.cpp"
 #include "renderer.cpp"
 #include "simulation.cpp"
@@ -109,18 +92,6 @@ static void OnMouseMove(GLFWwindow* window, double posX, double posY)
 		lastMouse.y = y;
 	}
 }
-
-static void OnMouseButton(GLFWwindow* window, int button, int action, int mods)
-{
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-    {
-    	if (g_paused)
-    	{
-    		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    		g_paused = false;
-    	}
-    }
-}
  
 static void ShowFPS(GLFWwindow* window)
 {
@@ -147,10 +118,16 @@ static void ShowFPS(GLFWwindow* window)
 
 static void Update(GLFWwindow* window, Player* player, World* world, float deltaTime)
 {
-	if (KeyPressed(KeyEscape))
+	if (KeyPressed(KEY_ESCAPE))
 	{
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		g_paused = true;
+	}
+
+	if (g_paused && MousePressed())
+	{
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		g_paused = false;
 	}
 
 	if (g_paused) return;
@@ -160,7 +137,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	UnloadChunks(world, pos);
 	LoadSurroundingChunks(world, pos);
 
-	if (KeyPressed(KeyTab))
+	if (KeyPressed(KEY_TAB))
 		player->flying = !player->flying;
 
 	double mouseX, mouseY;
@@ -180,21 +157,27 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 	vec3 accel = vec3(0.0f);
 
-	if (KeyHeld(KeyUp)) accel = MoveDirXZ(cam->forward);
-	if (KeyHeld(KeyDown)) accel = MoveDirXZ(-cam->forward);
-	if (KeyHeld(KeyLeft)) accel = MoveDirXZ(-cam->right);
-	if (KeyHeld(KeyRight)) accel = MoveDirXZ(cam->right);
+	if (KeyHeld(KEY_UP)) accel = MoveDirXZ(cam->forward);
+	if (KeyHeld(KEY_DOWN)) accel = MoveDirXZ(-cam->forward);
+	if (KeyHeld(KEY_LEFT)) accel = MoveDirXZ(-cam->right);
+	if (KeyHeld(KEY_RIGHT)) accel = MoveDirXZ(cam->right);
 
 	if (player->flying)
 	{
 		player->speed = 200.0f;
 
-		if (KeyHeld(KeySpace))
-			accel = g_worldUp;
+		if (KeyHeld(KEY_SPACE))
+			accel.y = 1.0f;
 
-		if (KeyHeld(KeyShift)) accel = -g_worldUp;
+		if (KeyHeld(KEY_SHIFT)) accel.y = -1.0f;
 	}
-	else player->speed = 50.0f;
+	else 
+	{
+		player->speed = 50.0f;
+
+		if (KeyHeld(KEY_SPACE))
+			player->velocity.y = 15.0f;
+	}
 
 	Move(world, player, accel, deltaTime);
 }
@@ -237,7 +220,7 @@ int main()
 	LoadTextureArray(&texture, paths, true);
 	sb_free(paths);
 
-	World* world = NewWorld(10, 10);
+	World* world = NewWorld(2, 2);
 
 	Player* player = NewPlayer(world->spawn);
 	Camera* cam = player->camera;

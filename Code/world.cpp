@@ -25,6 +25,8 @@ static World* NewWorld(int width, int length)
 	world->noise = FastNoiseSIMD::NewFastNoiseSIMD();
 	world->noise->SetSeed(rand());
 
+	world->lastLoadPos = ivec3(-1);
+
 	return world;
 }
 
