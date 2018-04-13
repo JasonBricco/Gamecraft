@@ -105,7 +105,7 @@ static Camera* NewCamera(vec3 pos)
 {
 	Camera* cam = Calloc(Camera);
 	cam->pos = pos;
-	cam->sensitivity = 0.1f;
+	cam->sensitivity = 0.05f;
 	return cam;
 }
 

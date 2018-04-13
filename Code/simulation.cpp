@@ -6,7 +6,7 @@ static Player* NewPlayer(vec3 pos)
 	Player* player = Malloc(Player);
 	player->camera = NewCamera(pos);
 	player->pos = pos;
-	player->col = { vec3(0.0f), vec3(0.5f, 0.9f, 0.5f) };
+	player->col = { vec3(0.0f, -0.9f, 0.0f), vec3(0.5f, 1.8f, 0.5f) };
 	player->velocity = vec3(0.0f);
 	player->speed = 50.0f;
 	player->friction = -8.0f;
@@ -118,7 +118,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 
 						// Locations of the sides of the object we are colliding with relative to its center. 
 						vec3 min = vec3(-diaX, -diaY, -diaZ) * 0.5f;
-						vec3 max = (vec3(diaX, diaY, diaZ) * 0.5f) - EPSILON;
+						vec3 max = vec3(diaX, diaY, diaZ) * 0.5f;
 
 						Wall walls[] = 
 						{

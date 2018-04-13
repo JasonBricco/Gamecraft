@@ -175,7 +175,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	{
 		player->speed = 50.0f;
 
-		if (KeyHeld(KEY_SPACE))
+		if ((player->collisionFlags & HIT_DOWN) && KeyHeld(KEY_SPACE))
 			player->velocity.y = 15.0f;
 	}
 
@@ -220,7 +220,7 @@ int main()
 	LoadTextureArray(&texture, paths, true);
 	sb_free(paths);
 
-	World* world = NewWorld(2, 2);
+	World* world = NewWorld(512, 512);
 
 	Player* player = NewPlayer(world->spawn);
 	Camera* cam = player->camera;
