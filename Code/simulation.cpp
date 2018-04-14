@@ -210,3 +210,112 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	player->camera->pos = player->pos;
 	UpdateCameraVectors(player->camera);
 }
+
+static HitInfo GetVoxelHit(World* world)
+{
+	HitInfo info = {};
+	Ray ray = ScreenCenterToRay();
+
+	vec3 point;
+	
+	if (VoxelRaycast(world, ray, 10.0f, &point))
+	{
+		info.hit = true;
+		info.hitPos = BlockPos(point + ray.dir * 0.01f);
+		point -= ray.direction * 0.01f;
+		info.adjPos = BlockPos(point);
+		info.normal = info.hitPos - info.adjPos;
+	}
+}
+
+static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result)
+{
+	ivec3 start = BlockPos(ray.origin);
+	ivec3 end = BlockPos(ray.origin + ray.dir * dist);
+
+	if (start.x > end.x)
+	{
+		int tmp = start.x;
+		start.x = end.x;
+		end.x = tmp;
+	}
+	
+	if (start.y > end.y) 
+	{
+		int tmp = start.y;
+		start.y = end.y;
+		end.y = tmp;
+	}
+	
+	if (start.z > end.z) 
+	{
+		int tmp = start.z;
+		start.z = end.z;
+		end.z = tmp;
+	}
+
+	float minDistance = dist;
+
+	for (int z = start.z; z <= end.z; z++) 
+	{
+		for (int y = start.y; y <= end.y; y++) 
+		{
+			for (int x = start.x; x <= end.x; x++) 
+			{
+				int block = GetBlock(world, x, y, z);
+
+				if (block == 0) continue;
+
+				float newDist = BlockRayIntersection(vec3(x, y, z), ray);
+				minDistance = Min(minDistance, newDist);
+			}
+		}
+	}
+
+	if (minDistance != dist)
+	{
+		*result = ray.origin + ray.dir * minDistance;
+		return true;
+	}
+
+	return false;
+}
+
+static float BlockRayIntersection(vec3 blockPos, Ray ray) 
+{
+	float nearP = -FLT_MAX;
+	float farP = FLT_MAX;
+	
+	for (int i = 0; i < 3; i++) 
+	{
+		float min = blockPos[i] - 0.5f;
+		float max = blockPos[i] + 0.5f;
+		
+		float pos = ray.origin[i];
+		float dir = ray.dir[i];
+		
+		if (abs(dir) <= EPSILON) 
+		{
+			if ((pos < min) || (pos > max)) 
+				return FLT_MAX;
+		}
+		
+		float t0 = (min - pos) / dir;
+		float t1 = (max - pos) / dir;
+		
+		if (t0 > t1) 
+		{
+			float tmp = t0;
+			t0 = t1;
+			t1 = tmp;
+		}
+		
+		nearP = Max(t0, nearP);
+		farP = Min(t1, farP);
+		
+		if (nearP > farP) return FLT_MAX;
+		if (farP < 0.0f) return FLT_MAX;
+	}
+	
+	return nearP > 0.0f ? nearP : farP;
+}

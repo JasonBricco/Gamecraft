@@ -1,31 +1,28 @@
 // Voxel Engine
 // Jason Bricco
 
-static vec3 g_worldUp = vec3(0.0f, 1.0f, 0.0f);
-static int g_windowWidth = 1024;
-static int g_windowHeight = 768;
-
-static unordered_map<string, GLint> g_uniformMap;
-static int g_paramCount = 12;
+static Renderer g_renderer;
 
 static void InitializeMesh(Mesh* mesh)
 {
 	glGenVertexArrays(1, &mesh->va);
 	glBindVertexArray(mesh->va);
 
+	int params = g_renderer.paramCount;
+
 	// Vertex position attribute buffer.
 	glGenBuffers(1, &mesh->vb);
 	glBindBuffer(GL_ARRAY_BUFFER, mesh->vb);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, g_paramCount * sizeof(GLfloat), NULL);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, params * sizeof(GLfloat), NULL);
 	glEnableVertexAttribArray(0);
 
 	// Texture coordinates (UVs).
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, g_paramCount * sizeof(GLfloat), 
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, params * sizeof(GLfloat), 
 		(GLvoid*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
 
 	// Vertex color attribute buffer.
-	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, g_paramCount * sizeof(GLfloat), 
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, params * sizeof(GLfloat), 
 		(GLvoid*)(6 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(2);
 
@@ -65,7 +62,7 @@ inline void SetVertex(Mesh* mesh, float x, float y, float z, float u, float v, f
 
 inline void SetIndices(Mesh* mesh)
 {
-	int offset = (int)mesh->vertices.size() / g_paramCount;
+	int offset = (int)mesh->vertices.size() / g_renderer.paramCount;
 
 	mesh->indices.push_back(offset + 2);
 	mesh->indices.push_back(offset + 1);
@@ -96,8 +93,8 @@ static void DrawMesh(Mesh* mesh)
 
 static void OnWindowResize(GLFWwindow* window, int width, int height)
 {
-	g_windowWidth = width;
-	g_windowHeight = height;
+	g_renderer.windowWidth = width;
+	g_renderer.windowHeight = height;
 	glViewport(0, 0, width, height);
 }
 
@@ -109,15 +106,6 @@ static Camera* NewCamera(vec3 pos)
 	return cam;
 }
 
-static OrbitCamera* NewOrbitCamera(vec3 pos, float radius)
-{
-	OrbitCamera* cam = Calloc(OrbitCamera);
-	cam->pos = pos;
-	cam->radius = radius;
-	cam->sensitivity = 0.25f;
-	return cam;
-}
-
 static void UpdateCameraVectors(Camera* cam)
 {
 	vec3 forward;
@@ -126,7 +114,7 @@ static void UpdateCameraVectors(Camera* cam)
 	forward.z = cosf(cam->pitch) * cosf(cam->yaw);
 
 	forward = normalize(forward);
-	cam->right = normalize(cross(forward, g_worldUp));
+	cam->right = normalize(cross(forward, g_renderer.worldUp));
 	cam->up = normalize(cross(cam->right, forward));
 
 	cam->forward = forward;
@@ -142,34 +130,10 @@ static void RotateCamera(Camera* cam, float yaw, float pitch)
 	UpdateCameraVectors(cam);
 }
 
-static void RotateCamera(OrbitCamera* cam)
+inline void UpdateViewMatrix()
 {
-	float yaw = radians(cam->yaw);
-	float pitch = radians(clamp(cam->pitch, -89.0f, 89.0f));
-
-	vec3 pos = cam->pos, target = cam->target;
-	float radius = cam->radius;
-
-	pos.x = target.x + radius * cosf(pitch) * sinf(yaw);
-	pos.y = target.y + radius * sinf(pitch);
-	pos.z = target.z + radius * cosf(pitch) * cosf(yaw);
-
-	cam->pos = pos;
-}
-
-inline mat4 GetViewMatrix(Camera* cam)
-{
-	return lookAt(cam->pos, cam->target, cam->up);
-}
-
-inline mat4 GetViewMatrix(OrbitCamera* cam)
-{
-	return lookAt(cam->pos, cam->target, g_worldUp);
-}
-
-inline void SetCameraRadius(OrbitCamera* cam, float radius)
-{
-	cam->radius = clamp(radius, 2.0f, 80.0f);
+	Camera* cam = g_renderer.camera;
+	g_renderer.view = lookAt(cam->pos, cam->target, cam->up);
 }
 
 static void LoadTexture(Texture2D* tex, char* path, bool mipMaps)
@@ -238,8 +202,28 @@ static void OnOpenGLMessage(GLenum src, GLenum type, GLuint id, GLenum severity,
   	abort();
 }
 
+inline int WindowWidth()
+{
+	return g_renderer.windowWidth;
+}
+
+inline int WindowHeight()
+{
+	return g_renderer.windowHeight;
+}
+
+inline void SetCamera(Camera* cam)
+{
+	g_renderer.camera = cam;
+}
+
 static GLFWwindow* InitRenderer()
 {
+	g_renderer.worldUp = vec3(0.0f, 1.0f, 0.0f);
+	g_renderer.windowWidth = 1024;
+	g_renderer.windowHeight = 768;
+	g_renderer.paramCount = 12;
+	
 	if (!glfwInit())
 	{
 		LogError("GLFW failed to initialize.");
@@ -252,7 +236,7 @@ static GLFWwindow* InitRenderer()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-	GLFWwindow* window = glfwCreateWindow(g_windowWidth, g_windowHeight, "Voxel Engine", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(WindowWidth(), WindowHeight(), "Voxel Engine", NULL, NULL);
 
 	if (window == NULL) 
 	{
@@ -281,7 +265,7 @@ static GLFWwindow* InitRenderer()
 	}
 
 	glClearColor(0.0f, 0.75f, 1.0f, 1.0f);
-	glViewport(0, 0, g_windowWidth, g_windowHeight);
+	glViewport(0, 0, WindowWidth(), WindowHeight());
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -293,7 +277,53 @@ static GLFWwindow* InitRenderer()
 
 	#endif
 
+	g_renderer.programs[0] = LoadShaders("Shaders\\diffusevertarray.shader", "Shaders\\diffusefragarray.shader");
+	
+	TextureArray texture;
+
+	char** paths = NULL;
+	sb_push(paths, PathToAsset("Assets/Grass.png"));
+	sb_push(paths, PathToAsset("Assets/GrassSide.png"));
+	sb_push(paths, PathToAsset("Assets/Dirt.png"));
+
+	LoadTextureArray(&texture, paths, true);
+	sb_free(paths);
+
+	g_renderer.texture = texture;
+
+	g_renderer.projection = perspective(radians(CAMERA_FOV), (float)WindowWidth() / (float)WindowHeight(), 
+		0.1f, 1000.0f);
+
 	return window;
+}
+
+static Ray ScreenCenterToRay()
+{
+	mat4 projection = g_renderer.projection * g_renderer.view;
+	int w = WindowWidth();
+	int h = WindowHeight();
+	vec4 viewport = vec4(0.0f, h, w, -h);
+
+	ivec2 cursor = ivec2(w / 2, h / 2);
+
+	vec3 origin = unProject(vec3(cursor, 0), mat4(), projection, viewport);
+
+	return { origin, g_renderer.camera->forward };
+}
+
+static void PreRender()
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	UpdateViewMatrix();
+
+	GLuint program = g_renderer.programs[0];
+
+	UseShader(program);
+	SetUniform(0, "view", g_renderer.view);
+	SetUniform(0, "projection", g_renderer.projection);
+	SetUniform(0, "viewPos", g_renderer.camera->pos);
+	SetUniform(0, "ambient", vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
 static char* ShaderFromFile(char* fileName)
@@ -443,12 +473,12 @@ inline void UseShader(GLuint program)
 
 static GLint GetUniformLocation(GLint program, GLchar* name)
 {
-	unordered_map<string, GLint>::iterator it = g_uniformMap.find(name);
+	unordered_map<string, GLint>::iterator it = g_renderer.uniforms.find(name);
 
-	if (it == g_uniformMap.end())
-		g_uniformMap[name] = glGetUniformLocation(program, name);
+	if (it == g_renderer.uniforms.end())
+		g_renderer.uniforms[name] = glGetUniformLocation(program, name);
 	
-	return g_uniformMap[name];
+	return g_renderer.uniforms[name];
 }
 
 inline void SetUniformSampler(GLint program, GLchar* name, GLint tex)
@@ -458,32 +488,32 @@ inline void SetUniformSampler(GLint program, GLchar* name, GLint tex)
 	glUniform1i(loc, tex);
 }
 
-inline void SetUniform(GLint program, GLchar* name, GLfloat f)
+inline void SetUniform(int ID, GLchar* name, GLfloat f)
 {
-	GLint loc = GetUniformLocation(program, name);
+	GLint loc = GetUniformLocation(g_renderer.programs[ID], name);
 	glUniform1f(loc, f);
 }
 
-inline void SetUniform(GLint program, GLchar* name, vec2 v)
+inline void SetUniform(int ID, GLchar* name, vec2 v)
 {
-	GLint loc = GetUniformLocation(program, name);
+	GLint loc = GetUniformLocation(g_renderer.programs[ID], name);
 	glUniform2f(loc, v.x, v.y);
 }
 
-inline void SetUniform(GLint program, GLchar* name, vec3 v)
+inline void SetUniform(int ID, GLchar* name, vec3 v)
 {
-	GLint loc = GetUniformLocation(program, name);
+	GLint loc = GetUniformLocation(g_renderer.programs[ID], name);
 	glUniform3f(loc, v.x, v.y, v.z);
 }
 
-inline void SetUniform(GLint program, GLchar* name, vec4 v)
+inline void SetUniform(int ID, GLchar* name, vec4 v)
 {
-	GLint loc = GetUniformLocation(program, name);
+	GLint loc = GetUniformLocation(g_renderer.programs[ID], name);
 	glUniform4f(loc, v.x, v.y, v.z, v.w);
 }
 
-inline void SetUniform(GLint program, GLchar* name, mat4 m)
+inline void SetUniform(int ID, GLchar* name, mat4 m)
 {
-	GLint loc = GetUniformLocation(program, name);
+	GLint loc = GetUniformLocation(g_renderer.programs[ID], name);
 	glUniformMatrix4fv(loc, 1, GL_FALSE, value_ptr(m));
 }

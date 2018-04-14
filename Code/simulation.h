@@ -31,6 +31,20 @@ struct Wall
     CollisionFlags flag;
 };
 
+struct HitInfo
+{
+	bool hit;
+	vec3 hitPos;
+	vec3 adjPos;
+	vec3 normal;
+};
+
+struct Ray
+{
+	vec3 origin;
+	vec3 dir;
+};
+
 struct Collider
 {
 	vec3 offset;
@@ -52,3 +66,6 @@ struct Player
 static Player* NewPlayer(vec3 pos);
 
 static void Move(World* world, Player* player, vec3 accel, float deltaTime);
+
+static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result);
+static float BlockRayIntersection(vec3 blockPos, Ray ray);

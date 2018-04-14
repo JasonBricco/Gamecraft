@@ -33,19 +33,25 @@ struct Camera
 	float sensitivity;
 };
 
-// Camera that orbits around a center point, 'pos'.
-struct OrbitCamera
-{
-	vec3 pos, target;
-	float yaw, pitch;
-	float radius;
-	float sensitivity;
-};
-
 struct Renderer
 {
-	Camera* cam;
-	OrbitCamera* orbit;
+	GLFWwindow* window;
+	Camera* camera;
+
+	int windowWidth, windowHeight;
+
+	vec3 worldUp;
+
+	unordered_map<string, GLint> uniforms;
+	int paramCount;
+
+	mat4 projection;
+	mat4 view;
+
+	TextureArray texture;
+	GLuint programs[1];
+
+	ivec3 cursor;
 };
 
 static void InitializeMesh(Mesh* mesh);
@@ -62,14 +68,10 @@ static void FillMeshData(Mesh* mesh);
 static void OnWindowResize(GLFWwindow* window, int width, int height);
 
 static Camera* NewCamera(vec3 pos);
-static OrbitCamera* NewOrbitCamera(vec3 pos, float radius);
 static void UpdateCameraVectors(Camera* cam);
 static void RotateCamera(Camera* cam, float yaw, float pitch);
-static void RotateCamera(OrbitCamera* cam);
-inline void SetCameraRadius(OrbitCamera* cam, float radius);
 
-inline mat4 GetViewMatrix(Camera* cam);
-inline mat4 GetViewMatrix(OrbitCamera* cam);
+inline void UpdateViewMatrix();
 
 static void LoadTexture(Texture2D* tex, char* path, bool mipMaps = true);
 static void LoadTextureArray(TextureArray* tex, char** paths, bool mipMaps = true);
@@ -78,7 +80,14 @@ static void LoadTextureArray(TextureArray* tex, char** paths, bool mipMaps = tru
 static void OnOpenGLMessage(GLenum src, GLenum type, GLuint id, GLenum severity, 
 	GLsizei length, const GLchar* msg, const void* param);
 
+inline int WindowWidth();
+inline int WindowHeight();
+inline void SetCamera(Camera* cam);
+
 static GLFWwindow* InitRenderer();
+
+static Ray ScreenCenterToRay();
+static void PreRender();
 
 static char* ShaderFromFile(char* fileName);
 static bool ShaderHasErrors(GLuint handle, ShaderType type);

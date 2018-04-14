@@ -1,6 +1,17 @@
 // Voxel Engine
 // Jason Bricco
 
+// NOTES:
+// I left off implementing the GetVoxelHit() function in simulation.cpp. 
+// We need to add its prototype in simulation.h. Then, we need to actually
+// call this in some code that allows us to add/delete blocks. So we can test
+// it. I thought about how there is no cursor or crosshair to mark where 
+// blocks will be edited, but we don't need that for initial testing.
+
+// Collision detection is still not working and we're waiting on a response
+// from the Handmade Hero forums to see if we can find anything out about it.
+// I'll make a decision where to go from there once I get that response.
+
 #define PROFILING 1
 #define ASSERTIONS 1
 #define DEBUG_MEMORY 0
@@ -64,34 +75,6 @@ using namespace std;
 #include "world.cpp"
 
 static bool g_paused;
-
-static void OnMouseMove(GLFWwindow* window, double posX, double posY)
-{
-	OrbitCamera* cam = ((Renderer*)glfwGetWindowUserPointer(window))->orbit;
-
-	if (cam != NULL)
-	{
-		static vec2 lastMouse = vec2(0.0f, 0.0f);
-
-		float x = (float)posX, y = (float)posY;
-
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == 1)
-		{
-			cam->yaw -= (x - lastMouse.x) * cam->sensitivity;
-			cam->pitch += (y - lastMouse.y) * cam->sensitivity;
-		}
-
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == 1)
-		{
-			float dX = 0.01f * (x - lastMouse.x);
-			float dY = 0.01f * (y - lastMouse.y);
-			SetCameraRadius(cam, cam->radius + (dX - dY));
-		}
-
-		lastMouse.x = x;
-		lastMouse.y = y;
-	}
-}
  
 static void ShowFPS(GLFWwindow* window)
 {
@@ -144,7 +127,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
-	double cX = g_windowWidth / 2.0, cY = g_windowHeight / 2.0f;
+	double cX = WindowWidth() / 2.0, cY = WindowHeight() / 2.0f;
 
 	Camera* cam = player->camera;
 
@@ -152,7 +135,6 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	float rotY = (float)(cY - mouseY) * cam->sensitivity;
 
 	RotateCamera(cam, rotX, rotY);
-
 	glfwSetCursorPos(window, cX, cY);
 
 	vec3 accel = vec3(0.0f);
@@ -196,37 +178,18 @@ int main()
 
 	glfwSetKeyCallback(window, OnKey);
 	glfwSetWindowSizeCallback(window, OnWindowResize);
-	glfwSetCursorPosCallback(window, OnMouseMove);
 	glfwSetMouseButtonCallback(window, OnMouseButton);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetCursorPos(window, g_windowWidth / 2.0f, g_windowHeight / 2.0f);
+	glfwSetCursorPos(window, WindowWidth() / 2.0f, WindowHeight() / 2.0f);
 
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* vMode = glfwGetVideoMode(monitor);
 
-	Renderer* renderer = Calloc(Renderer);
-	glfwSetWindowUserPointer(window, renderer);
-	
-	GLuint program = LoadShaders("Shaders\\diffusevertarray.shader", "Shaders\\diffusefragarray.shader");
-	
-	TextureArray texture;
-
-	char** paths = NULL;
-	sb_push(paths, PathToAsset("Assets/Grass.png"));
-	sb_push(paths, PathToAsset("Assets/GrassSide.png"));
-	sb_push(paths, PathToAsset("Assets/Dirt.png"));
-
-	LoadTextureArray(&texture, paths, true);
-	sb_free(paths);
-
 	World* world = NewWorld(512, 512);
 
 	Player* player = NewPlayer(world->spawn);
-	Camera* cam = player->camera;
-	renderer->cam = cam;
-
-	mat4 projection = perspective(radians(CAMERA_FOV), (float)g_windowWidth / (float)g_windowHeight, 0.1f, 1000.0f);
+	SetCamera(player->camera);
 	
 	int refreshHz = vMode->refreshRate * 2;
 	float targetSeconds = 1.0f / refreshHz;
@@ -241,26 +204,18 @@ int main()
 
 		Update(window, player, world, deltaTime);
 		
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		mat4 view = GetViewMatrix(cam);
-
-		UseShader(program);
-		SetUniform(program, "view", view);
-		SetUniform(program, "projection", projection);
-		SetUniform(program, "viewPos", cam->pos);
-		SetUniform(program, "ambient", vec4(1.0f, 1.0f, 1.0f, 1.0f));
-
+		PreRender();
+		
 		mat4 model;
 
 		for (int i = 0; i < world->loadedCount; i++)
 		{
 			Chunk* next = world->loadedChunks[i];
 
-   			if (next->state == CHUNK_BUILT)
+			if (next->state == CHUNK_BUILT)
 			{
 				model = translate(mat4(), (vec3)next->wPos);
-				SetUniform(program, "model", model);
+				SetUniform(0, "model", model);
 				DrawChunk(next);
 			}
 		}
