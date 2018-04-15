@@ -40,6 +40,11 @@ inline ivec3 ToChunkPos(int x, int z)
 	return ivec3(x >> CHUNK_SIZE_BITS, 0, z >> CHUNK_SIZE_BITS);
 }
 
+inline ivec3 ToChunkPos(ivec3 wPos)
+{
+	return ToChunkPos(wPos.x, wPos.z);
+}
+
 inline ivec3 ToChunkPos(vec3 wPos)
 {
 	return ToChunkPos((int)wPos.x, (int)wPos.z);
@@ -83,6 +88,11 @@ static void SetBlock(World* world, int x, int y, int z, int block)
 	if (chunk == NULL) return;
 
 	SetBlock(chunk, x & (CHUNK_SIZE - 1), y, z & (CHUNK_SIZE - 1), block);
+}
+
+inline void SetBlock(World* world, ivec3 pos, int block)
+{
+	SetBlock(world, pos.x, pos.y, pos.z, block);
 }
 
 static void GenerateChunkTerrain(Noise* noise, Chunk* chunk)
@@ -267,8 +277,10 @@ static void BuildChunk(World* world, Chunk* chunk)
 	chunk->state = CHUNK_BUILT;
 }
 
-static void UpdateChunk(World* world, Chunk* chunk)
+static void UpdateChunk(World* world, ivec3 wPos)
 {
+	ivec3 cPos = ToChunkPos(wPos);
+	Chunk* chunk = GetChunk(world, cPos.x, cPos.z);
 	DestroyMesh(&chunk->mesh);
 	BuildChunk(world, chunk);
 }

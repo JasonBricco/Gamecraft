@@ -211,6 +211,63 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	UpdateCameraVectors(player->camera);
 }
 
+static void Simulate(World* world, Player* player, float deltaTime)
+{
+	Camera* cam = player->camera;
+
+	vec3 accel = vec3(0.0f);
+
+	if (KeyHeld(KEY_UP)) accel = MoveDirXZ(cam->forward);
+	if (KeyHeld(KEY_DOWN)) accel = MoveDirXZ(-cam->forward);
+	if (KeyHeld(KEY_LEFT)) accel = MoveDirXZ(-cam->right);
+	if (KeyHeld(KEY_RIGHT)) accel = MoveDirXZ(cam->right);
+
+	if (player->flying)
+	{
+		player->speed = 200.0f;
+
+		if (KeyHeld(KEY_SPACE))
+			accel.y = 1.0f;
+
+		if (KeyHeld(KEY_SHIFT)) accel.y = -1.0f;
+	}
+	else 
+	{
+		player->speed = 50.0f;
+
+		if ((player->collisionFlags & HIT_DOWN) && KeyHeld(KEY_SPACE))
+			player->velocity.y = 15.0f;
+	}
+
+	Move(world, player, accel, deltaTime);
+
+	bool adding = MousePressed(0);
+	bool deleting = MousePressed(1);
+
+	if (MousePressed(0))
+	{
+		HitInfo info = GetVoxelHit(world);
+
+		if (info.hit)
+		{
+			ivec3 setPos;
+
+			if (adding)
+			{
+				setPos = info.adjPos;
+				SetBlock(world, setPos, 1);
+			}
+			else if (deleting)
+			{
+				setPos = info.hitPos;
+				SetBlock(world, setPos, 0);
+			}
+
+			UpdateChunk(world, setPos);
+		}
+	}
+}
+
 static HitInfo GetVoxelHit(World* world)
 {
 	HitInfo info = {};
@@ -222,10 +279,12 @@ static HitInfo GetVoxelHit(World* world)
 	{
 		info.hit = true;
 		info.hitPos = BlockPos(point + ray.dir * 0.01f);
-		point -= ray.direction * 0.01f;
+		point -= ray.dir * 0.01f;
 		info.adjPos = BlockPos(point);
 		info.normal = info.hitPos - info.adjPos;
 	}
+
+	return info;
 }
 
 static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result)

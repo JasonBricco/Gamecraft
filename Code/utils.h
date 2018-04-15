@@ -6,6 +6,12 @@
 #define Min(A, B) ((A < B) ? (A) : (B))
 #define Max(A, B) ((A > B) ? (A) : (B))
 
+struct Ray
+{
+	vec3 origin;
+	vec3 dir;
+};
+
 static char* PathToAsset(char* fileName);
 
 inline int Clamp(int value, int min, int max);

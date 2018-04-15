@@ -17,7 +17,8 @@ enum KeyType
  
 struct GameInput
 {   
-    bool mousePressed, mouseHeld;
+    bool mousePressed[2];
+    bool mouseHeld[2];
     bool keys[KEY_COUNT];
     bool single[KEY_COUNT];
 };
@@ -25,8 +26,8 @@ struct GameInput
 inline bool KeyHeld(KeyType type);
 inline bool KeyPressed(KeyType type);
 
-inline bool MousePressed();
-inline bool MouseHeld();
+inline bool MousePressed(int button);
+inline bool MouseHeld(int button);
 
 static void SetKey(KeyType type, int action);
 inline void ResetInput();

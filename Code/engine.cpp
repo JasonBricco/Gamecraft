@@ -1,16 +1,11 @@
 // Voxel Engine
 // Jason Bricco
 
-// NOTES:
-// I left off implementing the GetVoxelHit() function in simulation.cpp. 
-// We need to add its prototype in simulation.h. Then, we need to actually
-// call this in some code that allows us to add/delete blocks. So we can test
-// it. I thought about how there is no cursor or crosshair to mark where 
-// blocks will be edited, but we don't need that for initial testing.
-
-// Collision detection is still not working and we're waiting on a response
-// from the Handmade Hero forums to see if we can find anything out about it.
-// I'll make a decision where to go from there once I get that response.
+// - Tried to add deleting of blocks, it doesn't work. Right clicking does nothing.
+// Is it a problem detecting right click? Test that. If not, then see what it might be.
+// - Top faces are not being culled properly - when adding a block, they seem to remain but
+// bottom faces don't. Look into this.
+// GJK collision - need to study up.
 
 #define PROFILING 1
 #define ASSERTIONS 1
@@ -107,7 +102,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 		g_paused = true;
 	}
 
-	if (g_paused && MousePressed())
+	if (g_paused && MousePressed(0))
 	{
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		g_paused = false;
@@ -137,31 +132,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	RotateCamera(cam, rotX, rotY);
 	glfwSetCursorPos(window, cX, cY);
 
-	vec3 accel = vec3(0.0f);
-
-	if (KeyHeld(KEY_UP)) accel = MoveDirXZ(cam->forward);
-	if (KeyHeld(KEY_DOWN)) accel = MoveDirXZ(-cam->forward);
-	if (KeyHeld(KEY_LEFT)) accel = MoveDirXZ(-cam->right);
-	if (KeyHeld(KEY_RIGHT)) accel = MoveDirXZ(cam->right);
-
-	if (player->flying)
-	{
-		player->speed = 200.0f;
-
-		if (KeyHeld(KEY_SPACE))
-			accel.y = 1.0f;
-
-		if (KeyHeld(KEY_SHIFT)) accel.y = -1.0f;
-	}
-	else 
-	{
-		player->speed = 50.0f;
-
-		if ((player->collisionFlags & HIT_DOWN) && KeyHeld(KEY_SPACE))
-			player->velocity.y = 15.0f;
-	}
-
-	Move(world, player, accel, deltaTime);
+	Simulate(world, player, deltaTime);
 }
 
 int main()

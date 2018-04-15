@@ -51,7 +51,9 @@ struct World
 static World* NewWorld(int width, int length);
 
 inline int ChunkIndex(World* world, int x, int z);
+
 inline ivec3 ToChunkPos(int x, int z);
+inline ivec3 ToChunkPos(ivec3 wPos);
 inline ivec3 ToChunkPos(vec3 wPos);
 
 inline bool ChunkInsideWorld(World* world, int x, int z);
@@ -62,6 +64,7 @@ inline Chunk* GetChunk(World* world, ivec3 pos);
 
 inline void SetBlock(Chunk* chunk, int x, int y, int z, int block);
 static void SetBlock(World* world, int x, int y, int z, int block);
+inline void SetBlock(World* world, ivec3 pos, int block);
 
 static void GenerateChunkTerrain(Noise* noise, Chunk* chunk);
 static void FillChunk(Chunk* chunk, int block);
@@ -82,7 +85,7 @@ inline int GetBlock(World* world, ivec3 pos);
 
 static void BuildBlock(World* world, Chunk* chunk, float x, float y, float z, ivec3 wPos);
 static void BuildChunk(World* world, Chunk* chunk);
-static void UpdateChunk(World* world, Chunk* chunk);
+static void UpdateChunk(World* world, ivec3 wPos);
 static void DestroyChunk(World* world, Chunk* chunk, int i);
 
 // Loads chunks around the chunk position 'pos'.

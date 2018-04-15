@@ -13,14 +13,14 @@ inline bool KeyPressed(KeyType type)
 	return g_input.single[type];
 }
 
-inline bool MousePressed()
+inline bool MousePressed(int button)
 {
-	return g_input.mousePressed;
+	return g_input.mousePressed[button];
 }
 
-inline bool MouseHeld()
+inline bool MouseHeld(int button)
 {
-	return g_input.mouseHeld;
+	return g_input.mouseHeld[button];
 }
 
 static void SetKey(KeyType type, int action)
@@ -39,7 +39,9 @@ static void SetKey(KeyType type, int action)
 inline void ResetInput()
 {
 	memset(&g_input.single, 0, sizeof(g_input.single));
-	g_input.mousePressed = false;
+
+	for (int i = 0; i < 2; i++)
+		g_input.mousePressed[i] = false;
 }
 
 static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mode)
@@ -86,17 +88,22 @@ static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mod
 
 static void OnMouseButton(GLFWwindow* window, int button, int action, int mods)
 {
-	if (button == GLFW_MOUSE_BUTTON_LEFT)
+	int i = -1;
+
+	if (button == GLFW_MOUSE_BUTTON_LEFT) i = 0;
+	else if (button == GLFW_MOUSE_BUTTON_RIGHT) i = 1;
+
+	if (i >= 0)
 	{
 		switch (action)
 		{
 			case GLFW_PRESS:
-		    	g_input.mousePressed = true;
-		    	g_input.mouseHeld = true;
+				g_input.mousePressed[i] = true;
+				g_input.mouseHeld[i] = true;
 		    	break;
 
 		    case GLFW_RELEASE:
-		    	g_input.mouseHeld = false;
+		    	g_input.mouseHeld[i] = false;
 		}
 	}
 }
