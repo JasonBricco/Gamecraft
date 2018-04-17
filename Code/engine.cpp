@@ -1,12 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 
-// - Tried to add deleting of blocks, it doesn't work. Right clicking does nothing.
-// Is it a problem detecting right click? Test that. If not, then see what it might be.
-// - Top faces are not being culled properly - when adding a block, they seem to remain but
-// bottom faces don't. Look into this.
-// GJK collision - need to study up.
-
 #define PROFILING 1
 #define ASSERTIONS 1
 #define DEBUG_MEMORY 0
@@ -157,7 +151,7 @@ int main()
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* vMode = glfwGetVideoMode(monitor);
 
-	World* world = NewWorld(512, 512);
+	World* world = NewWorld(1, 1);
 
 	Player* player = NewPlayer(world->spawn);
 	SetCamera(player->camera);
