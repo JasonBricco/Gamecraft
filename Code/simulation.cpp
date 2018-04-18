@@ -471,10 +471,9 @@ static void Simulate(World* world, Player* player, float deltaTime)
 
 	Move(world, player, accel, deltaTime);
 
-	bool adding = MousePressed(0);
-	bool deleting = MousePressed(1);
+	int op = MousePressed(0) ? 0 : MousePressed(1) ? 1 : -1;
 
-	if (MousePressed(0))
+	if (op >= 0)
 	{
 		HitInfo info = GetVoxelHit(world);
 
@@ -482,12 +481,12 @@ static void Simulate(World* world, Player* player, float deltaTime)
 		{
 			ivec3 setPos;
 
-			if (adding)
+			if (op == 0)
 			{
 				setPos = info.adjPos;
 				SetBlock(world, setPos, 1, true);
 			}
-			else if (deleting)
+			else
 			{
 				setPos = info.hitPos;
 				SetBlock(world, setPos, 0, true);

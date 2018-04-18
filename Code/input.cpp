@@ -39,9 +39,7 @@ static void SetKey(KeyType type, int action)
 inline void ResetInput()
 {
 	memset(&g_input.single, 0, sizeof(g_input.single));
-
-	for (int i = 0; i < 2; i++)
-		g_input.mousePressed[i] = false;
+	memset(&g_input.mousePressed, 0, sizeof(g_input.mousePressed));
 }
 
 static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mode)

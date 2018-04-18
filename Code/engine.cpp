@@ -2,8 +2,6 @@
 // Jason Bricco
 
 // BUGS/TODO:
-// Deleting doesn't work.
-// Top faces not being culled when placing blocks.
 // Need a crosshair to show where editing.
 
 // Soon:

@@ -38,6 +38,9 @@ static void DestroyMesh(Mesh* mesh)
 	glDeleteBuffers(1, &mesh->vb);
 	glDeleteBuffers(1, &mesh->ib);
 	glDeleteVertexArrays(1, &mesh->va);
+
+	mesh->vertices.clear();
+	mesh->indices.clear();
 }
 
 inline void SetVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex, 
@@ -55,9 +58,6 @@ inline void SetVertex(Mesh* mesh, float x, float y, float z, float u, float v, f
 	mesh->vertices.push_back(g);
 	mesh->vertices.push_back(b);
 	mesh->vertices.push_back(a);
-
-	mesh->vertices.push_back(0.0f);
-	mesh->vertices.push_back(0.0f);
 }
 
 inline void SetIndices(Mesh* mesh)
@@ -222,7 +222,7 @@ static GLFWwindow* InitRenderer()
 	g_renderer.worldUp = vec3(0.0f, 1.0f, 0.0f);
 	g_renderer.windowWidth = 1024;
 	g_renderer.windowHeight = 768;
-	g_renderer.paramCount = 12;
+	g_renderer.paramCount = 10;
 	
 	if (!glfwInit())
 	{
