@@ -1,7 +1,7 @@
 // Voxel Engine
 // Jason Bricco
 
-#define EPA_TOLERANCE 0.0001f
+#define EPA_TOLERANCE 0.001f
 
 // Provides information about which side of an entity collided.
 enum CollisionFlags
@@ -10,6 +10,12 @@ enum CollisionFlags
 	HIT_UP = 1,
 	HIT_DOWN = 2,
 	HIT_OTHER = 4
+};
+
+struct CollisionInfo
+{
+	vec3 mtv;
+	vec3 normal;
 };
 
 struct HitInfo
@@ -61,14 +67,14 @@ struct Player
 	vec3 velocity;
 	float speed;
 	float friction;
-	uint8_t collisionFlags;
+	uint8_t colFlags;
 	bool flying;
 };
 
 static Player* NewPlayer(vec3 pos);
 
 // Expanding polytope algorithm for finding the minimum translation vector.
-static vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collider* colB);
+static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collider* colB);
 
 // Updates the simplex for the three point (triangle) case. 'abc' must be in 
 // counterclockwise winding order.
@@ -88,7 +94,9 @@ static vec3 SupportCapsule(vec3 pos, Capsule c, vec3 dir);
 // Returns true if two colliders are intersecting. 'mtv' represents a
 // minimum translation vector. If supplied, it can be used for 
 // collision separation.
-static bool Intersect(Collider* a, Collider* b, vec3* mtv);
+static bool Intersect(Collider* a, Collider* b, CollisionInfo* info);
+
+inline void CameraFollow(Player* player);
 
 static void Move(World* world, Player* player, vec3 accel, float deltaTime);
 static void Simulate(World* world, Player* player, float deltaTime);

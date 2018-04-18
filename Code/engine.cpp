@@ -1,6 +1,15 @@
 // Voxel Engine
 // Jason Bricco
 
+// BUGS/TODO:
+// Crash when placing blocks outside of island boundary.
+// Deleting doesn't work.
+// Top faces not being culled when placing blocks.
+// Need a crosshair to show where editing.
+
+// Soon:
+// Frustum culling.
+
 #define PROFILING 1
 #define ASSERTIONS 1
 #define DEBUG_MEMORY 0
@@ -151,7 +160,7 @@ int main()
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* vMode = glfwGetVideoMode(monitor);
 
-	World* world = NewWorld(1, 1);
+	World* world = NewWorld(512, 512);
 
 	Player* player = NewPlayer(world->spawn);
 	SetCamera(player->camera);
