@@ -485,15 +485,13 @@ static void Simulate(World* world, Player* player, float deltaTime)
 			if (adding)
 			{
 				setPos = info.adjPos;
-				SetBlock(world, setPos, 1);
+				SetBlock(world, setPos, 1, true);
 			}
 			else if (deleting)
 			{
 				setPos = info.hitPos;
-				SetBlock(world, setPos, 0);
+				SetBlock(world, setPos, 0, true);
 			}
-
-			UpdateChunk(world, setPos);
 		}
 	}
 }

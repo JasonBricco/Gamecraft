@@ -2,7 +2,6 @@
 // Jason Bricco
 
 // BUGS/TODO:
-// Crash when placing blocks outside of island boundary.
 // Deleting doesn't work.
 // Top faces not being culled when placing blocks.
 // Need a crosshair to show where editing.

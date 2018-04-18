@@ -78,7 +78,7 @@ inline void SetBlock(Chunk* chunk, int x, int y, int z, int block)
 	chunk->blocks[x + CHUNK_SIZE * (y + WORLD_BLOCK_HEIGHT * z)] = block;
 }
 
-static void SetBlock(World* world, int x, int y, int z, int block)
+static void SetBlock(World* world, int x, int y, int z, int block, bool update)
 {
 	if (!BlockInsideWorld(world, x, y, z)) return;
 
@@ -88,11 +88,13 @@ static void SetBlock(World* world, int x, int y, int z, int block)
 	if (chunk == NULL) return;
 
 	SetBlock(chunk, x & (CHUNK_SIZE - 1), y, z & (CHUNK_SIZE - 1), block);
+
+	if (update) UpdateChunk(world, chunk);
 }
 
-inline void SetBlock(World* world, ivec3 pos, int block)
+inline void SetBlock(World* world, ivec3 pos, int block, bool update)
 {
-	SetBlock(world, pos.x, pos.y, pos.z, block);
+	SetBlock(world, pos.x, pos.y, pos.z, block, update);
 }
 
 static void GenerateChunkTerrain(Noise* noise, Chunk* chunk)
@@ -277,12 +279,17 @@ static void BuildChunk(World* world, Chunk* chunk)
 	chunk->state = CHUNK_BUILT;
 }
 
+inline void UpdateChunk(World* world, Chunk* chunk)
+{
+	DestroyMesh(&chunk->mesh);
+	BuildChunk(world, chunk);
+}
+
 static void UpdateChunk(World* world, ivec3 wPos)
 {
 	ivec3 cPos = ToChunkPos(wPos);
 	Chunk* chunk = GetChunk(world, cPos.x, cPos.z);
-	DestroyMesh(&chunk->mesh);
-	BuildChunk(world, chunk);
+	UpdateChunk(world, chunk);
 }
 
 static void DestroyChunk(World* world, Chunk* chunk, int i)
