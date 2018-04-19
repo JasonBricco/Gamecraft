@@ -22,15 +22,3 @@ struct GameInput
     bool keys[KEY_COUNT];
     bool single[KEY_COUNT];
 };
- 
-inline bool KeyHeld(KeyType type);
-inline bool KeyPressed(KeyType type);
-
-inline bool MousePressed(int button);
-inline bool MouseHeld(int button);
-
-static void SetKey(KeyType type, int action);
-inline void ResetInput();
-
-static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mode);
-static void OnMouseButton(GLFWwindow* window, int button, int action, int mods);

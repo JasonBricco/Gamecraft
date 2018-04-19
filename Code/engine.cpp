@@ -3,6 +3,7 @@
 
 // BUGS/TODO:
 // Need a crosshair to show where editing.
+// Editing/deleting not working.
 
 // Soon:
 // Frustum culling.
@@ -57,19 +58,19 @@ using namespace std;
 #define Malloc(type) (type*)malloc(sizeof(type))
 #define Calloc(type) (type*)calloc(1, sizeof(type))
 
-#include "utils.h"
 #include "input.h"
+#include "utils.h"
+#include "shaders.h"
 #include "renderer.h"
 #include "world.h"
 #include "simulation.h"
+#include "globals.h"
 
-#include "utils.cpp"
 #include "input.cpp"
+#include "shaders.cpp"
 #include "renderer.cpp"
-#include "simulation.cpp"
 #include "world.cpp"
-
-static bool g_paused;
+#include "simulation.cpp"
  
 static void ShowFPS(GLFWwindow* window)
 {

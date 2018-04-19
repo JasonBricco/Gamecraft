@@ -57,7 +57,6 @@ struct Capsule : Collider
 	inline vec3 Support(vec3 dir);
 };
 
-
 struct Player
 {
 	Camera* camera;
@@ -70,37 +69,3 @@ struct Player
 	uint8_t colFlags;
 	bool flying;
 };
-
-static Player* NewPlayer(vec3 pos);
-
-// Expanding polytope algorithm for finding the minimum translation vector.
-static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collider* colB);
-
-// Updates the simplex for the three point (triangle) case. 'abc' must be in 
-// counterclockwise winding order.
-static void UpdateSimplex3(vec3& a, vec3& b, vec3& c, vec3& d, int& n, vec3& search);
-
-// Updates the simplex for the four point (tetrahedron) case. 'a' is the top of the 
-// tetrahedron. 'bcd' is the base in counterclockwise winding order. We know the 
-// origin is above 'bcd' and below 'a' before calling.
-static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& n, vec3& search);
-
-// Returns the farthest point along an AABB in the given direction in world space.
-static vec3 SupportAABB(vec3 pos, AABB bb, vec3 dir);
-
-// Returns the farthest point along a capsule in the given direction in world space.
-static vec3 SupportCapsule(vec3 pos, Capsule c, vec3 dir);
-
-// Returns true if two colliders are intersecting. 'mtv' represents a
-// minimum translation vector. If supplied, it can be used for 
-// collision separation.
-static bool Intersect(Collider* a, Collider* b, CollisionInfo* info);
-
-inline void CameraFollow(Player* player);
-
-static void Move(World* world, Player* player, vec3 accel, float deltaTime);
-static void Simulate(World* world, Player* player, float deltaTime);
-
-static HitInfo GetVoxelHit(World* world);
-static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result);
-static float BlockRayIntersection(vec3 blockPos, Ray ray);

@@ -32,6 +32,7 @@ Capsule::Capsule(float radius, float h)
 	yTop = h;
 }
 
+// Returns the farthest point along an AABB in the given direction in world space.
 inline vec3 AABB::Support(vec3 dir)
 {
 	vec3 result;
@@ -42,6 +43,7 @@ inline vec3 AABB::Support(vec3 dir)
 	return pos + result;
 }
 
+// Returns the farthest point along a capsule in the given direction in world space.
 inline vec3 Capsule::Support(vec3 dir)
 {
 	vec3 result = normalize(dir) * r;
@@ -50,6 +52,120 @@ inline vec3 Capsule::Support(vec3 dir)
 	return pos + result;
 }
 
+static float BlockRayIntersection(vec3 blockPos, Ray ray) 
+{
+	float nearP = -FLT_MAX;
+	float farP = FLT_MAX;
+	
+	for (int i = 0; i < 3; i++) 
+	{
+		float min = blockPos[i] - 0.5f;
+		float max = blockPos[i] + 0.5f;
+		
+		float pos = ray.origin[i];
+		float dir = ray.dir[i];
+		
+		if (abs(dir) <= EPSILON) 
+		{
+			if ((pos < min) || (pos > max)) 
+				return FLT_MAX;
+		}
+		
+		float t0 = (min - pos) / dir;
+		float t1 = (max - pos) / dir;
+		
+		if (t0 > t1) 
+		{
+			float tmp = t0;
+			t0 = t1;
+			t1 = tmp;
+		}
+		
+		nearP = Max(t0, nearP);
+		farP = Min(t1, farP);
+		
+		if (nearP > farP) return FLT_MAX;
+		if (farP < 0.0f) return FLT_MAX;
+	}
+	
+	return nearP > 0.0f ? nearP : farP;
+}
+
+
+static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result)
+{
+	ivec3 start = BlockPos(ray.origin);
+	ivec3 end = BlockPos(ray.origin + ray.dir * dist);
+
+	if (start.x > end.x)
+	{
+		int tmp = start.x;
+		start.x = end.x;
+		end.x = tmp;
+	}
+	
+	if (start.y > end.y) 
+	{
+		int tmp = start.y;
+		start.y = end.y;
+		end.y = tmp;
+	}
+	
+	if (start.z > end.z) 
+	{
+		int tmp = start.z;
+		start.z = end.z;
+		end.z = tmp;
+	}
+
+	float minDistance = dist;
+
+	for (int z = start.z; z <= end.z; z++) 
+	{
+		for (int y = start.y; y <= end.y; y++) 
+		{
+			for (int x = start.x; x <= end.x; x++) 
+			{
+				int block = GetBlock(world, x, y, z);
+
+				if (block == 0) continue;
+
+				float newDist = BlockRayIntersection(vec3(x, y, z), ray);
+				minDistance = Min(minDistance, newDist);
+			}
+		}
+	}
+
+	if (minDistance != dist)
+	{
+		*result = ray.origin + ray.dir * minDistance;
+		return true;
+	}
+
+	return false;
+}
+
+static HitInfo GetVoxelHit(World* world)
+{
+	HitInfo info = {};
+	Ray ray = ScreenCenterToRay();
+
+	vec3 point;
+	
+	if (VoxelRaycast(world, ray, 10.0f, &point))
+	{
+		info.hit = true;
+		info.hitPos = BlockPos(point + ray.dir * 0.01f);
+		point -= ray.dir * 0.01f;
+		info.adjPos = BlockPos(point);
+		info.normal = info.hitPos - info.adjPos;
+	}
+
+	return info;
+}
+
+// Updates the simplex for the three point (triangle) case. 'abc' must be in 
+// counterclockwise winding order.
 static void UpdateSimplex3(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& search)
 {
 	// Triangle normal.
@@ -96,6 +212,10 @@ static void UpdateSimplex3(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& s
 	search = -norm;
 }
 
+
+// Updates the simplex for the four point (tetrahedron) case. 'a' is the top of the 
+// tetrahedron. 'bcd' is the base in counterclockwise winding order. We know the 
+// origin is above 'bcd' and below 'a' before calling.
 static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& search)
 {
 	// Normals of the three non-base tetrahedron faces.
@@ -137,6 +257,7 @@ static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& s
 	return true;
 }
 
+// Expanding polytope algorithm for finding the minimum translation vector.
 static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collider* colB)
 {
 	// Each triangle face has three vertices and a normal.
@@ -276,6 +397,8 @@ static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collide
 	return { mtv, faces[closest][3] };
 }
 
+// Returns true if two colliders are intersecting using the GJK algorithm. 
+// 'info', if given, will return a minimum translation vector and collision normal using EPA.
 static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
 {
 	vec3 a, b, c, d;
@@ -493,115 +616,4 @@ static void Simulate(World* world, Player* player, float deltaTime)
 			}
 		}
 	}
-}
-
-static HitInfo GetVoxelHit(World* world)
-{
-	HitInfo info = {};
-	Ray ray = ScreenCenterToRay();
-
-	vec3 point;
-	
-	if (VoxelRaycast(world, ray, 10.0f, &point))
-	{
-		info.hit = true;
-		info.hitPos = BlockPos(point + ray.dir * 0.01f);
-		point -= ray.dir * 0.01f;
-		info.adjPos = BlockPos(point);
-		info.normal = info.hitPos - info.adjPos;
-	}
-
-	return info;
-}
-
-static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result)
-{
-	ivec3 start = BlockPos(ray.origin);
-	ivec3 end = BlockPos(ray.origin + ray.dir * dist);
-
-	if (start.x > end.x)
-	{
-		int tmp = start.x;
-		start.x = end.x;
-		end.x = tmp;
-	}
-	
-	if (start.y > end.y) 
-	{
-		int tmp = start.y;
-		start.y = end.y;
-		end.y = tmp;
-	}
-	
-	if (start.z > end.z) 
-	{
-		int tmp = start.z;
-		start.z = end.z;
-		end.z = tmp;
-	}
-
-	float minDistance = dist;
-
-	for (int z = start.z; z <= end.z; z++) 
-	{
-		for (int y = start.y; y <= end.y; y++) 
-		{
-			for (int x = start.x; x <= end.x; x++) 
-			{
-				int block = GetBlock(world, x, y, z);
-
-				if (block == 0) continue;
-
-				float newDist = BlockRayIntersection(vec3(x, y, z), ray);
-				minDistance = Min(minDistance, newDist);
-			}
-		}
-	}
-
-	if (minDistance != dist)
-	{
-		*result = ray.origin + ray.dir * minDistance;
-		return true;
-	}
-
-	return false;
-}
-
-static float BlockRayIntersection(vec3 blockPos, Ray ray) 
-{
-	float nearP = -FLT_MAX;
-	float farP = FLT_MAX;
-	
-	for (int i = 0; i < 3; i++) 
-	{
-		float min = blockPos[i] - 0.5f;
-		float max = blockPos[i] + 0.5f;
-		
-		float pos = ray.origin[i];
-		float dir = ray.dir[i];
-		
-		if (abs(dir) <= EPSILON) 
-		{
-			if ((pos < min) || (pos > max)) 
-				return FLT_MAX;
-		}
-		
-		float t0 = (min - pos) / dir;
-		float t1 = (max - pos) / dir;
-		
-		if (t0 > t1) 
-		{
-			float tmp = t0;
-			t0 = t1;
-			t1 = tmp;
-		}
-		
-		nearP = Max(t0, nearP);
-		farP = Min(t1, farP);
-		
-		if (nearP > farP) return FLT_MAX;
-		if (farP < 0.0f) return FLT_MAX;
-	}
-	
-	return nearP > 0.0f ? nearP : farP;
 }

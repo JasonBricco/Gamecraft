@@ -1,11 +1,8 @@
 // Voxel Engine
 // Jason Bricco
 
-static ivec3 g_directions[] = 
-{ 
-	ivec3(-1, 0, 0), ivec3(1, 0, 0), ivec3(0, -1, 0), 
-	ivec3(0, 1, 0), ivec3(0, 0, -1), ivec3(0, 0, 1)
-};
+inline bool BlockInsideWorld(World* world, int wX, int wY, int wZ);
+static void BuildChunk(World* world, Chunk* chunk);
 
 static World* NewWorld(int width, int length)
 {
@@ -30,14 +27,24 @@ static World* NewWorld(int width, int length)
 	return world;
 }
 
-inline int ChunkIndex(World* world, int x, int z)
+inline int ChunkIndex(World* world, int cX, int cZ)
 {
-	return z * world->sizeInChunks.x + x;
+	return cZ * world->sizeInChunks.x + cX;
 }
 
-inline ivec3 ToChunkPos(int x, int z)
+inline ivec3 ToLocalPos(int wX, int wY, int wZ)
 {
-	return ivec3(x >> CHUNK_SIZE_BITS, 0, z >> CHUNK_SIZE_BITS);
+	return ivec3(wX & CHUNK_SIZE - 1, wY, wZ & CHUNK_SIZE - 1);
+}
+
+inline ivec3 ToLocalPos(ivec3 wPos)
+{
+	return ToLocalPos(wPos.x, wPos.y, wPos.z);
+}
+
+inline ivec3 ToChunkPos(int wX, int wZ)
+{
+	return ivec3(wX >> CHUNK_SIZE_BITS, 0, wZ >> CHUNK_SIZE_BITS);
 }
 
 inline ivec3 ToChunkPos(ivec3 wPos)
@@ -50,51 +57,76 @@ inline ivec3 ToChunkPos(vec3 wPos)
 	return ToChunkPos((int)wPos.x, (int)wPos.z);
 }
 
-inline bool ChunkInsideWorld(World* world, int x, int z)
+inline bool ChunkInsideWorld(World* world, int cX, int cZ)
 {
-	return x >= 0 && x < WORLD_MAX_H && z >= 0 && z < WORLD_MAX_H;
+	return cX >= 0 && cX < world->sizeInChunks.x && cZ >= 0 && cZ < world->sizeInChunks.z;
 }
 
-inline bool ChunkInsideWorld(World* world, ivec3 pos)
+inline bool ChunkInsideWorld(World* world, ivec3 cPos)
 {
-	return ChunkInsideWorld(world, pos.x, pos.z);
+	return ChunkInsideWorld(world, cPos.x, cPos.z);
 }
 
-inline Chunk* GetChunk(World* world, int x, int z)
+inline Chunk* GetChunk(World* world, int cX, int cZ)
 {
-	if (!ChunkInsideWorld(world, x, z))
+	if (!ChunkInsideWorld(world, cX, cZ))
 		return NULL;
 
-	return world->chunks[ChunkIndex(world, x, z)];
+	return world->chunks[ChunkIndex(world, cX, cZ)];
 }
 
-inline Chunk* GetChunk(World* world, ivec3 pos)
+inline Chunk* GetChunk(World* world, ivec3 cPos)
 {
-	return GetChunk(world, pos.x, pos.z);
+	return GetChunk(world, cPos.x, cPos.z);
 }
 
-inline void SetBlock(Chunk* chunk, int x, int y, int z, int block)
+inline void UpdateChunkDirect(World* world, Chunk* chunk)
 {
-	chunk->blocks[x + CHUNK_SIZE * (y + WORLD_BLOCK_HEIGHT * z)] = block;
+	DestroyMesh(&chunk->mesh);
+	BuildChunk(world, chunk);
 }
 
-static void SetBlock(World* world, int x, int y, int z, int block, bool update)
+inline void UpdateChunk(World* world, Chunk* chunk, ivec3 lPos)
 {
-	if (!BlockInsideWorld(world, x, y, z)) return;
+	UpdateChunkDirect(world, chunk);
 
-	ivec3 cPos = ToChunkPos(x, z);
+	ivec3 cPos = chunk->cPos;
+
+	if (lPos.x == 0) UpdateChunkDirect(world, GetChunk(world, cPos.x - 1, cPos.z));
+	else if (lPos.x == CHUNK_SIZE - 1) UpdateChunkDirect(world, GetChunk(world, cPos.x + 1, cPos.z));
+	
+	if (lPos.z == 0) UpdateChunkDirect(world, GetChunk(world, cPos.x, cPos.z - 1));
+	else if (lPos.z == CHUNK_SIZE - 1) UpdateChunkDirect(world, GetChunk(world, cPos.x, cPos.z + 1));
+}
+
+inline void SetBlock(Chunk* chunk, int lX, int lY, int lZ, int block)
+{
+	chunk->blocks[lX + CHUNK_SIZE * (lY + WORLD_BLOCK_HEIGHT * lZ)] = block;
+}
+
+inline void SetBlock(Chunk* chunk, ivec3 lPos, int block)
+{
+	SetBlock(chunk, lPos.x, lPos.y, lPos.z, block);
+}
+
+static void SetBlock(World* world, int wX, int wY, int wZ, int block, bool update)
+{
+	if (!BlockInsideWorld(world, wX, wY, wZ)) return;
+
+	ivec3 cPos = ToChunkPos(wX, wY);
 	Chunk* chunk = GetChunk(world, cPos);
 
 	if (chunk == NULL) return;
 
-	SetBlock(chunk, x & (CHUNK_SIZE - 1), y, z & (CHUNK_SIZE - 1), block);
+	ivec3 lPos = ToLocalPos(wX, wY, wZ);
+	SetBlock(chunk, lPos, block);
 
-	if (update) UpdateChunk(world, chunk);
+	if (update) UpdateChunk(world, chunk, lPos);
 }
 
-inline void SetBlock(World* world, ivec3 pos, int block, bool update)
+inline void SetBlock(World* world, ivec3 wPos, int block, bool update)
 {
-	SetBlock(world, pos.x, pos.y, pos.z, block, update);
+	SetBlock(world, wPos.x, wPos.y, wPos.z, block, update);
 }
 
 static void GenerateChunkTerrain(Noise* noise, Chunk* chunk)
@@ -135,24 +167,19 @@ inline void SetChunkUnloaded(World* world, Chunk* chunk, int index)
 	world->loadedCount--;
 }
 
-inline Chunk* CreateChunk(World* world, ivec3 pos)
+static Chunk* CreateChunk(World* world, int cX, int cZ)
 {
-	return CreateChunk(world, pos.x, pos.z);
-}
-
-static Chunk* CreateChunk(World* world, int x, int z)
-{
-	if (!ChunkInsideWorld(world, x, z))
+	if (!ChunkInsideWorld(world, cX, cZ))
 		return NULL;
 
-	int index = ChunkIndex(world, x, z);
+	int index = ChunkIndex(world, cX, cZ);
 	Chunk* chunk = world->chunks[index];
 
 	if (chunk == NULL)
 	{
 		chunk = Calloc(Chunk);
-		chunk->cPos = ivec3(x, 0, z);
-		chunk->wPos = ivec3(x * CHUNK_SIZE, 0.0f, z * CHUNK_SIZE);
+		chunk->cPos = ivec3(cX, 0, cZ);
+		chunk->wPos = ivec3(cX * CHUNK_SIZE, 0.0f, cZ * CHUNK_SIZE);
 		GenerateChunkTerrain(world->noise, chunk);
 		world->chunks[index] = chunk;
 		SetChunkLoaded(world, chunk);
@@ -161,21 +188,27 @@ static Chunk* CreateChunk(World* world, int x, int z)
 	return chunk;
 }
 
-inline bool BlockInsideWorld(World* world, int x, int y, int z)
+inline Chunk* CreateChunk(World* world, ivec3 cPos)
 {
-	return x >= 0 && x < world->sizeInBlocks.x && y >= 0 && y < WORLD_BLOCK_HEIGHT && z >= 0 && z < world->sizeInBlocks.z;
+	return CreateChunk(world, cPos.x, cPos.z);
 }
 
-inline int GetBlock(Chunk* chunk, int x, int y, int z)
+inline bool BlockInsideWorld(World* world, int wX, int wY, int wZ)
 {
-	return chunk->blocks[x + CHUNK_SIZE * (y + WORLD_BLOCK_HEIGHT * z)];
+	return wX >= 0 && wX < world->sizeInBlocks.x && wY >= 0 && wY < WORLD_BLOCK_HEIGHT && 
+		wZ >= 0 && wZ < world->sizeInBlocks.z;
 }
 
-static int GetBlock(World* world, int x, int y, int z)
+inline int GetBlock(Chunk* chunk, int lX, int lY, int lZ)
 {
-	if (!BlockInsideWorld(world, x, y, z)) return 0;
+	return chunk->blocks[lX + CHUNK_SIZE * (lY + WORLD_BLOCK_HEIGHT * lZ)];
+}
 
-	ivec3 cPos = ToChunkPos(x, z);
+static int GetBlock(World* world, int wX, int wY, int wZ)
+{
+	if (!BlockInsideWorld(world, wX, wY, wZ)) return 0;
+
+	ivec3 cPos = ToChunkPos(wX, wZ);
 	Chunk* chunk = GetChunk(world, cPos);
 
 	if (chunk == NULL) 
@@ -184,7 +217,7 @@ static int GetBlock(World* world, int x, int y, int z)
 		Assert(chunk != NULL);
 	}
 
-	return GetBlock(chunk, x & (CHUNK_SIZE - 1), y, z & (CHUNK_SIZE - 1));
+	return GetBlock(chunk, wX & (CHUNK_SIZE - 1), wY, wZ & (CHUNK_SIZE - 1));
 }
 
 inline int GetBlock(World* world, ivec3 pos)
@@ -277,19 +310,6 @@ static void BuildChunk(World* world, Chunk* chunk)
 	
 	FillMeshData(&chunk->mesh);
 	chunk->state = CHUNK_BUILT;
-}
-
-inline void UpdateChunk(World* world, Chunk* chunk)
-{
-	DestroyMesh(&chunk->mesh);
-	BuildChunk(world, chunk);
-}
-
-static void UpdateChunk(World* world, ivec3 wPos)
-{
-	ivec3 cPos = ToChunkPos(wPos);
-	Chunk* chunk = GetChunk(world, cPos.x, cPos.z);
-	UpdateChunk(world, chunk);
 }
 
 static void DestroyChunk(World* world, Chunk* chunk, int i)
