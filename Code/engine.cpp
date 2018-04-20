@@ -134,7 +134,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* vMode = glfwGetVideoMode(monitor);
 
-	World* world = NewWorld(512, 512);
+	World* world = NewWorld(1, 1);
 
 	Player* player = NewPlayer(world->spawn);
 	SetCamera(player->camera);

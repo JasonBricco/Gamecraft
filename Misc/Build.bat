@@ -26,7 +26,7 @@ pushd W:\Builds\Debug\
 set f=-MDd -Oi- -Od -Zi
 set def=-D_DEBUG=1 -D_CRT_SECURE_NO_WARNINGS=1 -D_HAS_EXCEPTIONS=0
 set lb=glew32sd.lib glfw3-d.lib noise-d.lib
-set link=/LIBPATH:W:\Common\Lib /SUBSYSTEM:WINDOWS /OUT:Voxel.exe
+set link=/LIBPATH:W:\Common\Lib /SUBSYSTEM:WINDOWS /DEBUG /OUT:Voxel.exe
 
 robocopy W:\Shaders\ W:\Builds\Debug\Shaders\ /NJS /NJH /np /ndl /nfl /XO
 robocopy W:\Assets\ W:\Builds\Debug\Assets\ /XC /XN /XO /NJS /NJH /np /ndl /nfl /XO
