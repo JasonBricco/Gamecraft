@@ -82,8 +82,11 @@ inline Chunk* GetChunk(World* world, ivec3 cPos)
 
 inline void UpdateChunkDirect(World* world, Chunk* chunk)
 {
-	DestroyMesh(&chunk->mesh);
-	BuildChunk(world, chunk);
+	if (chunk != NULL)
+	{
+		DestroyMesh(&chunk->mesh);
+		BuildChunk(world, chunk);
+	}
 }
 
 inline void UpdateChunk(World* world, Chunk* chunk, ivec3 lPos)
@@ -113,7 +116,7 @@ static void SetBlock(World* world, int wX, int wY, int wZ, int block, bool updat
 {
 	if (!BlockInsideWorld(world, wX, wY, wZ)) return;
 
-	ivec3 cPos = ToChunkPos(wX, wY);
+	ivec3 cPos = ToChunkPos(wX, wZ);
 	Chunk* chunk = GetChunk(world, cPos);
 
 	if (chunk == NULL) return;

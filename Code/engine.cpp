@@ -3,7 +3,6 @@
 
 // BUGS/TODO:
 // Need a crosshair to show where editing.
-// Editing/deleting not working.
 
 // Soon:
 // Frustum culling.
@@ -134,7 +133,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* vMode = glfwGetVideoMode(monitor);
 
-	World* world = NewWorld(1, 1);
+	World* world = NewWorld(512, 512);
 
 	Player* player = NewPlayer(world->spawn);
 	SetCamera(player->camera);
