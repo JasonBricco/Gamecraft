@@ -1,24 +1,31 @@
 {
-	"cmd": ["Build_Release.bat"],
+	"cmd": ["Build.bat", "-r"],
 	"file_regex": "^[.\\\\/]*([a-z]?:?[\\w.\\\\/]+)[(:]([0-9]+)[):]([0-9]+)?:?(.*)$",
 	"working_dir": "W:/Misc/",
 	"selector": "source.dosbatch",
-
 	"shell": true,
 
 	"variants":
 	[
 		{
+			"name": "(PCH)",
+			"shell_cmd": "@echo off && W:/Misc/Build.bat -r -p"
+		},
+		{
 			"name": "Debug",
-			"shell_cmd": "@echo off && W:/Misc/Build_Debug.bat"
+			"shell_cmd": "@echo off && W:/Misc/Build.bat -d"
+		},
+		{
+			"name": "Debug (PCH)",
+			"shell_cmd": "@echo off && W:/Misc/Build.bat -d -p"
 		},
 		{
 			"name": "Run (Release)",
-			"shell_cmd": "@echo off && W:/Misc/Run.bat"
+			"shell_cmd": "@echo off && W:/Misc/Run.bat -r"
 		},
 		{
 			"name": "Run (Debug)",
-			"shell_cmd": "@echo off && W:/Misc/Run_Debug.bat"
+			"shell_cmd": "@echo off && W:/Misc/Run.bat -d"
 		}
 	]
 }

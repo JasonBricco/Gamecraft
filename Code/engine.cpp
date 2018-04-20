@@ -4,50 +4,22 @@
 // BUGS/TODO:
 // Need a crosshair to show where editing.
 // Editing/deleting not working.
+// Try using WinMain and fixing batch files.
 
 // Soon:
 // Frustum culling.
 
+#include "stdafx.h"
+
 #define PROFILING 1
 #define ASSERTIONS 1
 #define DEBUG_MEMORY 0
-
-#define GLFW_EXPOSE_NATIVE_WIN32
-#define GLEW_STATIC
-#define WIN32_LEAN_AND_MEAN
-
-#include <windows.h>
-#include <TimeAPI.h>
-#include <time.h>
-#include "GL/glew.h"
-#include "GLFW/glfw3.h"
-#include "FastNoiseSIMD.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ASSERT(x)
 #define STBI_ONLY_PNG
 
 #include "stb_image.h"
-#include "stretchy_buffer.h"
-
-#include <unordered_map>
-#include <fstream>
-
-#include "glm/fwd.hpp"
-#include "glm/vec2.hpp"
-#include "glm/vec3.hpp"
-#include "glm/vec4.hpp"
-#include "glm/mat4x4.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-
-#if DEBUG_MEMORY
-#define _CRTDBG_MAP_ALLOC 1
-#include <crtdbg.h>  
-#endif
-
-using namespace glm;
-using namespace std;
 
 #if ASSERTIONS
 #define Assert(expression) if (!(expression)) { abort(); }
@@ -57,6 +29,11 @@ using namespace std;
 
 #define Malloc(type) (type*)malloc(sizeof(type))
 #define Calloc(type) (type*)calloc(1, sizeof(type))
+
+#if DEBUG_MEMORY
+#define _CRTDBG_MAP_ALLOC 1
+#include <crtdbg.h>  
+#endif
 
 #include "input.h"
 #include "utils.h"
