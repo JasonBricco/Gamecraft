@@ -8,16 +8,8 @@
 	"variants":
 	[
 		{
-			"name": "(PCH)",
-			"shell_cmd": "@echo off && W:/Misc/Build.bat -r -p"
-		},
-		{
 			"name": "Debug",
 			"shell_cmd": "@echo off && W:/Misc/Build.bat -d"
-		},
-		{
-			"name": "Debug (PCH)",
-			"shell_cmd": "@echo off && W:/Misc/Build.bat -d -p"
 		},
 		{
 			"name": "Run (Release)",

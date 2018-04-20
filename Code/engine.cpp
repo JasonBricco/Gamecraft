@@ -4,7 +4,6 @@
 // BUGS/TODO:
 // Need a crosshair to show where editing.
 // Editing/deleting not working.
-// Try using WinMain and fixing batch files.
 
 // Soon:
 // Frustum culling.
@@ -113,7 +112,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	Simulate(world, player, deltaTime);
 }
 
-int main()
+int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdShow)
 {
 	#if DEBUG_MEMORY
 
