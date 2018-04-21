@@ -2,12 +2,23 @@
 // Jason Bricco
 
 // BUGS/TODO:
-// Need a crosshair to show where editing.
+// Make Renderer not global anymore, this encourages better design.
 
-// Soon:
+// Look Into:
 // Frustum culling.
+// GLSL Subroutines for optimizing shaders.
+// Shader precompiling.
 
-#include "stdafx.h"
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLEW_STATIC
+#define WIN32_LEAN_AND_MEAN
+
+#include <windows.h>
+#include <TimeAPI.h>
+#include <time.h>
+#include "GL/glew.h"
+#include "GLFW/glfw3.h"
+#include "FastNoiseSIMD.h"
 
 #define PROFILING 1
 #define ASSERTIONS 1
@@ -19,8 +30,35 @@
 
 #include "stb_image.h"
 
+#include "stretchy_buffer.h"
+
+#include <unordered_map>
+#include <fstream>
+
+#include "glm/fwd.hpp"
+#include "glm/vec2.hpp"
+#include "glm/vec3.hpp"
+#include "glm/vec4.hpp"
+#include "glm/mat4x4.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
+using namespace glm;
+using namespace std;
+
 #if ASSERTIONS
-#define Assert(expression) if (!(expression)) { abort(); }
+
+static void HandleAssertion(char* file, int line)
+{
+	char buffer[128];
+	sprintf(buffer, "An assertion was triggered in file %s, line %i.\nAbort for debugging?", file, line);
+	int val = MessageBox(NULL, buffer, NULL, MB_YESNOCANCEL | MB_ICONERROR);
+	
+	if (val == IDNO) exit(-1);
+	else if (val == IDYES) abort();
+}
+
+#define Assert(expression) if (!(expression)) { HandleAssertion(__FILE__, __LINE__); }
 #else
 #define Assert(expression)
 #endif
@@ -82,6 +120,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	{
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		g_paused = false;
+		return;
 	}
 
 	if (g_paused) return;
@@ -150,22 +189,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 		glfwPollEvents();
 
 		Update(window, player, world, deltaTime);
-		
-		PreRender();
-		
-		mat4 model;
-
-		for (int i = 0; i < world->loadedCount; i++)
-		{
-			Chunk* next = world->loadedChunks[i];
-
-			if (next->state == CHUNK_BUILT)
-			{
-				model = translate(mat4(), (vec3)next->wPos);
-				SetUniform(0, "model", model);
-				DrawChunk(next);
-			}
-		}
+		RenderScene(world);
 
 		double secondsElapsed = glfwGetTime() - lastTime;
 

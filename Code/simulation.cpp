@@ -459,7 +459,7 @@ static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
 }
 
 inline void CameraFollow(Player* player)
-{
+{	
 	vec3 pos = player->pos;
 	player->camera->pos = vec3(pos.x, pos.y + 1.0f, pos.z);
 	UpdateCameraVectors(player->camera);

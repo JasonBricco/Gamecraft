@@ -84,18 +84,22 @@ static bool ShaderHasErrors(GLuint handle, ShaderType type)
 	return false;
 }
 
-static GLuint LoadShaders(char* vertexPath, char* fragPath)
+static GLuint LoadShader(char* path)
 {
-	char* vertex = ShaderFromFile(vertexPath);
+	char* code = ShaderFromFile(path);
 
-	if (vertex == NULL)
+	if (code == NULL)
 	{
-		LogError("Failed to load vertex shader from file.");
+		LogError("Failed to load shader from file.");
+		LogError(path);
 		abort();
 	}
 
+	char* vertex[2] = { "#version 440 core\n#define VERTEX 1\n", code };
+	char* frag[2] = { "#version 440 core\n", code };
+
 	GLuint vS = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vS, 1, &vertex, NULL);
+	glShaderSource(vS, 2, vertex, NULL);
 	glCompileShader(vS);
 	
 	if (ShaderHasErrors(vS, VERTEX_SHADER))
@@ -104,16 +108,8 @@ static GLuint LoadShaders(char* vertexPath, char* fragPath)
 		abort();
 	}
 
-	char* frag = ShaderFromFile(fragPath);
-
-	if (frag == NULL)
-	{
-		LogError("Failed to load fragment shader from file.");
-		abort();
-	}
-
 	GLuint fS = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fS, 1, &frag, NULL);
+	glShaderSource(fS, 2, frag, NULL);
 	glCompileShader(fS);
 	
 	if (ShaderHasErrors(fS, FRAGMENT_SHADER))
@@ -133,8 +129,7 @@ static GLuint LoadShaders(char* vertexPath, char* fragPath)
 		abort();
 	}
 
-	free(vertex);
-	free(frag);
+	free(code);
 	glDeleteShader(vS);
 	glDeleteShader(fS);
 
@@ -148,19 +143,12 @@ inline void UseShader(GLuint program)
 
 static GLint GetUniformLocation(GLint program, GLchar* name)
 {
-	unordered_map<string, GLint>::iterator it = g_renderer.uniforms.find(name);
+	auto it = g_renderer.uniforms.find(name);
 
 	if (it == g_renderer.uniforms.end())
 		g_renderer.uniforms[name] = glGetUniformLocation(program, name);
 	
 	return g_renderer.uniforms[name];
-}
-
-inline void SetUniformSampler(GLint program, GLchar* name, GLint tex)
-{
-	glActiveTexture(GL_TEXTURE0 + tex);
-	GLint loc = GetUniformLocation(program, name);
-	glUniform1i(loc, tex);
 }
 
 inline void SetUniform(int ID, GLchar* name, GLfloat f)

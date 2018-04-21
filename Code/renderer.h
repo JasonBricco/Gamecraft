@@ -11,6 +11,16 @@ struct Mesh
 	vector<int> indices;
 };
 
+struct Graphic
+{
+	GLuint vb, ib, va;
+	int indices[6];
+	float vertices[16];
+	int shaderID;
+	GLuint texture;
+	vec2 pos;
+};
+
 // Standard first-person camera.
 struct Camera
 {
@@ -35,11 +45,15 @@ struct Renderer
 	unordered_map<string, GLint> uniforms;
 	int paramCount;
 
-	mat4 projection;
+	mat4 perspective, ortho;
 	mat4 view;
 
-	GLuint texture;
-	GLuint programs[1];
+	Graphic* crosshair;
+
+	// Textures.
+	GLuint blockTextures;
+
+	GLuint programs[2];
 
 	ivec3 cursor;
 };

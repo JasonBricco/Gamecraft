@@ -1,6 +1,6 @@
 @echo off
 set path=W:\Misc;%path%
-subst W: C:\Users\jason\OneDrive\Projects\Voxel
+subst W: C:\Users\jason\Projects\Voxel
 call C:/"Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
 cd "C:/Program Files\Sublime Text 3\"
 subl.exe
