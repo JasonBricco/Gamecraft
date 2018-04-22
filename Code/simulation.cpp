@@ -6,8 +6,7 @@ static Player* NewPlayer(vec3 pos)
 	Player* player = Malloc(Player);
 	player->camera = NewCamera(pos);
 	player->pos = pos;
-	player->collider = Capsule(0.3f, 1.8f);
-	player->colOffset = 0.0f;
+	player->collider = Capsule(0.3f, 1.2f);
 	player->velocity = vec3(0.0f);
 	player->speed = 50.0f;
 	player->friction = -8.0f;
@@ -90,7 +89,6 @@ static float BlockRayIntersection(vec3 blockPos, Ray ray)
 	
 	return nearP > 0.0f ? nearP : farP;
 }
-
 
 static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result)
 {
@@ -461,7 +459,7 @@ static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
 inline void CameraFollow(Player* player)
 {	
 	vec3 pos = player->pos;
-	player->camera->pos = vec3(pos.x, pos.y + 1.0f, pos.z);
+	player->camera->pos = vec3(pos.x, pos.y + 1.15f, pos.z);
 	UpdateCameraVectors(player->camera);
 }
 
@@ -507,7 +505,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	float deltaLen = length(delta);
 
 	// If our move is too big, try to prevent skipping through terrain.
-	if (deltaLen > 3.0f)
+	if (deltaLen > 1.5f)
 	{
 		Ray ray = { player->pos, normalize(delta) };
 
@@ -519,7 +517,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	}
 	else player->pos += delta;
 
-	ivec3 newBlock = BlockPos(player->pos + player->colOffset);
+	ivec3 newBlock = BlockPos(player->pos);
 
 	// Compute the range of blocks we could touch with our movement. We'll test for collisions
 	// with the blocks in this range.
@@ -543,7 +541,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 
 				if (block != 0)
 				{
-					col.pos = player->pos + player->colOffset;
+					col.pos = player->pos;
 					AABB bb = AABB(vec3(x - 0.5f, y - 0.5f, z - 0.5f), vec3(0.0f), vec3(1.0f));
 					
 					if (Intersect(&col, &bb, &info))

@@ -61,7 +61,6 @@ struct Player
 {
 	Camera* camera;
 	Capsule collider;
-	float colOffset;
 	vec3 pos;
 	vec3 velocity;
 	float speed;

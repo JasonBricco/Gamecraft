@@ -29,7 +29,6 @@
 #define STBI_ONLY_PNG
 
 #include "stb_image.h"
-
 #include "stretchy_buffer.h"
 
 #include <unordered_map>

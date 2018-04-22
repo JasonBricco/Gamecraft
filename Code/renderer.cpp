@@ -369,7 +369,7 @@ static GLFWwindow* InitRenderer()
 	g_renderer.crosshair = graphic;
 
 	g_renderer.perspective = perspective(radians(CAMERA_FOV), (float)WindowWidth() / (float)WindowHeight(),
-		0.1f, 500.0f);
+		0.1f, 256.0f);
 	g_renderer.ortho = ortho(0.0f, (float)WindowWidth(), (float)WindowHeight(), 0.0f, -1.0f, 1.0f);
 
 	return window;
@@ -391,7 +391,7 @@ static Ray ScreenCenterToRay()
 
 static void RenderScene(World* world)
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	UpdateViewMatrix();
 
@@ -416,10 +416,15 @@ static void RenderScene(World* world)
 		}
 	}
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
+	if (!g_paused)
+	{
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
 
-	DrawGraphic(g_renderer.crosshair);
+		DrawGraphic(g_renderer.crosshair);
 
-	glDisable(GL_BLEND);
+		glDisable(GL_BLEND);
+	}
+
+	glClear(GL_DEPTH_BUFFER_BIT);
 }
