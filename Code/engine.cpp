@@ -162,7 +162,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	GLFWwindow* window = InitRenderer();
 
 	glfwSetKeyCallback(window, OnKey);
-	glfwSetWindowSizeCallback(window, OnWindowResize);
+	glfwSetWindowSizeCallback(window, SetWindowSize);
 	glfwSetMouseButtonCallback(window, OnMouseButton);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);

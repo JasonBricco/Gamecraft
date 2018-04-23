@@ -159,11 +159,12 @@ static void DrawGraphic(Graphic* graphic)
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-static void OnWindowResize(GLFWwindow* window, int width, int height)
+static void SetWindowSize(GLFWwindow* window, int width, int height)
 {
 	g_renderer.windowWidth = width;
 	g_renderer.windowHeight = height;
 	glViewport(0, 0, width, height);
+	g_renderer.perspective = perspective(radians(CAMERA_FOV), (float)width / (float)height, 0.1f, 256.0f);
 }
 
 static Camera* NewCamera(vec3 pos)
@@ -287,8 +288,6 @@ inline void SetCamera(Camera* cam)
 static GLFWwindow* InitRenderer()
 {
 	g_renderer.worldUp = vec3(0.0f, 1.0f, 0.0f);
-	g_renderer.windowWidth = 1024;
-	g_renderer.windowHeight = 768;
 	g_renderer.paramCount = 10;
 
 	if (!glfwInit())
@@ -303,7 +302,9 @@ static GLFWwindow* InitRenderer()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-	GLFWwindow* window = glfwCreateWindow(WindowWidth(), WindowHeight(), "Voxel Engine", NULL, NULL);
+	int screenWidth = 1024, screenHeight = 768;
+
+	GLFWwindow* window = glfwCreateWindow(screenWidth, screenHeight, "Voxel Engine", NULL, NULL);
 
 	if (window == NULL)
 	{
@@ -311,6 +312,7 @@ static GLFWwindow* InitRenderer()
 		return NULL;
 	}
 
+	SetWindowSize(window, screenWidth, screenHeight);
 	glfwMakeContextCurrent(window);
 
 	// Set vertical synchronization to the monitor refresh rate.
@@ -332,7 +334,6 @@ static GLFWwindow* InitRenderer()
 	}
 
 	glClearColor(0.53f, 0.80f, 0.92f, 1.0f);
-	glViewport(0, 0, WindowWidth(), WindowHeight());
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
