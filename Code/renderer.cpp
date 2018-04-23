@@ -157,6 +157,11 @@ static void DrawGraphic(Renderer* rend, Graphic* graphic)
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
+inline void SetCrosshairPos(Graphic* crosshair, int width, int height)
+{
+	crosshair->pos = vec2((width / 2.0f) - 16.0f, (height / 2.0f) - 16.0f);
+}
+
 static void SetWindowSize(GLFWwindow* window, int width, int height)
 {
 	Renderer* rend = (Renderer*)glfwGetWindowUserPointer(window);
@@ -165,6 +170,9 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 	rend->perspective = perspective(radians(CAMERA_FOV), (float)width / (float)height, 0.1f, 256.0f);
 	rend->ortho = ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
+
+	if (rend->crosshair != NULL)
+		SetCrosshairPos(rend->crosshair, width, height);
 }
 
 static Camera* NewCamera(vec3 pos)
@@ -348,8 +356,8 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 	LoadTexture(&crosshair, PathToAsset("Assets/Crosshair.png"));
 
 	Graphic* graphic = CreateGraphic(1, crosshair);
-	graphic->pos = vec2((screenWidth / 2.0f) - 16.0f, (screenHeight / 2.0f) - 16.0f);
-
+	SetCrosshairPos(graphic, screenWidth, screenHeight);
+	
 	rend->crosshair = graphic;
 
 	return window;
