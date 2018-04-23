@@ -141,42 +141,42 @@ inline void UseShader(GLuint program)
 	glUseProgram(program);
 }
 
-static GLint GetUniformLocation(GLint program, GLchar* name)
+static GLint GetUniformLocation(Renderer* rend, GLint program, GLchar* name)
 {
-	auto it = g_renderer.uniforms.find(name);
+	auto it = rend->uniforms.find(name);
 
-	if (it == g_renderer.uniforms.end())
-		g_renderer.uniforms[name] = glGetUniformLocation(program, name);
+	if (it == rend->uniforms.end())
+		rend->uniforms[name] = glGetUniformLocation(program, name);
 	
-	return g_renderer.uniforms[name];
+	return rend->uniforms[name];
 }
 
-inline void SetUniform(int ID, GLchar* name, GLfloat f)
+inline void SetUniform(Renderer* rend, int ID, GLchar* name, GLfloat f)
 {
-	GLint loc = GetUniformLocation(g_renderer.programs[ID], name);
+	GLint loc = GetUniformLocation(rend, rend->programs[ID], name);
 	glUniform1f(loc, f);
 }
 
-inline void SetUniform(int ID, GLchar* name, vec2 v)
+inline void SetUniform(Renderer* rend, int ID, GLchar* name, vec2 v)
 {
-	GLint loc = GetUniformLocation(g_renderer.programs[ID], name);
+	GLint loc = GetUniformLocation(rend, rend->programs[ID], name);
 	glUniform2f(loc, v.x, v.y);
 }
 
-inline void SetUniform(int ID, GLchar* name, vec3 v)
+inline void SetUniform(Renderer* rend, int ID, GLchar* name, vec3 v)
 {
-	GLint loc = GetUniformLocation(g_renderer.programs[ID], name);
+	GLint loc = GetUniformLocation(rend, rend->programs[ID], name);
 	glUniform3f(loc, v.x, v.y, v.z);
 }
 
-inline void SetUniform(int ID, GLchar* name, vec4 v)
+inline void SetUniform(Renderer* rend, int ID, GLchar* name, vec4 v)
 {
-	GLint loc = GetUniformLocation(g_renderer.programs[ID], name);
+	GLint loc = GetUniformLocation(rend, rend->programs[ID], name);
 	glUniform4f(loc, v.x, v.y, v.z, v.w);
 }
 
-inline void SetUniform(int ID, GLchar* name, mat4 m)
+inline void SetUniform(Renderer* rend, int ID, GLchar* name, mat4 m)
 {
-	GLint loc = GetUniformLocation(g_renderer.programs[ID], name);
+	GLint loc = GetUniformLocation(rend, rend->programs[ID], name);
 	glUniformMatrix4fv(loc, 1, GL_FALSE, value_ptr(m));
 }

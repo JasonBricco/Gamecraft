@@ -2,7 +2,6 @@
 // Jason Bricco
 
 // BUGS/TODO:
-// Make Renderer not global anymore, this encourages better design.
 
 // Look Into:
 // Frustum culling.
@@ -136,7 +135,9 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
-	double cX = WindowWidth() / 2.0, cY = WindowHeight() / 2.0f;
+	Renderer* rend = (Renderer*)glfwGetWindowUserPointer(window);
+
+	double cX = rend->windowWidth / 2.0, cY = rend->windowHeight / 2.0f;
 
 	Camera* cam = player->camera;
 
@@ -146,7 +147,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	RotateCamera(cam, rotX, rotY);
 	glfwSetCursorPos(window, cX, cY);
 
-	Simulate(world, player, deltaTime);
+	Simulate(rend, world, player, deltaTime);
 }
 
 int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdShow)
@@ -159,14 +160,16 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 
 	srand((uint32_t)time(0));
 
-	GLFWwindow* window = InitRenderer();
+	Renderer* rend = new Renderer();
+
+	GLFWwindow* window = InitRenderer(rend);
 
 	glfwSetKeyCallback(window, OnKey);
 	glfwSetWindowSizeCallback(window, SetWindowSize);
 	glfwSetMouseButtonCallback(window, OnMouseButton);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetCursorPos(window, WindowWidth() / 2.0f, WindowHeight() / 2.0f);
+	glfwSetCursorPos(window, rend->windowWidth / 2.0f, rend->windowHeight / 2.0f);
 
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* vMode = glfwGetVideoMode(monitor);
@@ -174,7 +177,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	World* world = NewWorld(512, 512);
 
 	Player* player = NewPlayer(world->spawn);
-	SetCamera(player->camera);
+	rend->camera = player->camera;
 	
 	int refreshHz = vMode->refreshRate * 2;
 	float targetSeconds = 1.0f / refreshHz;
@@ -188,7 +191,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 		glfwPollEvents();
 
 		Update(window, player, world, deltaTime);
-		RenderScene(world);
+		RenderScene(rend, world);
 
 		double secondsElapsed = glfwGetTime() - lastTime;
 

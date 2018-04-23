@@ -6,21 +6,19 @@ static void InitializeMesh(Mesh* mesh)
 	glGenVertexArrays(1, &mesh->va);
 	glBindVertexArray(mesh->va);
 
-	int params = g_renderer.paramCount;
-
 	// Vertex position attribute buffer.
 	glGenBuffers(1, &mesh->vb);
 	glBindBuffer(GL_ARRAY_BUFFER, mesh->vb);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, params * sizeof(GLfloat), NULL);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat), NULL);
 	glEnableVertexAttribArray(0);
 
 	// Texture coordinates (UVs).
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, params * sizeof(GLfloat),
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat),
 		(GLvoid*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
 
 	// Vertex color attribute buffer.
-	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, params * sizeof(GLfloat),
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat),
 		(GLvoid*)(6 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(2);
 
@@ -60,7 +58,7 @@ inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float 
 
 inline void SetMeshIndices(Mesh* mesh)
 {
-	int offset = (int)mesh->vertices.size() / g_renderer.paramCount;
+	int offset = (int)mesh->vertices.size() / MESH_PARAMS;
 
 	mesh->indices.push_back(offset + 2);
 	mesh->indices.push_back(offset + 1);
@@ -144,14 +142,14 @@ static Graphic* CreateGraphic(int shaderID, int texture)
 	return graphic;
 }
 
-static void DrawGraphic(Graphic* graphic)
+static void DrawGraphic(Renderer* rend, Graphic* graphic)
 {
 	int ID = graphic->shaderID;
-	UseShader(g_renderer.programs[ID]);
+	UseShader(rend->programs[ID]);
 
 	mat4 model = translate(mat4(), vec3(graphic->pos, 0.0f));
-	SetUniform(ID, "model1", model);
-	SetUniform(ID, "projection1", g_renderer.ortho);
+	SetUniform(rend, ID, "model1", model);
+	SetUniform(rend, ID, "projection1", rend->ortho);
 
 	glBindTexture(GL_TEXTURE_2D, graphic->texture);
 
@@ -161,10 +159,12 @@ static void DrawGraphic(Graphic* graphic)
 
 static void SetWindowSize(GLFWwindow* window, int width, int height)
 {
-	g_renderer.windowWidth = width;
-	g_renderer.windowHeight = height;
+	Renderer* rend = (Renderer*)glfwGetWindowUserPointer(window);
+	rend->windowWidth = width;
+	rend->windowHeight = height;
 	glViewport(0, 0, width, height);
-	g_renderer.perspective = perspective(radians(CAMERA_FOV), (float)width / (float)height, 0.1f, 256.0f);
+	rend->perspective = perspective(radians(CAMERA_FOV), (float)width / (float)height, 0.1f, 256.0f);
+	rend->ortho = ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
 }
 
 static Camera* NewCamera(vec3 pos)
@@ -183,7 +183,7 @@ static void UpdateCameraVectors(Camera* cam)
 	forward.z = cosf(cam->pitch) * cosf(cam->yaw);
 
 	forward = normalize(forward);
-	cam->right = normalize(cross(forward, g_renderer.worldUp));
+	cam->right = normalize(cross(forward, WORLD_UP));
 	cam->up = normalize(cross(cam->right, forward));
 
 	cam->forward = forward;
@@ -199,10 +199,10 @@ static void RotateCamera(Camera* cam, float yaw, float pitch)
 	UpdateCameraVectors(cam);
 }
 
-inline void UpdateViewMatrix()
+inline void UpdateViewMatrix(Renderer* rend)
 {
-	Camera* cam = g_renderer.camera;
-	g_renderer.view = lookAt(cam->pos, cam->target, cam->up);
+	Camera* cam = rend->camera;
+	rend->view = lookAt(cam->pos, cam->target, cam->up);
 }
 
 static void LoadTexture(GLuint* tex, char* path)
@@ -270,26 +270,8 @@ static void OnOpenGLMessage(GLenum src, GLenum type, GLuint id, GLenum severity,
   	abort();
 }
 
-inline int WindowWidth()
+static GLFWwindow* InitRenderer(Renderer* rend)
 {
-	return g_renderer.windowWidth;
-}
-
-inline int WindowHeight()
-{
-	return g_renderer.windowHeight;
-}
-
-inline void SetCamera(Camera* cam)
-{
-	g_renderer.camera = cam;
-}
-
-static GLFWwindow* InitRenderer()
-{
-	g_renderer.worldUp = vec3(0.0f, 1.0f, 0.0f);
-	g_renderer.paramCount = 10;
-
 	if (!glfwInit())
 	{
 		LogError("GLFW failed to initialize.");
@@ -312,6 +294,7 @@ static GLFWwindow* InitRenderer()
 		return NULL;
 	}
 
+	glfwSetWindowUserPointer(window, rend);
 	SetWindowSize(window, screenWidth, screenHeight);
 	glfwMakeContextCurrent(window);
 
@@ -345,8 +328,8 @@ static GLFWwindow* InitRenderer()
 
 	#endif
 
-	g_renderer.programs[0] = LoadShader("Shaders\\diffuse_array.shader");
-	g_renderer.programs[1] = LoadShader("Shaders\\crosshair.shader");
+	rend->programs[0] = LoadShader("Shaders\\diffuse_array.shader");
+	rend->programs[1] = LoadShader("Shaders\\crosshair.shader");
 
 	GLuint blockTextures;
 
@@ -359,49 +342,45 @@ static GLFWwindow* InitRenderer()
 	LoadTextureArray(&blockTextures, paths, true);
 	sb_free(paths);
 
-	g_renderer.blockTextures = blockTextures;
+	rend->blockTextures = blockTextures;
 
 	GLuint crosshair;
 	LoadTexture(&crosshair, PathToAsset("Assets/Crosshair.png"));
 
 	Graphic* graphic = CreateGraphic(1, crosshair);
-	graphic->pos = vec2((WindowWidth() / 2.0f) - 16.0f, (WindowHeight() / 2.0f) - 16.0f);
+	graphic->pos = vec2((screenWidth / 2.0f) - 16.0f, (screenHeight / 2.0f) - 16.0f);
 
-	g_renderer.crosshair = graphic;
-
-	g_renderer.perspective = perspective(radians(CAMERA_FOV), (float)WindowWidth() / (float)WindowHeight(),
-		0.1f, 256.0f);
-	g_renderer.ortho = ortho(0.0f, (float)WindowWidth(), (float)WindowHeight(), 0.0f, -1.0f, 1.0f);
+	rend->crosshair = graphic;
 
 	return window;
 }
 
-static Ray ScreenCenterToRay()
+static Ray ScreenCenterToRay(Renderer* rend)
 {
-	mat4 projection = g_renderer.perspective * g_renderer.view;
-	int w = WindowWidth();
-	int h = WindowHeight();
+	mat4 projection = rend->perspective * rend->view;
+	int w = rend->windowWidth;
+	int h = rend->windowHeight;
 	vec4 viewport = vec4(0.0f, h, w, -h);
 
 	ivec2 cursor = ivec2(w / 2, h / 2);
 
 	vec3 origin = unProject(vec3(cursor, 0), mat4(), projection, viewport);
 
-	return { origin, g_renderer.camera->forward };
+	return { origin, rend->camera->forward };
 }
 
-static void RenderScene(World* world)
+static void RenderScene(Renderer* rend, World* world)
 {
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	UpdateViewMatrix();
+	UpdateViewMatrix(rend);
 
-	UseShader(g_renderer.programs[0]);
-	SetUniform(0, "view0", g_renderer.view);
-	SetUniform(0, "projection0", g_renderer.perspective);
-	SetUniform(0, "ambient0", vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	UseShader(rend->programs[0]);
+	SetUniform(rend, 0, "view0", rend->view);
+	SetUniform(rend, 0, "projection0", rend->perspective);
+	SetUniform(rend, 0, "ambient0", vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
-	glBindTexture(GL_TEXTURE_2D_ARRAY, g_renderer.blockTextures);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, rend->blockTextures);
 
 	mat4 model;
 
@@ -412,7 +391,7 @@ static void RenderScene(World* world)
 		if (next->state == CHUNK_BUILT)
 		{
 			model = translate(mat4(), (vec3)next->wPos);
-			SetUniform(0, "model0", model);
+			SetUniform(rend, 0, "model0", model);
 			DrawMesh(&next->mesh);
 		}
 	}
@@ -422,7 +401,7 @@ static void RenderScene(World* world)
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
 
-		DrawGraphic(g_renderer.crosshair);
+		DrawGraphic(rend, rend->crosshair);
 
 		glDisable(GL_BLEND);
 	}

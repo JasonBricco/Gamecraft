@@ -143,10 +143,10 @@ static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result)
 	return false;
 }
 
-static HitInfo GetVoxelHit(World* world)
+static HitInfo GetVoxelHit(Renderer* rend, World* world)
 {
 	HitInfo info = {};
-	Ray ray = ScreenCenterToRay();
+	Ray ray = ScreenCenterToRay(rend);
 
 	vec3 point;
 	
@@ -562,7 +562,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	CameraFollow(player);
 }
 
-static void Simulate(World* world, Player* player, float deltaTime)
+static void Simulate(Renderer* rend, World* world, Player* player, float deltaTime)
 {
 	Camera* cam = player->camera;
 
@@ -596,7 +596,7 @@ static void Simulate(World* world, Player* player, float deltaTime)
 
 	if (op >= 0)
 	{
-		HitInfo info = GetVoxelHit(world);
+		HitInfo info = GetVoxelHit(rend, world);
 
 		if (info.hit)
 		{

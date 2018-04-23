@@ -1,7 +1,9 @@
 // Voxel Engine
 // Jason Bricco
 
+#define MESH_PARAMS 10
 #define CAMERA_FOV 45.0f
+#define WORLD_UP vec3(0.0f, 1.0f, 0.0f)
 
 struct Mesh
 {
@@ -35,15 +37,11 @@ struct Camera
 
 struct Renderer
 {
-	GLFWwindow* window;
 	Camera* camera;
 
 	int windowWidth, windowHeight;
 
-	vec3 worldUp;
-
 	unordered_map<string, GLint> uniforms;
-	int paramCount;
 
 	mat4 perspective, ortho;
 	mat4 view;
@@ -54,6 +52,4 @@ struct Renderer
 	GLuint blockTextures;
 
 	GLuint programs[2];
-
-	ivec3 cursor;
 };
