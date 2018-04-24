@@ -12,6 +12,7 @@ enum KeyType
     KEY_ESCAPE,
     KEY_TAB,
     KEY_P,
+    KEY_T,
     KEY_COUNT
 };
  

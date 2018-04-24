@@ -150,7 +150,7 @@ static HitInfo GetVoxelHit(Renderer* rend, World* world)
 
 	vec3 point;
 	
-	if (VoxelRaycast(world, ray, 10.0f, &point))
+	if (VoxelRaycast(world, ray, 15.0f, &point))
 	{
 		info.hit = true;
 		info.hitPos = BlockPos(point + ray.dir * 0.01f);
