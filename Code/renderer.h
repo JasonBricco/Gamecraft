@@ -5,14 +5,6 @@
 #define CAMERA_FOV 45.0f
 #define WORLD_UP vec3(0.0f, 1.0f, 0.0f)
 
-struct Mesh
-{
-	GLuint vb, ib, va;
-
-	vector<float> vertices;
-	vector<int> indices;
-};
-
 struct Graphic
 {
 	GLuint vb, ib, va;
@@ -53,3 +45,28 @@ struct Renderer
 
 	GLuint programs[2];
 };
+
+inline void SetGraphicVertex(float* vertices, int i, float x, float y, float u, float v);
+static Graphic* CreateGraphic(int shaderID, int texture);
+static void DrawGraphic(Renderer* rend, Graphic* graphic);
+
+inline void SetCrosshairPos(Graphic* crosshair, int width, int height);
+
+static void SetWindowSize(GLFWwindow* window, int width, int height);
+
+static Camera* NewCamera();
+static void UpdateCameraVectors(Camera* cam);
+static void RotateCamera(Camera* cam, float yaw, float pitch);
+inline void UpdateViewMatrix(Renderer* rend);
+
+static void LoadTexture(GLuint* tex, char* path);
+static void LoadTextureArray(GLuint* tex, char** paths, bool mipMaps);
+
+static void OnOpenGLMessage(GLenum src, GLenum type, GLuint id, GLenum severity,
+	GLsizei length, const GLchar* msg, const void* param);
+
+static GLFWwindow* InitRenderer(Renderer* rend);
+
+static Ray ScreenCenterToRay(Renderer* rend);
+
+static void RenderScene(Renderer* rend, World* world);

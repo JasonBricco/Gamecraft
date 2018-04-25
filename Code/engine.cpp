@@ -72,15 +72,17 @@ static void HandleAssertion(char* file, int line)
 
 #include "input.h"
 #include "utils.h"
-#include "shaders.h"
-#include "renderer.h"
+#include "mesh.h"
 #include "world.h"
+#include "renderer.h"
+#include "shaders.h"
 #include "simulation.h"
 #include "globals.h"
 
 #include "input.cpp"
 #include "shaders.cpp"
 #include "renderer.cpp"
+#include "mesh.cpp"
 #include "world.cpp"
 #include "simulation.cpp"
 
@@ -136,6 +138,38 @@ static void ShowFPS(GLFWwindow* window)
 	frameCount++;
 }
 
+static void CheckWorld(World* world, Player* player)
+{
+	vec3 pos = player->pos;
+	float min = world->pMin, max = world->pMax;
+
+	if (pos.x < min) 
+	{
+		player->pos.x = max - (min - pos.x);
+		world->refX--;
+		ShiftWorld(world);
+	}
+	else if (pos.x > max) 
+	{
+		player->pos.x = min + (pos.x - max);
+		world->refX++;
+		ShiftWorld(world);
+	}
+
+	if (pos.z < min) 
+	{
+		player->pos.z = max - (min - pos.z);
+		world->refZ--;
+		ShiftWorld(world);
+	}
+	else if (pos.z > max) 
+	{
+		player->pos.z = min + (pos.z - max);
+		world->refZ++;
+		ShiftWorld(world);
+	}
+}
+
 static void Update(GLFWwindow* window, Player* player, World* world, float deltaTime)
 {
 	if (KeyPressed(KEY_ESCAPE))
@@ -156,10 +190,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	if (KeyPressed(KEY_T))
 		ToggleFullscreen(glfwGetWin32Window(window));
 
-	ivec3 pos = ToChunkPos(player->pos);
-
-	UnloadChunks(world, pos);
-	LoadSurroundingChunks(world, pos);
+	CheckWorld(world, player);
 
 	if (KeyPressed(KEY_TAB))
 		player->flying = !player->flying;
@@ -207,9 +238,9 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* vMode = glfwGetVideoMode(monitor);
 
-	World* world = NewWorld(512, 512);
+	World* world = NewWorld();
 
-	Player* player = NewPlayer(world->spawn);
+	Player* player = NewPlayer(world->pMin, world->pMax);
 	rend->camera = player->camera;
 	
 	int refreshHz = vMode->refreshRate * 2;

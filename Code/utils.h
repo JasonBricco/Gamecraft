@@ -50,6 +50,11 @@ inline int RoundToInt(float value)
 	return (int)roundf(value);
 }
 
+inline int32_t FloorToInt(float value)
+{
+    return (int32_t)floorf(value);
+}
+
 inline ivec3 BlockPos(vec3 pos)
 {
 	return ivec3(RoundToInt(pos.x), RoundToInt(pos.y), RoundToInt(pos.z));

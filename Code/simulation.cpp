@@ -1,11 +1,13 @@
 // Voxel Engine
 // Jason Bricco
 
-static Player* NewPlayer(vec3 pos)
+static Player* NewPlayer(float pMin, float pMax)
 {
 	Player* player = Malloc(Player);
-	player->camera = NewCamera(pos);
-	player->pos = pos;
+	player->camera = NewCamera();
+
+	float spawn = pMin + (CHUNK_SIZE / 2.0f);
+	player->pos = vec3(spawn, 80.0f, spawn);
 	player->collider = Capsule(0.3f, 1.2f);
 	player->velocity = vec3(0.0f);
 	player->speed = 50.0f;
@@ -51,7 +53,7 @@ inline vec3 Capsule::Support(vec3 dir)
 	return pos + result;
 }
 
-static float BlockRayIntersection(vec3 blockPos, Ray ray) 
+static float BlockRayIntersection(vec3 blockPos, Ray ray)
 {
 	float nearP = -FLT_MAX;
 	float farP = FLT_MAX;
@@ -162,8 +164,6 @@ static HitInfo GetVoxelHit(Renderer* rend, World* world)
 	return info;
 }
 
-// Updates the simplex for the three point (triangle) case. 'abc' must be in 
-// counterclockwise winding order.
 static void UpdateSimplex3(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& search)
 {
 	// Triangle normal.
@@ -210,10 +210,6 @@ static void UpdateSimplex3(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& s
 	search = -norm;
 }
 
-
-// Updates the simplex for the four point (tetrahedron) case. 'a' is the top of the 
-// tetrahedron. 'bcd' is the base in counterclockwise winding order. We know the 
-// origin is above 'bcd' and below 'a' before calling.
 static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& search)
 {
 	// Normals of the three non-base tetrahedron faces.
@@ -255,7 +251,6 @@ static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& s
 	return true;
 }
 
-// Expanding polytope algorithm for finding the minimum translation vector.
 static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collider* colB)
 {
 	// Each triangle face has three vertices and a normal.
@@ -395,8 +390,6 @@ static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collide
 	return { mtv, faces[closest][3] };
 }
 
-// Returns true if two colliders are intersecting using the GJK algorithm. 
-// 'info', if given, will return a minimum translation vector and collision normal using EPA.
 static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
 {
 	vec3 a, b, c, d;
@@ -465,8 +458,8 @@ inline void CameraFollow(Player* player)
 
 static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 {
-	accel = accel * player->speed;
-	accel = accel + player->velocity * player->friction;
+	accel *= player->speed;
+	accel += (player->velocity * player->friction);
 
 	// Gravity.
 	if (!player->flying) accel.y = -30.0f;
@@ -488,77 +481,75 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 
 	// Skip collision detection if flying.
 	if (player->flying)
-	{
 		player->pos += delta;
-		CameraFollow(player);
-		return;
-	}
-
-	player->colFlags = HIT_NONE;
-	Capsule col = player->collider;
-
-	// Player size in blocks.
-	int blockR = CeilToInt(col.r);
-	int blockH = CeilToInt(col.yTop - col.yBase);
-	ivec3 bSize(blockR, blockH, blockR);
-
-	float deltaLen = length(delta);
-
-	// If our move is too big, try to prevent skipping through terrain.
-	if (deltaLen > 1.5f)
+	else
 	{
-		Ray ray = { player->pos, normalize(delta) };
+		player->colFlags = HIT_NONE;
+		Capsule col = player->collider;
 
-		// Move the player to the terrain if the ray hits it. If not, move the full distance.
-		vec3 result;
-		if (VoxelRaycast(world, ray, deltaLen, &result))
-			player->pos = result;
-		else player->pos += delta;
-	}
-	else player->pos += delta;
+		// Player size in blocks.
+		int blockR = CeilToInt(col.r);
+		int blockH = CeilToInt(col.yTop - col.yBase);
+		ivec3 bSize(blockR, blockH, blockR);
 
-	ivec3 newBlock = BlockPos(player->pos);
+		float deltaLen = length(delta);
 
-	// Compute the range of blocks we could touch with our movement. We'll test for collisions
-	// with the blocks in this range.
-	int minX = newBlock.x - bSize.x;
-	int minY = newBlock.y - bSize.y;
-	int minZ = newBlock.z - bSize.z;
-
-	int maxX = newBlock.x + bSize.x;
-	int maxY = newBlock.y + bSize.y;
-	int maxZ = newBlock.z + bSize.z;
-
-	CollisionInfo info;
-
-	for (int y = minY; y <= maxY; y++)
-	{
-		for (int z = minZ; z <= maxZ; z++)
+		// If our move is too big, try to prevent skipping through terrain.
+		if (deltaLen > 1.5f)
 		{
-			for (int x = minX; x <= maxX; x++)
+			Ray ray = { player->pos, normalize(delta) };
+
+			// Move the player to the terrain if the ray hits it. If not, move the full distance.
+			vec3 result;
+			if (VoxelRaycast(world, ray, deltaLen, &result))
+				player->pos = result;
+			else player->pos += delta;
+		}
+		else player->pos += delta;
+
+		ivec3 newBlock = BlockPos(player->pos);
+
+		// Compute the range of blocks we could touch with our movement. We'll test for collisions
+		// with the blocks in this range.
+		int minX = newBlock.x - bSize.x;
+		int minY = newBlock.y - bSize.y;
+		int minZ = newBlock.z - bSize.z;
+
+		int maxX = newBlock.x + bSize.x;
+		int maxY = newBlock.y + bSize.y;
+		int maxZ = newBlock.z + bSize.z;
+
+		CollisionInfo info;
+
+		for (int y = minY; y <= maxY; y++)
+		{
+			for (int z = minZ; z <= maxZ; z++)
 			{
-				int block = GetBlock(world, x, y, z);
-
-				if (block != 0)
+				for (int x = minX; x <= maxX; x++)
 				{
-					col.pos = player->pos;
-					AABB bb = AABB(vec3(x - 0.5f, y - 0.5f, z - 0.5f), vec3(0.0f), vec3(1.0f));
-					
-					if (Intersect(&col, &bb, &info))
-					{
-						player->pos += info.mtv;
+					int block = GetBlock(world, x, y, z);
 
-						if (info.normal.y > 0.25f)
+					if (block != 0)
+					{
+						col.pos = player->pos;
+						AABB bb = AABB(vec3(x - 0.5f, y - 0.5f, z - 0.5f), vec3(0.0f), vec3(1.0f));
+						
+						if (Intersect(&col, &bb, &info))
 						{
-							player->colFlags |= HIT_DOWN;
-							player->velocity.y = 0.0f;
+							player->pos += info.mtv;
+
+							if (info.normal.y > 0.25f)
+							{
+								player->colFlags |= HIT_DOWN;
+								player->velocity.y = 0.0f;
+							}
 						}
 					}
 				}
 			}
 		}
 	}
-
+	
 	CameraFollow(player);
 }
 
