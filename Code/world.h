@@ -26,7 +26,7 @@ struct Chunk
 
 	int blocks[CHUNK_SIZE_3];
 
-	Mesh mesh;
+	Mesh* mesh;
 
 	ChunkState state;
 
@@ -42,6 +42,10 @@ struct World
 	// Width of the active world near the origin. 
 	// The potential world is unlimited in size.
 	int width;
+
+	// Chunk pool to avoid constant allocating/freeing.
+	Chunk** pool;
+	int poolSize;
 
 	// Actively loaded chunks around the player.
 	Chunk** chunks;
@@ -82,9 +86,9 @@ inline bool IsCorrect(Chunk* chunk, int32_t wX, int32_t wZ);
 // pulled out from the pool to fill the new world section if applicable.
 // Otherwise, new chunks will be created and the ones remaining in the pool
 // will be destroyed.
-static Chunk* GetChunkFromPool(World* world, uint32_t bucket, int32_t wX, int32_t wZ);
-inline Chunk* GetChunkFromPool(World* world, int32_t wX, int32_t wZ);
-inline void AddChunkToPool(World* world, Chunk* chunk);
+static Chunk* ChunkFromHash(World* world, uint32_t bucket, int32_t wX, int32_t wZ);
+inline Chunk* ChunkFromHash(World* world, int32_t wX, int32_t wZ);
+inline void AddChunkToHash(World* world, Chunk* chunk);
 
 inline void SetBlock(Chunk* chunk, int lX, int lY, int lZ, int block);
 inline void SetBlock(Chunk* chunk, ivec3 lPos, int block);
@@ -102,6 +106,9 @@ static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, int startX, int sta
 
 // Fill a chunk with a single block type.
 static void FillChunk(Chunk* chunk, int block);
+
+inline void AddChunkToPool(World* world, Chunk* chunk);
+inline Chunk* ChunkFromPool(World* world);
 
 static Chunk* CreateChunk(World* world, int cX, int cZ, int wX, int wZ);
 static void DestroyChunk(World* world, Chunk* chunk);

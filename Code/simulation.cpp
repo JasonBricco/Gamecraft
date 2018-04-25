@@ -14,6 +14,7 @@ static Player* NewPlayer(float pMin, float pMax)
 	player->friction = -8.0f;
 	player->colFlags = HIT_NONE;
 	player->flying = false;
+	player->speedMode = false;
 
 	return player;
 }
@@ -564,9 +565,15 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 	if (KeyHeld(KEY_LEFT)) accel = MoveDirXZ(-cam->right);
 	if (KeyHeld(KEY_RIGHT)) accel = MoveDirXZ(cam->right);
 
+	if (KeyPressed(KEY_TAB))
+		player->flying = !player->flying;
+
+	if (KeyPressed(KEY_P))
+		player->speedMode = !player->speedMode;
+
 	if (player->flying)
 	{
-		player->speed = 200.0f;
+		player->speed = player->speedMode ? 5000.0f : 200.0f;
 
 		if (KeyHeld(KEY_SPACE))
 			accel.y = 1.0f;

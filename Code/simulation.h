@@ -66,7 +66,7 @@ struct Player
 	float speed;
 	float friction;
 	uint8_t colFlags;
-	bool flying;
+	bool flying, speedMode;
 };
 
 static Player* NewPlayer(float pMin, float pMax);

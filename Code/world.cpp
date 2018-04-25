@@ -58,7 +58,7 @@ inline bool IsCorrect(Chunk* chunk, int32_t wX, int32_t wZ)
 	return chunk->wX == wX && chunk->wZ == wZ;
 }
 
-static Chunk* GetChunkFromPool(World* world, uint32_t bucket, int32_t wX, int32_t wZ)
+static Chunk* ChunkFromHash(World* world, uint32_t bucket, int32_t wX, int32_t wZ)
 {
     Chunk* chunk = world->chunkHash[bucket];
 
@@ -88,17 +88,17 @@ static Chunk* GetChunkFromPool(World* world, uint32_t bucket, int32_t wX, int32_
     return NULL;
 }
 
-inline Chunk* GetChunkFromPool(World* world, int32_t wX, int32_t wZ)
+inline Chunk* ChunkFromHash(World* world, int32_t wX, int32_t wZ)
 {
-	 return GetChunkFromPool(world, ChunkHashBucket(wX, wZ), wX, wZ);
+	 return ChunkFromHash(world, ChunkHashBucket(wX, wZ), wX, wZ);
 }
 
-inline void AddChunkToPool(World* world, Chunk* chunk)
+inline void AddChunkToHash(World* world, Chunk* chunk)
 {
 	if (chunk == NULL) return;
 
 	uint32_t bucket = ChunkHashBucket(chunk->wX, chunk->wZ);
-	Chunk* existing = GetChunkFromPool(world, bucket, chunk->wX, chunk->wZ);
+	Chunk* existing = ChunkFromHash(world, bucket, chunk->wX, chunk->wZ);
 
 	if (existing == NULL)
 		world->chunkHash[bucket] = chunk;
@@ -197,6 +197,20 @@ static void FillChunk(Chunk* chunk, int block)
 		chunk->blocks[i] = block;
 }
 
+inline void AddChunkToPool(World* world, Chunk* chunk)
+{
+	memset(chunk, 0, sizeof(Chunk));
+	world->pool[world->poolSize++] = chunk;
+}
+
+inline Chunk* ChunkFromPool(World* world)
+{
+	Assert(world->poolSize > 0);
+	Chunk* chunk = world->pool[world->poolSize - 1];
+	world->poolSize--;
+	return chunk;
+}
+
 static Chunk* CreateChunk(World* world, int cX, int cZ, int wX, int wZ)
 {
 	int index = ChunkIndex(world, cX, cZ);
@@ -204,7 +218,7 @@ static Chunk* CreateChunk(World* world, int cX, int cZ, int wX, int wZ)
 
 	if (chunk == NULL)
 	{
-		chunk = Calloc(Chunk);
+		chunk = ChunkFromPool(world);
 		chunk->cX = cX;
 		chunk->cZ = cZ;
 		chunk->wX = wX;
@@ -222,14 +236,14 @@ static void DestroyChunk(World* world, Chunk* chunk)
 		DestroyChunk(world, chunk->nextInHash);
 
 	if (chunk->state == CHUNK_BUILT)
-		DestroyMesh(&chunk->mesh);
+		DestroyMesh(chunk->mesh);
 
-	free(chunk);
+	AddChunkToPool(world, chunk);
 }
 
 static void BuildBlock(World* world, Chunk* chunk, float x, float y, float z, int wX, int wY, int wZ)
 {
-	Mesh* mesh = &chunk->mesh;
+	Mesh* mesh = chunk->mesh;
 
 	// Top face.
 	if (GetBlock(world, wX, wY + 1, wZ) == 0)
@@ -294,7 +308,7 @@ static void BuildBlock(World* world, Chunk* chunk, float x, float y, float z, in
 
 static void BuildChunk(World* world, Chunk* chunk)
 {
-	InitializeMesh(&chunk->mesh);
+	chunk->mesh = CreateMesh();
 
 	for (int y = 0; y < WORLD_HEIGHT; y++)
 	{
@@ -314,7 +328,7 @@ static void BuildChunk(World* world, Chunk* chunk)
 		}
 	}
 	
-	FillMeshData(&chunk->mesh);
+	FillMeshData(chunk->mesh);
 	chunk->state = CHUNK_BUILT;
 }
 
@@ -322,7 +336,7 @@ inline void UpdateChunkDirect(World* world, Chunk* chunk)
 {
 	if (chunk->state == CHUNK_BUILT)
 	{
-		DestroyMesh(&chunk->mesh);
+		DestroyMesh(chunk->mesh);
 		BuildChunk(world, chunk);
 	}
 }
@@ -346,7 +360,7 @@ static void ShiftWorld(World* world)
 
 	for (int i = 0; i < world->totalChunks; i++)
 	{
-		AddChunkToPool(world, world->chunks[i]);
+		AddChunkToHash(world, world->chunks[i]);
 		world->chunks[i] = NULL;
 	}
 
@@ -357,7 +371,7 @@ static void ShiftWorld(World* world)
 			int wX = world->refX + x;
 			int wZ = world->refZ + z;
 
-			Chunk* chunk = GetChunkFromPool(world, wX, wZ);
+			Chunk* chunk = ChunkFromHash(world, wX, wZ);
 
 			if (chunk == NULL)
 				CreateChunk(world, x, z, wX, wZ);
@@ -379,11 +393,6 @@ static void ShiftWorld(World* world)
 
 		DestroyChunk(world, chunk);
 		world->chunkHash[c] = NULL;
-	}
-
-	for (int i = 0; i < world->totalChunks; i++)
-	{
-		Assert(world->chunks[i] != NULL);
 	}
 
 	for (int z = 1; z < edge; z++)
@@ -415,6 +424,15 @@ static World* NewWorld()
 	world->chunks = (Chunk**)calloc(1, world->totalChunks * sizeof(Chunk*));
 	world->refX = world->spawnX - loadRange - 1;
 	world->refZ = world->spawnZ - loadRange - 1;
+
+	// Allocate extra chunks for the pool for world shifting. We create new chunks
+	// before we destroy the old ones.
+	int targetPoolSize = world->totalChunks + world->width;
+	world->pool = (Chunk**)calloc(1, targetPoolSize * sizeof(Chunk*));
+	world->poolSize = 0;
+
+	for (int i = 0; i < targetPoolSize; i++)
+		AddChunkToPool(world, Malloc(Chunk));
 
 	world->pMin = (float)((loadRange + 1) * CHUNK_SIZE);
 	world->pMax = world->pMin + CHUNK_SIZE;

@@ -5,11 +5,14 @@ struct Mesh
 {
 	GLuint vb, ib, va;
 
-	vector<float> vertices;
-	vector<int> indices;
+	float* vertices;
+	int* indices;
+
+	int vertMax, indexMax;
+	int vertCount, indexCount;
 };
 
-static void InitializeMesh(Mesh* mesh);
+static Mesh* CreateMesh();
 static void DestroyMesh(Mesh* mesh);
 
 inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, 

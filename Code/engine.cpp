@@ -192,9 +192,6 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 	CheckWorld(world, player);
 
-	if (KeyPressed(KEY_TAB))
-		player->flying = !player->flying;
-
 	double mouseX, mouseY;
 
 	glfwGetCursorPos(window, &mouseX, &mouseY);

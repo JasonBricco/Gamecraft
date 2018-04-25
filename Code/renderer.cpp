@@ -312,7 +312,7 @@ static void RenderScene(Renderer* rend, World* world)
 			vec3 wPos = vec3(chunk->cX * CHUNK_SIZE, 0.0f, chunk->cZ * CHUNK_SIZE);
 			model = translate(mat4(), wPos);
 			SetUniform(rend, 0, "model0", model);
-			DrawMesh(&chunk->mesh);
+			DrawMesh(chunk->mesh);
 		}
 	}
 

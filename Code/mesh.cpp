@@ -1,8 +1,10 @@
 // Voxel Engine
 // Jason Bricco
 
-static void InitializeMesh(Mesh* mesh)
+static Mesh* CreateMesh()
 {
+	Mesh* mesh = Calloc(Mesh);
+
 	glGenVertexArrays(1, &mesh->va);
 	glBindVertexArray(mesh->va);
 
@@ -25,8 +27,16 @@ static void InitializeMesh(Mesh* mesh)
 	// Index buffer.
 	glGenBuffers(1, &mesh->ib);
 
-	mesh->vertices.reserve(131072);
-	mesh->indices.reserve(262144);
+	mesh->vertMax = 262144;
+	mesh->indexMax = 131072;
+
+	mesh->vertices = (float*)malloc(mesh->vertMax * sizeof(float));
+	mesh->indices = (int*)malloc(mesh->indexMax * sizeof(int));
+
+	mesh->vertCount = 0;
+	mesh->indexCount = 0;
+
+	return mesh;
 }
 
 static void DestroyMesh(Mesh* mesh)
@@ -35,56 +45,70 @@ static void DestroyMesh(Mesh* mesh)
 	glDeleteBuffers(1, &mesh->ib);
 	glDeleteVertexArrays(1, &mesh->va);
 
-	mesh->vertices.clear();
-	mesh->indices.clear();
+	free(mesh->vertices);
+	free(mesh->indices);
 }
 
 inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex,
 	float r, float g, float b, float a)
 {
-	mesh->vertices.push_back(x);
-	mesh->vertices.push_back(y);
-	mesh->vertices.push_back(z);
+	if (mesh->vertCount + MESH_PARAMS > mesh->vertMax)
+	{
+		mesh->vertices = (float*)realloc(mesh->vertices, mesh->vertMax * 2);
+		mesh->vertMax *= 2;
+	}
 
-	mesh->vertices.push_back(u);
-	mesh->vertices.push_back(v);
-	mesh->vertices.push_back(tex);
+	int count = mesh->vertCount;
 
-	mesh->vertices.push_back(r);
-	mesh->vertices.push_back(g);
-	mesh->vertices.push_back(b);
-	mesh->vertices.push_back(a);
+	mesh->vertices[count++] = x;
+	mesh->vertices[count++] = y;
+	mesh->vertices[count++] = z;
+
+	mesh->vertices[count++] = u;
+	mesh->vertices[count++] = v;
+	mesh->vertices[count++] = tex;
+
+	mesh->vertices[count++] = r;
+	mesh->vertices[count++] = g;
+	mesh->vertices[count++] = b;
+	mesh->vertices[count++] = a;
+
+	mesh->vertCount = count;
 }
 
 inline void SetMeshIndices(Mesh* mesh)
 {
-	int offset = (int)mesh->vertices.size() / MESH_PARAMS;
+	if (mesh->indexCount + 6 > mesh->indexMax)
+	{
+		mesh->indices = (int*)realloc(mesh->indices, mesh->indexMax * 2);
+		mesh->indexMax *= 2;
+	}
 
-	mesh->indices.push_back(offset + 2);
-	mesh->indices.push_back(offset + 1);
-	mesh->indices.push_back(offset);
+	int offset = mesh->vertCount / MESH_PARAMS;
+	int count = mesh->indexCount;
 
-	mesh->indices.push_back(offset + 3);
-	mesh->indices.push_back(offset + 2);
-	mesh->indices.push_back(offset);
+	mesh->indices[count++] = offset + 2;
+	mesh->indices[count++] = offset + 1;
+	mesh->indices[count++] = offset;
+
+	mesh->indices[count++] = offset + 3;
+	mesh->indices[count++] = offset + 2;
+	mesh->indices[count++] = offset;
+
+	mesh->indexCount = count;
 }
 
 static void FillMeshData(Mesh* mesh)
 {
-	int vertexCount = (int)mesh->vertices.size();
-	int indexCount = (int)mesh->indices.size();
-
 	glBindBuffer(GL_ARRAY_BUFFER, mesh->vb);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertexCount, mesh->vertices.data(),
-		GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * mesh->vertCount, mesh->vertices, GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * indexCount, mesh->indices.data(),
-		GL_DYNAMIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_DYNAMIC_DRAW);
 }
 
 static void DrawMesh(Mesh* mesh)
 {
 	glBindVertexArray(mesh->va);
-	glDrawElements(GL_TRIANGLES, (int)mesh->indices.size(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
 }
