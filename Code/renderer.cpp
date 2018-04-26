@@ -290,6 +290,8 @@ static Ray ScreenCenterToRay(Renderer* rend)
 
 static void RenderScene(Renderer* rend, World* world)
 {
+	BEGIN_TIMED_BLOCK(RENDER_SCENE);
+
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	UpdateViewMatrix(rend);
@@ -327,4 +329,6 @@ static void RenderScene(Renderer* rend, World* world)
 	}
 
 	glClear(GL_DEPTH_BUFFER_BIT);
+
+	END_TIMED_BLOCK(RENDER_SCENE);
 }

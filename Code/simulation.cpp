@@ -485,6 +485,8 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 		player->pos += delta;
 	else
 	{
+		BEGIN_TIMED_BLOCK(PLAYER_COLLISION);
+
 		player->colFlags = HIT_NONE;
 		Capsule col = player->collider;
 
@@ -549,8 +551,10 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 				}
 			}
 		}
+
+		END_TIMED_BLOCK(PLAYER_COLLISION);
 	}
-	
+
 	CameraFollow(player);
 }
 

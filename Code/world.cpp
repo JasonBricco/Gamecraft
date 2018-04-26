@@ -174,6 +174,8 @@ static int GetBlock(World* world, int wX, int wY, int wZ)
 
 static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, int startX, int startZ)
 {
+	BEGIN_TIMED_BLOCK(GEN_TERRAIN);
+
 	float* noiseSet = noise->GetSimplexSet(startX, 0, startZ, CHUNK_SIZE, 1, CHUNK_SIZE);   
 
 	int index = 0;
@@ -189,6 +191,8 @@ static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, int startX, int sta
         		SetBlock(chunk, x, y, z, 1);
         }
     }
+
+    END_TIMED_BLOCK(GEN_TERRAIN);
 }
 
 static void FillChunk(Chunk* chunk, int block)
@@ -308,6 +312,8 @@ static void BuildBlock(World* world, Chunk* chunk, float x, float y, float z, in
 
 static void BuildChunk(World* world, Chunk* chunk)
 {
+	BEGIN_TIMED_BLOCK(BUILD_CHUNK);
+
 	chunk->mesh = CreateMesh();
 
 	for (int y = 0; y < WORLD_HEIGHT; y++)
@@ -330,6 +336,8 @@ static void BuildChunk(World* world, Chunk* chunk)
 	
 	FillMeshData(chunk->mesh);
 	chunk->state = CHUNK_BUILT;
+
+	END_TIMED_BLOCK(BUILD_CHUNK);
 }
 
 inline void UpdateChunkDirect(World* world, Chunk* chunk)

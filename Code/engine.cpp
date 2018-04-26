@@ -20,7 +20,7 @@
 #include "GLFW/glfw3native.h"
 #include "FastNoiseSIMD.h"
 
-#define PROFILING 1
+#define PROFILING 0
 #define ASSERTIONS 1
 #define DEBUG_MEMORY 0
 
@@ -68,6 +68,51 @@ static void HandleAssertion(char* file, int line)
 #if DEBUG_MEMORY
 #define _CRTDBG_MAP_ALLOC 1
 #include <crtdbg.h>  
+#endif
+
+#if PROFILING
+
+enum MeasureSection
+{
+	MEASURE_GAME_LOOP = 0,
+	MEASURE_RENDER_SCENE = 1,
+	MEASURE_PLAYER_COLLISION = 2,
+	MEASURE_BUILD_CHUNK = 3,
+	MEASURE_GEN_TERRAIN = 4,
+	MEASURE_COUNT = 5
+};
+
+struct CycleCounter
+{
+	uint64_t cycles;
+};
+
+static CycleCounter g_counters[MEASURE_COUNT];
+
+static void FlushCounters()
+{
+	OutputDebugString("CYCLE COUNTS:\n");
+
+	for (int i = 0; i < MEASURE_COUNT; i++)
+	{
+		char buffer[128];
+		sprintf(buffer, "%d: Cycles: %I64u\n", i, g_counters[i].cycles);
+		OutputDebugString(buffer);
+
+		g_counters[i].cycles = 0;
+	}
+}
+
+#define BEGIN_TIMED_BLOCK(ID) uint64_t startCount##ID = __rdtsc();
+#define END_TIMED_BLOCK(ID) g_counters[MEASURE_##ID].cycles += __rdtsc() - startCount##ID;
+#define FLUSH_COUNTERS() FlushCounters();
+
+#else
+
+#define BEGIN_TIMED_BLOCK(ID)
+#define END_TIMED_BLOCK(ID)
+#define FLUSH_COUNTERS()
+
 #endif
 
 #include "input.h"
@@ -248,6 +293,8 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 
 	while (!glfwWindowShouldClose(window))
 	{
+		BEGIN_TIMED_BLOCK(GAME_LOOP);
+
 		ResetInput();
 		glfwPollEvents();
 
@@ -276,10 +323,11 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 		double endTime = glfwGetTime();
 		deltaTime = (float)(endTime - lastTime);
 		lastTime = endTime;
+
+		END_TIMED_BLOCK(GAME_LOOP);
+		FLUSH_COUNTERS();
 	}
 
-	timeEndPeriod(1);
 	glfwTerminate();
-
 	return 0;
 }
