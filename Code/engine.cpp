@@ -20,7 +20,7 @@
 #include "GLFW/glfw3native.h"
 #include "FastNoiseSIMD.h"
 
-#define PROFILING 0
+#define PROFILING 1
 #define ASSERTIONS 1
 #define DEBUG_MEMORY 0
 
@@ -85,6 +85,7 @@ enum MeasureSection
 struct CycleCounter
 {
 	uint64_t cycles;
+	uint64_t calls;
 };
 
 static CycleCounter g_counters[MEASURE_COUNT];
@@ -95,16 +96,31 @@ static void FlushCounters()
 
 	for (int i = 0; i < MEASURE_COUNT; i++)
 	{
-		char buffer[128];
-		sprintf(buffer, "%d: Cycles: %I64u\n", i, g_counters[i].cycles);
-		OutputDebugString(buffer);
+		uint64_t calls = g_counters[i].calls;
 
-		g_counters[i].cycles = 0;
+		if (calls > 0)
+		{
+			uint64_t cycles = g_counters[i].cycles;
+			uint64_t cyclesPerCall = cycles / calls;
+			char buffer[128];
+			sprintf(buffer, "%d: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u\n", 
+				i, cycles, calls, cyclesPerCall);
+			OutputDebugString(buffer);
+
+			g_counters[i].cycles = 0;
+			g_counters[i].calls = 0;
+		}
 	}
 }
 
+inline void EndTimedBlock(int ID, uint64_t start)
+{
+	g_counters[ID].cycles += __rdtsc() - start;
+	g_counters[ID].calls++;
+}
+
 #define BEGIN_TIMED_BLOCK(ID) uint64_t startCount##ID = __rdtsc();
-#define END_TIMED_BLOCK(ID) g_counters[MEASURE_##ID].cycles += __rdtsc() - startCount##ID;
+#define END_TIMED_BLOCK(ID) EndTimedBlock(MEASURE_##ID, startCount##ID)
 #define FLUSH_COUNTERS() FlushCounters();
 
 #else
