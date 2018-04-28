@@ -15,13 +15,11 @@ static Mesh* CreateMesh()
 	glEnableVertexAttribArray(0);
 
 	// Texture coordinates (UVs).
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat),
-		(GLvoid*)(3 * sizeof(GLfloat)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
 
 	// Vertex color attribute buffer.
-	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat),
-		(GLvoid*)(6 * sizeof(GLfloat)));
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(2);
 
 	// Index buffer.
@@ -32,9 +30,6 @@ static Mesh* CreateMesh()
 
 	mesh->vertices = (float*)malloc(mesh->vertMax * sizeof(float));
 	mesh->indices = (int*)malloc(mesh->indexMax * sizeof(int));
-
-	mesh->vertCount = 0;
-	mesh->indexCount = 0;
 
 	return mesh;
 }

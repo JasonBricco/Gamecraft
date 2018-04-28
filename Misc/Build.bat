@@ -30,16 +30,17 @@ GOTO compile_debug
 :compile_release
 
 cl -I Common\Include %cf% %f% %def% Code\engine.cpp /link %clb% %lb% %link%
-del /Q *.obj
 del /Q *.pdb > nul 2> nul
 GOTO end
 
 :compile_debug
 
 cl -I Common\Include %cf% %f% %def% Code\engine.cpp /link %clb% %lb% %link%
-del /Q *.obj
 GOTO end
 
 :end
+
+del /Q *.obj > nul 2> nul
+rmdir Debug > nul 2> nul
 
 popd

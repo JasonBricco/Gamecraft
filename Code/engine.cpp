@@ -20,7 +20,7 @@
 #include "GLFW/glfw3native.h"
 #include "FastNoiseSIMD.h"
 
-#define PROFILING 1
+#define PROFILING 0
 #define ASSERTIONS 1
 #define DEBUG_MEMORY 0
 
@@ -70,6 +70,8 @@ static void HandleAssertion(char* file, int line)
 #include <crtdbg.h>  
 #endif
 
+static bool g_paused;
+
 #if PROFILING
 
 enum MeasureSection
@@ -79,7 +81,8 @@ enum MeasureSection
 	MEASURE_PLAYER_COLLISION = 2,
 	MEASURE_BUILD_CHUNK = 3,
 	MEASURE_GEN_TERRAIN = 4,
-	MEASURE_COUNT = 5
+	MEASURE_TEMP = 5,
+	MEASURE_COUNT = 6
 };
 
 struct CycleCounter
@@ -131,6 +134,8 @@ inline void EndTimedBlock(int ID, uint64_t start)
 
 #endif
 
+#include "intrinsics.h"
+#include "logging.h"
 #include "input.h"
 #include "utils.h"
 #include "mesh.h"
@@ -138,7 +143,6 @@ inline void EndTimedBlock(int ID, uint64_t start)
 #include "renderer.h"
 #include "shaders.h"
 #include "simulation.h"
-#include "globals.h"
 
 #include "input.cpp"
 #include "shaders.cpp"
@@ -296,7 +300,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* vMode = glfwGetVideoMode(monitor);
 
-	World* world = NewWorld();
+	World* world = NewWorld(8);
 
 	Player* player = NewPlayer(world->pMin, world->pMax);
 	rend->camera = player->camera;

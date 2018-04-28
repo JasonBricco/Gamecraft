@@ -13,7 +13,6 @@ struct Mesh
 };
 
 static Mesh* CreateMesh();
-static void DestroyMesh(Mesh* mesh);
 
 inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, 
 	float u, float v, float tex, float r, float g, float b, float a);

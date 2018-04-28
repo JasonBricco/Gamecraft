@@ -114,7 +114,7 @@ static Chunk* CreateChunk(World* world, int cX, int cZ, int wX, int wZ);
 static void DestroyChunk(World* world, Chunk* chunk);
 
 // Builds mesh data for a single block.
-static void BuildBlock(World* world, Chunk* chunk, float x, float y, float z, 
+static void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, 
 	int wX, int wY, int wZ);
 
 // Builds mesh data for the chunk.
@@ -129,4 +129,4 @@ inline void UpdateChunk(World* world, Chunk* chunk, ivec3 lPos);
 // world position within the world.
 static void ShiftWorld(World* world);
 
-static World* NewWorld();
+static World* NewWorld(int loadRange);

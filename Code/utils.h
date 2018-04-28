@@ -75,13 +75,3 @@ inline vec3 MoveDirXZ(vec3 value)
 	vec3 zeroY = vec3(value.x, 0.0f, value.z);
 	return normalize(zeroY);
 }
-
-inline void LogError(char* message)
-{
-	fprintf(stderr, "%s\n", message);
-}
-
-inline void PrintVec3(vec3 v)
-{
-	printf("(%.02f, %.02f, %.02f)\n", v.x, v.y, v.z);
-}

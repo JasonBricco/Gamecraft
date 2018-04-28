@@ -16,7 +16,7 @@
 			"shell_cmd": "@echo off && W:/Misc/Run.bat -r"
 		},
 		{
-			"name": "Run (Debug)",
+			"name": "Visual Studio",
 			"shell_cmd": "@echo off && W:/Misc/Run.bat -d"
 		}
 	]

@@ -245,10 +245,8 @@ static void DestroyChunk(World* world, Chunk* chunk)
 	AddChunkToPool(world, chunk);
 }
 
-static void BuildBlock(World* world, Chunk* chunk, float x, float y, float z, int wX, int wY, int wZ)
+static void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, int wX, int wY, int wZ)
 {
-	Mesh* mesh = chunk->mesh;
-
 	// Top face.
 	if (GetBlock(world, wX, wY + 1, wZ) == 0)
 	{
@@ -328,7 +326,7 @@ static void BuildChunk(World* world, Chunk* chunk)
 				{
 					int wX = chunk->cX * CHUNK_SIZE;
 					int wZ = chunk->cZ * CHUNK_SIZE;
-					BuildBlock(world, chunk, (float)x, (float)y, (float)z, wX + x, y, wZ + z);
+					BuildBlock(world, chunk->mesh, (float)x, (float)y, (float)z, wX + x, y, wZ + z);
 				}
 			}
 		}
@@ -415,11 +413,9 @@ static void ShiftWorld(World* world)
 	}
 }
 
-static World* NewWorld()
+static World* NewWorld(int loadRange)
 {
 	World* world = Calloc(World);
-
-	int loadRange = 8;
 
 	// Load range worth of chunks on each side, the middle chunk, and two boundary
 	// chunks form the total width.

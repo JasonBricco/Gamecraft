@@ -1,6 +1,8 @@
 // Voxel Engine
 // Jason Bricco
 
+static GameInput g_input;
+
 inline bool KeyHeld(KeyType type)
 {
 	return g_input.keys[type];
