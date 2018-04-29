@@ -24,10 +24,16 @@ namespace SIMD
 		return _mm_castps_si128(value);
 	}
 
-	// Converts a float4 value to an int4 value.
+	// Converts a float4 value to an int4 value and rounds the result.
 	__forceinline int4 Convert(float4 value)
 	{
-		return _mm_cvttps_epi32(value);
+		return _mm_cvtps_epi32(value);
+	}
+
+	// Converts an int4 value to a float4 value.
+	__forceinline float4 Convert(int4 value)
+	{
+		return _mm_cvtepi32_ps(value);
 	}
 
 	// Given two float4 values, for example:
@@ -92,19 +98,45 @@ namespace SIMD
 		return _mm_min_ps(_mm_max_ps(value, min), max);
 	}
 
-	__forceinline float4 Or(float4 a, float4 b)
-	{
-		return _mm_or_ps(a, b);
-	}
-
 	__forceinline int4 Or(int4 a, int4 b)
 	{
 		return _mm_or_si128(a, b);
 	}
 
-	__forceinline int4 ShiftLeft(int4 a, int amount)
+	__forceinline int4 And(int4 a, int4 b)
 	{
-		return _mm_slli_epi32(a, amount);
+		return _mm_and_si128(a, b);
+	}
+
+	// Computes the bitwise AND with the bitwise NOT inversion of b.
+	__forceinline int4 AndNot(int4 a, int4 b)
+	{
+		return _mm_andnot_si128(a, b);
+	}
+
+	__forceinline int4 ShiftLeft(int4 value, int amount)
+	{
+		return _mm_slli_epi32(value, amount);
+	}
+
+	__forceinline int4 ShiftRight(int4 value, int amount)
+	{
+		return _mm_srli_epi32(value, amount);
+	}
+
+	__forceinline float4 CompareGreaterEqual(float4 a, float4 b)
+	{
+		return _mm_cmpge_ps(a, b);
+	}
+
+	__forceinline float4 CompareLessEqual(float4 a, float4 b)
+	{
+		return _mm_cmple_ps(a, b);
+	}
+
+	__forceinline int4 LoadUnaligned(int4* loc)
+	{
+		return _mm_loadu_si128(loc);
 	}
 
 	__forceinline int4 WriteUnaligned(int4* loc, int4 value)
