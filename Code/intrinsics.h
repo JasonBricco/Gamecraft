@@ -15,7 +15,7 @@ namespace SIMD
 	// significant bit and 'd' as the least significant bit.
 	__forceinline float4 Set(float a, float b, float c, float d)
 	{
-		return _mm_set_ps(a, b, c, d);
+		return _mm_setr_ps(a, b, c, d);
 	}
 
 	// Cast from a float4 to an int4.

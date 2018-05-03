@@ -114,7 +114,7 @@ static void RotateCamera(Camera* cam, float yaw, float pitch)
 	cam->yaw += radians(yaw);
 	cam->pitch += radians(pitch);
 
-	cam->pitch = clamp(cam->pitch, -pi<float>() / 2.0f + 0.1f, pi<float>() / 2.0f - 0.1f);
+	cam->pitch = Clamp(cam->pitch, -pi<float>() / 2.0f + 0.1f, pi<float>() / 2.0f - 0.1f);
 	UpdateCameraVectors(cam);
 }
 

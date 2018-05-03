@@ -32,6 +32,7 @@
 #include "stretchy_buffer.h"
 
 #include <unordered_map>
+#include <queue>
 #include <fstream>
 
 #include "glm/fwd.hpp"
@@ -135,6 +136,7 @@ inline void EndTimedBlock(int ID, uint64_t start)
 #endif
 
 #include "intrinsics.h"
+#include "async.h"
 #include "logging.h"
 #include "input.h"
 #include "utils.h"
@@ -144,6 +146,7 @@ inline void EndTimedBlock(int ID, uint64_t start)
 #include "shaders.h"
 #include "simulation.h"
 
+#include "async.cpp"
 #include "input.cpp"
 #include "shaders.cpp"
 #include "renderer.cpp"
@@ -283,6 +286,8 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF | _CRTDBG_CHECK_ALWAYS_DF);
 
 	#endif
+
+	CreateThreads();
 
 	srand((uint32_t)time(0));
 
