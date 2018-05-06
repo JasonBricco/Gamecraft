@@ -7,9 +7,9 @@ static Player* NewPlayer(float pMin, float pMax)
 	player->camera = NewCamera();
 
 	float spawn = pMin + (CHUNK_SIZE / 2.0f);
-	player->pos = vec3(spawn, 80.0f, spawn);
+	player->pos = NewV3(spawn, 80.0f, spawn);
 	player->collider = Capsule(0.3f, 1.2f);
-	player->velocity = vec3(0.0f);
+	player->velocity = NewV3(0.0f);
 	player->speed = 50.0f;
 	player->friction = -8.0f;
 	player->colFlags = HIT_NONE;
@@ -19,7 +19,7 @@ static Player* NewPlayer(float pMin, float pMax)
 	return player;
 }
 
-AABB::AABB(vec3 p, vec3 minP, vec3 maxP)
+AABB::AABB(Vec3 p, Vec3 minP, Vec3 maxP)
 {
 	pos = p;
 	min = minP;
@@ -28,16 +28,16 @@ AABB::AABB(vec3 p, vec3 minP, vec3 maxP)
 
 Capsule::Capsule(float radius, float h)
 {
-	pos = vec3(0.0f);
+	pos = NewV3(0.0f);
 	r = radius;
 	yBase = 0.0f;
 	yTop = h;
 }
 
 // Returns the farthest point along an AABB in the given direction in world space.
-inline vec3 AABB::Support(vec3 dir)
+inline Vec3 AABB::Support(Vec3 dir)
 {
-	vec3 result;
+	Vec3 result;
 	result.x = dir.x > 0.0f ? max.x : min.x;
 	result.y = dir.y > 0.0f ? max.y : min.y;
 	result.z = dir.z > 0.0f ? max.z : min.z;
@@ -46,15 +46,15 @@ inline vec3 AABB::Support(vec3 dir)
 }
 
 // Returns the farthest point along a capsule in the given direction in world space.
-inline vec3 Capsule::Support(vec3 dir)
+inline Vec3 Capsule::Support(Vec3 dir)
 {
-	vec3 result = normalize(dir) * r;
+	Vec3 result = Normalize(dir) * r;
 	result.y += dir.y > 0.0f ? yTop : yBase;
 
 	return pos + result;
 }
 
-static float BlockRayIntersection(vec3 blockPos, Ray ray)
+static float BlockRayIntersection(Vec3 blockPos, Ray ray)
 {
 	float nearP = -FLT_MAX;
 	float farP = FLT_MAX;
@@ -93,10 +93,10 @@ static float BlockRayIntersection(vec3 blockPos, Ray ray)
 	return nearP > 0.0f ? nearP : farP;
 }
 
-static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result)
+static bool VoxelRaycast(World* world, Ray ray, float dist, Vec3* result)
 {
-	ivec3 start = BlockPos(ray.origin);
-	ivec3 end = BlockPos(ray.origin + ray.dir * dist);
+	Vec3i start = BlockPos(ray.origin);
+	Vec3i end = BlockPos(ray.origin + ray.dir * dist);
 
 	if (start.x > end.x)
 	{
@@ -131,7 +131,7 @@ static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result)
 
 				if (block == 0) continue;
 
-				float newDist = BlockRayIntersection(vec3(x, y, z), ray);
+				float newDist = BlockRayIntersection(NewV3((float)x, (float)y, (float)z), ray);
 				minDistance = Min(minDistance, newDist);
 			}
 		}
@@ -151,52 +151,52 @@ static HitInfo GetVoxelHit(Renderer* rend, World* world)
 	HitInfo info = {};
 	Ray ray = ScreenCenterToRay(rend);
 
-	vec3 point;
+	Vec3 point;
 	
 	if (VoxelRaycast(world, ray, 15.0f, &point))
 	{
 		info.hit = true;
 		info.hitPos = BlockPos(point + ray.dir * 0.01f);
-		point -= ray.dir * 0.01f;
+		point = point - (ray.dir * 0.01f);
 		info.adjPos = BlockPos(point);
-		info.normal = info.hitPos - info.adjPos;
+		info.normal = GetV3(info.hitPos - info.adjPos);
 	}
 
 	return info;
 }
 
-static void UpdateSimplex3(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& search)
+static void UpdateSimplex3(Vec3& a, Vec3& b, Vec3& c, Vec3& d, int& dim, Vec3& search)
 {
 	// Triangle normal.
-	vec3 norm = cross(b - a, c - a);
+	Vec3 norm = Cross(b - a, c - a);
 
 	// Direction to the origin.
-	vec3 ao = -a;
+	Vec3 ao = -a;
 
 	// Determine which feature of the triangle is closest to the origin and make it
 	// the new simplex - any of its edges, or in front of or behind it. 
 	dim = 2;
 
 	// Origin is closest to edge 'ab'.
-	if (dot(cross(b - a, norm), ao) > 0)
+	if (Dot(Cross(b - a, norm), ao) > 0)
 	{
 		c = a;
-		search = cross(cross(b - a, ao), b - a);
+		search = Cross(Cross(b - a, ao), b - a);
 		return;
 	}
 
 	// Origin is closest to edge 'ac'.
-	if (dot(cross(norm, c - a), ao) > 0)
+	if (Dot(Cross(norm, c - a), ao) > 0)
 	{
 		b = a;
-		search = cross(cross(c - a, ao), c - a);
+		search = Cross(Cross(c - a, ao), c - a);
 		return;
 	}
 
 	dim = 3;
 
 	// Origin is above the triangle.
-	if (dot(norm, ao) > 0)
+	if (Dot(norm, ao) > 0)
 	{
 		d = c;
 		c = b;
@@ -211,18 +211,18 @@ static void UpdateSimplex3(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& s
 	search = -norm;
 }
 
-static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& search)
+static bool UpdateSimplex4(Vec3& a, Vec3& b, Vec3& c, Vec3& d, int& dim, Vec3& search)
 {
 	// Normals of the three non-base tetrahedron faces.
-	vec3 abc = cross(b - a, c - a);
-	vec3 acd = cross(c - a, d - a);
-	vec3 adb = cross(d - a, b - a);
+	Vec3 abc = Cross(b - a, c - a);
+	Vec3 acd = Cross(c - a, d - a);
+	Vec3 adb = Cross(d - a, b - a);
 
-	vec3 ao = -a;
+	Vec3 ao = -a;
 	dim = 3;
 
 	// Origin is in front of 'abc'.
-	if (dot(abc, ao) > 0)
+	if (Dot(abc, ao) > 0)
 	{
 		d = c;
 		c = b;
@@ -232,7 +232,7 @@ static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& s
 	}
 
 	// Origin is in front of 'acd'.
-	if (dot(acd, ao) > 0)
+	if (Dot(acd, ao) > 0)
 	{
 		b = a;
 		search = acd;
@@ -240,7 +240,7 @@ static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& s
 	}
 
 	// Origin is in front of 'adb'.
-	if (dot(adb, ao) > 0)
+	if (Dot(adb, ao) > 0)
 	{
 		c = d;
 		d = b;
@@ -252,31 +252,31 @@ static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& s
 	return true;
 }
 
-static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collider* colB)
+static CollisionInfo EPA(Vec3 a, Vec3 b, Vec3 c, Vec3 d, Collider* colA, Collider* colB)
 {
 	// Each triangle face has three vertices and a normal.
-	vec3 faces[64][4];
+	Vec3 faces[64][4];
 
 	// Begin the array with the final simplex from GJK.
 	faces[0][0] = a;
 	faces[0][1] = b;
 	faces[0][2] = c;
-	faces[0][3] = normalize(cross(b - a, c - a)); 
+	faces[0][3] = Normalize(Cross(b - a, c - a)); 
 
 	faces[1][0] = a;
 	faces[1][1] = c;
 	faces[1][2] = d;
-	faces[1][3] = normalize(cross(c - a, d - a));
+	faces[1][3] = Normalize(Cross(c - a, d - a));
 
 	faces[2][0] = a;
 	faces[2][1] = d;
 	faces[2][2] = b;
-	faces[2][3] = normalize(cross(d - a, b - a));
+	faces[2][3] = Normalize(Cross(d - a, b - a));
 
 	faces[3][0] = b;
 	faces[3][1] = d;
 	faces[3][2] = c;
-	faces[3][3] = normalize(cross(d - b, c - b));
+	faces[3][3] = Normalize(Cross(d - b, c - b));
 
 	int faceCount = 4;
 	int closest;
@@ -284,12 +284,12 @@ static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collide
 	for (int iter = 0; iter < 32; iter++)
 	{
 		// Find the face that's closest to the origin.
-		float minDist = dot(faces[0][0], faces[0][3]);
+		float minDist = Dot(faces[0][0], faces[0][3]);
 		closest = 0;
 
 		for (int i = 1; i < faceCount; i++)
 		{
-			float dist = dot(faces[i][0], faces[i][3]);
+			float dist = Dot(faces[i][0], faces[i][3]);
 
 			if (dist < minDist)
 			{
@@ -299,31 +299,31 @@ static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collide
 		}
 
 		// Normal of the face closest to the origin.
-		vec3 search = faces[closest][3];
+		Vec3 search = faces[closest][3];
 
-		vec3 p = colB->Support(search) - colA->Support(-search);
+		Vec3 p = colB->Support(search) - colA->Support(-search);
 
 		// Dot product between the vertex and normal gives the resolution of the collision along the normal. 
-		if (dot(p, search) - minDist < EPA_TOLERANCE)
+		if (Dot(p, search) - minDist < EPA_TOLERANCE)
 		{
-			vec3 mtv = faces[closest][3] * dot(p, search); 
+			Vec3 mtv = faces[closest][3] * Dot(p, search); 
 			return { mtv, faces[closest][3] };
 		}
 
 		// Tracks edges that must be fixed after removing faces.
-		vec3 looseEdges[32][2];
+		Vec3 looseEdges[32][2];
 		int looseCount = 0;
 
 		// Find all triangles facing point p.
 		for (int i = 0; i < faceCount; i++)
 		{
 			// If triangle i faces p, remove it.
-			if (dot(faces[i][3], p - faces[i][0]) > 0)
+			if (Dot(faces[i][3], p - faces[i][0]) > 0)
 			{
 				// Add removed triangle's edges to loose edge list but remove it if it's already there.
 				for (int j = 0; j < 3; j++)
 				{
-					vec3 currentEdge[2] = { faces[i][j], faces[i][(j + 1) % 3] };
+					Vec3 currentEdge[2] = { faces[i][j], faces[i][(j + 1) % 3] };
 					bool found = false;
 
 					// Checks to see if the current edge is already in the list.
@@ -370,14 +370,14 @@ static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collide
 			faces[faceCount][0] = looseEdges[i][0];
 			faces[faceCount][1] = looseEdges[i][1];
 			faces[faceCount][2] = p;
-			faces[faceCount][3] = normalize(cross(looseEdges[i][0] - looseEdges[i][1], looseEdges[i][0] - p));
+			faces[faceCount][3] = Normalize(Cross(looseEdges[i][0] - looseEdges[i][1], looseEdges[i][0] - p));
 
 			// Check for the wrong normal to maintain counterclockwise winding.
 			float bias = 0.00001f;
 
-			if (dot(faces[faceCount][0], faces[faceCount][3]) + bias < 0)
+			if (Dot(faces[faceCount][0], faces[faceCount][3]) + bias < 0)
 			{
-				vec3 temp = faces[faceCount][0];
+				Vec3 temp = faces[faceCount][0];
 				faces[faceCount][0] = faces[faceCount][1];
 				faces[faceCount][1] = temp;
 				faces[faceCount][3] = -faces[faceCount][3];
@@ -387,14 +387,14 @@ static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collide
 		}
 	}
 
-	vec3 mtv = faces[closest][3] * dot(faces[closest][0], faces[closest][3]);
+	Vec3 mtv = faces[closest][3] * Dot(faces[closest][0], faces[closest][3]);
 	return { mtv, faces[closest][3] };
 }
 
 static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
 {
-	vec3 a, b, c, d;
-	vec3 search = colA->pos - colB->pos;
+	Vec3 a, b, c, d;
+	Vec3 search = colA->pos - colB->pos;
 
 	// Initial simplex point.
 	c = colB->Support(search) - colA->Support(-search);
@@ -406,20 +406,20 @@ static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
 	b = colB->Support(search) - colA->Support(-search);
 
 	// We haven't reached the origin, so we can't enclose it.
-	if (dot(b, search) < 0) return false;
+	if (Dot(b, search) < 0) return false;
 
 	// Search perpendicular to the line segment, toward the origin.
-	search = cross(cross(c - b, -b), c - b);
+	search = Cross(Cross(c - b, -b), c - b);
 
 	// Origin is on the line segment we created.
-	if (search == vec3(0.0f))
+	if (search == NewV3(0.0f))
 	{
 		// Set search to an arbitrary normal vector. In this case, use the x-axis.
-		search = cross(c - b, vec3(1.0f, 0.0f, 0.0f));
+		search = Cross(c - b, NewV3(1.0f, 0.0f, 0.0f));
 
 		// If we're still on the line segment, normal with the z-axis.
-		if (search == vec3(0.0f))
-			search = cross(c - b, vec3(0.0f, 0.0f, -1.0f)); 
+		if (search == NewV3(0.0f))
+			search = Cross(c - b, NewV3(0.0f, 0.0f, -1.0f)); 
 	}
 
 	// Number of simplex dimensions.
@@ -430,7 +430,7 @@ static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
 		a = colB->Support(search) - colA->Support(-search);
 
 		// We cannot enclose the origin as we haven't reached it.
-		if (dot(a, search) < 0) return false;
+		if (Dot(a, search) < 0) return false;
 
 		dim++;
 
@@ -452,15 +452,15 @@ static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
 
 inline void CameraFollow(Player* player)
 {	
-	vec3 pos = player->pos;
-	player->camera->pos = vec3(pos.x, pos.y + 1.15f, pos.z);
+	Vec3 pos = player->pos;
+	player->camera->pos = NewV3(pos.x, pos.y + 1.15f, pos.z);
 	UpdateCameraVectors(player->camera);
 }
 
-static void Move(World* world, Player* player, vec3 accel, float deltaTime)
+static void Move(World* world, Player* player, Vec3 accel, float deltaTime)
 {
-	accel *= player->speed;
-	accel += (player->velocity * player->friction);
+	accel = accel * player->speed;
+	accel = accel + ((player->velocity * player->friction));
 
 	// Gravity.
 	if (!player->flying) accel.y = -30.0f;
@@ -477,12 +477,12 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	// These are found by integrating up from acceleration to velocity. Use derivation
 	// to go from position down to velocity and then down to acceleration to see how 
 	// we can integrate back up.
-	vec3 delta = accel * 0.5f * Square(deltaTime) + player->velocity * deltaTime;
+	Vec3 delta = accel * 0.5f * Square(deltaTime) + player->velocity * deltaTime;
 	player->velocity = accel * deltaTime + player->velocity;
 
 	// Skip collision detection if flying.
 	if (player->flying)
-		player->pos += delta;
+		player->pos = player->pos + delta;
 	else
 	{
 		BEGIN_TIMED_BLOCK(PLAYER_COLLISION);
@@ -493,24 +493,24 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 		// Player size in blocks.
 		int blockR = CeilToInt(col.r);
 		int blockH = CeilToInt(col.yTop - col.yBase);
-		ivec3 bSize(blockR, blockH, blockR);
+		Vec3i bSize = NewV3i(blockR, blockH, blockR);
 
-		float deltaLen = length(delta);
+		float deltaLen = Length(delta);
 
 		// If our move is too big, try to prevent skipping through terrain.
 		if (deltaLen > 1.5f)
 		{
-			Ray ray = { player->pos, normalize(delta) };
+			Ray ray = { player->pos, Normalize(delta) };
 
 			// Move the player to the terrain if the ray hits it. If not, move the full distance.
-			vec3 result;
+			Vec3 result;
 			if (VoxelRaycast(world, ray, deltaLen, &result))
 				player->pos = result;
-			else player->pos += delta;
+			else player->pos = player->pos + delta;
 		}
-		else player->pos += delta;
+		else player->pos = player->pos + delta;
 
-		ivec3 newBlock = BlockPos(player->pos);
+		Vec3i newBlock = BlockPos(player->pos);
 
 		// Compute the range of blocks we could touch with our movement. We'll test for collisions
 		// with the blocks in this range.
@@ -535,11 +535,11 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 					if (block != 0)
 					{
 						col.pos = player->pos;
-						AABB bb = AABB(vec3(x - 0.5f, y - 0.5f, z - 0.5f), vec3(0.0f), vec3(1.0f));
+						AABB bb = AABB(NewV3(x - 0.5f, y - 0.5f, z - 0.5f), NewV3(0.0f), NewV3(1.0f));
 						
 						if (Intersect(&col, &bb, &info))
 						{
-							player->pos += info.mtv;
+							player->pos = player->pos + info.mtv;
 
 							if (info.normal.y > 0.25f)
 							{
@@ -562,7 +562,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 {
 	Camera* cam = player->camera;
 
-	vec3 accel = vec3(0.0f);
+	Vec3 accel = NewV3(0.0f);
 
 	if (KeyHeld(KEY_UP)) accel = MoveDirXZ(cam->forward);
 	if (KeyHeld(KEY_DOWN)) accel = MoveDirXZ(-cam->forward);
@@ -602,7 +602,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 
 		if (info.hit)
 		{
-			ivec3 setPos;
+			Vec3i setPos;
 
 			if (op == 0)
 			{

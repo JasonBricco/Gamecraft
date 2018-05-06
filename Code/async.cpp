@@ -1,6 +1,7 @@
 // Voxel Engine
 // Jason Bricco
 
+#if 0
 static queue<WorkItem> g_workQueue;
 
 static DWORD WINAPI ThreadProc(LPVOID param)
@@ -34,3 +35,4 @@ static void CreateThreads()
 		CloseHandle(thread);
 	}
 }
+#endif

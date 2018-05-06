@@ -13,7 +13,6 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
-#include <TimeAPI.h>
 #include <time.h>
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
@@ -21,6 +20,7 @@
 #include "FastNoiseSIMD.h"
 
 #define PROFILING 0
+#define PROFILING_ONCE 1
 #define ASSERTIONS 1
 #define DEBUG_MEMORY 0
 
@@ -35,15 +35,6 @@
 #include <queue>
 #include <fstream>
 
-#include "glm/fwd.hpp"
-#include "glm/vec2.hpp"
-#include "glm/vec3.hpp"
-#include "glm/vec4.hpp"
-#include "glm/mat4x4.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-
-using namespace glm;
 using namespace std;
 
 #if ASSERTIONS
@@ -73,79 +64,21 @@ static void HandleAssertion(char* file, int line)
 
 static bool g_paused;
 
-#if PROFILING
-
-enum MeasureSection
-{
-	MEASURE_GAME_LOOP = 0,
-	MEASURE_RENDER_SCENE = 1,
-	MEASURE_PLAYER_COLLISION = 2,
-	MEASURE_BUILD_CHUNK = 3,
-	MEASURE_GEN_TERRAIN = 4,
-	MEASURE_TEMP = 5,
-	MEASURE_COUNT = 6
-};
-
-struct CycleCounter
-{
-	uint64_t cycles;
-	uint64_t calls;
-};
-
-static CycleCounter g_counters[MEASURE_COUNT];
-
-static void FlushCounters()
-{
-	OutputDebugString("CYCLE COUNTS:\n");
-
-	for (int i = 0; i < MEASURE_COUNT; i++)
-	{
-		uint64_t calls = g_counters[i].calls;
-
-		if (calls > 0)
-		{
-			uint64_t cycles = g_counters[i].cycles;
-			uint64_t cyclesPerCall = cycles / calls;
-			char buffer[128];
-			sprintf(buffer, "%d: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u\n", 
-				i, cycles, calls, cyclesPerCall);
-			OutputDebugString(buffer);
-
-			g_counters[i].cycles = 0;
-			g_counters[i].calls = 0;
-		}
-	}
-}
-
-inline void EndTimedBlock(int ID, uint64_t start)
-{
-	g_counters[ID].cycles += __rdtsc() - start;
-	g_counters[ID].calls++;
-}
-
-#define BEGIN_TIMED_BLOCK(ID) uint64_t startCount##ID = __rdtsc();
-#define END_TIMED_BLOCK(ID) EndTimedBlock(MEASURE_##ID, startCount##ID)
-#define FLUSH_COUNTERS() FlushCounters();
-
-#else
-
-#define BEGIN_TIMED_BLOCK(ID)
-#define END_TIMED_BLOCK(ID)
-#define FLUSH_COUNTERS()
-
-#endif
-
+#include "profiling.h"
 #include "intrinsics.h"
+#include "utils.h"
+#include "vec.h"
+#include "matrix.h"
 #include "async.h"
 #include "logging.h"
 #include "input.h"
-#include "utils.h"
 #include "mesh.h"
 #include "world.h"
 #include "renderer.h"
 #include "shaders.h"
 #include "simulation.h"
 
+#include "matrix.cpp"
 #include "async.cpp"
 #include "input.cpp"
 #include "shaders.cpp"
@@ -208,7 +141,7 @@ static void ShowFPS(GLFWwindow* window)
 
 static void CheckWorld(World* world, Player* player)
 {
-	vec3 pos = player->pos;
+	Vec3 pos = player->pos;
 	float min = world->pMin, max = world->pMax;
 
 	if (pos.x < min) 
@@ -287,7 +220,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 
 	#endif
 
-	CreateThreads();
+	// CreateThreads();
 
 	srand((uint32_t)time(0));
 
@@ -302,16 +235,11 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPos(window, rend->windowWidth / 2.0f, rend->windowHeight / 2.0f);
 
-	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-	const GLFWvidmode* vMode = glfwGetVideoMode(monitor);
-
 	World* world = NewWorld(8);
 
 	Player* player = NewPlayer(world->pMin, world->pMax);
 	rend->camera = player->camera;
 	
-	int refreshHz = vMode->refreshRate * 2;
-	float targetSeconds = 1.0f / refreshHz;
 	double lastTime = glfwGetTime();
 
 	float deltaTime = 0.0f;
@@ -325,17 +253,6 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 
 		Update(window, player, world, deltaTime);
 		RenderScene(rend, world);
-
-		double secondsElapsed = glfwGetTime() - lastTime;
-
-		while (secondsElapsed < targetSeconds)
-		{
-			DWORD msLeft = (DWORD)(1000.0f * (targetSeconds - secondsElapsed));
-			if (msLeft > 0) Sleep(msLeft);
-
-			while (secondsElapsed < targetSeconds)                         
-            	secondsElapsed = glfwGetTime() - lastTime;
-		}
 
 		glfwSwapBuffers(window);
 

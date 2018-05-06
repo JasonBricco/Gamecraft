@@ -59,7 +59,7 @@ static void DrawGraphic(Renderer* rend, Graphic* graphic)
 	int ID = graphic->shaderID;
 	UseShader(rend->programs[ID]);
 
-	mat4 model = translate(mat4(), vec3(graphic->pos, 0.0f));
+	Matrix4 model = Translate(Matrix4(1.0f), NewV3(graphic->pos, 0.0f));
 	SetUniform(rend, ID, "model1", model);
 	SetUniform(rend, ID, "projection1", rend->ortho);
 
@@ -71,7 +71,7 @@ static void DrawGraphic(Renderer* rend, Graphic* graphic)
 
 inline void SetCrosshairPos(Graphic* crosshair, int width, int height)
 {
-	crosshair->pos = vec2((width / 2.0f) - 16.0f, (height / 2.0f) - 16.0f);
+	crosshair->pos = NewV2((width / 2.0f) - 16.0f, (height / 2.0f) - 16.0f);
 }
 
 static void SetWindowSize(GLFWwindow* window, int width, int height)
@@ -80,8 +80,8 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 	rend->windowWidth = width;
 	rend->windowHeight = height;
 	glViewport(0, 0, width, height);
-	rend->perspective = perspective(radians(CAMERA_FOV), (float)width / (float)height, 0.1f, 256.0f);
-	rend->ortho = ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
+	rend->perspective = Perspective(Radians(CAMERA_FOV), (float)width / (float)height, 0.1f, 256.0f);
+	rend->ortho = Ortho(0.0f, (float)width, (float)height, 0.0f);
 
 	if (rend->crosshair != NULL)
 		SetCrosshairPos(rend->crosshair, width, height);
@@ -96,14 +96,14 @@ static Camera* NewCamera()
 
 static void UpdateCameraVectors(Camera* cam)
 {
-	vec3 forward;
+	Vec3 forward;
 	forward.x = cosf(cam->pitch) * sinf(cam->yaw);
 	forward.y = sinf(cam->pitch);
 	forward.z = cosf(cam->pitch) * cosf(cam->yaw);
 
-	forward = normalize(forward);
-	cam->right = normalize(cross(forward, WORLD_UP));
-	cam->up = normalize(cross(cam->right, forward));
+	forward = Normalize(forward);
+	cam->right = Normalize(Cross(forward, WORLD_UP));
+	cam->up = Normalize(Cross(cam->right, forward));
 
 	cam->forward = forward;
 	cam->target = cam->pos + forward;
@@ -111,17 +111,17 @@ static void UpdateCameraVectors(Camera* cam)
 
 static void RotateCamera(Camera* cam, float yaw, float pitch)
 {
-	cam->yaw += radians(yaw);
-	cam->pitch += radians(pitch);
+	cam->yaw += Radians(yaw);
+	cam->pitch += Radians(pitch);
 
-	cam->pitch = Clamp(cam->pitch, -pi<float>() / 2.0f + 0.1f, pi<float>() / 2.0f - 0.1f);
+	cam->pitch = Clamp(cam->pitch, -PI / 2.0f + 0.1f, PI / 2.0f - 0.1f);
 	UpdateCameraVectors(cam);
 }
 
 inline void UpdateViewMatrix(Renderer* rend)
 {
 	Camera* cam = rend->camera;
-	rend->view = lookAt(cam->pos, cam->target, cam->up);
+	rend->view = LookAt(cam->pos, cam->target, cam->up);
 }
 
 static void LoadTexture(GLuint* tex, char* path)
@@ -228,13 +228,6 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 
 	glewExperimental = GL_TRUE;
 
-	// Allow granular sleeping for FPS control.
-	if (timeBeginPeriod(1) != TIMERR_NOERROR)
-	{
-		LogError("Failed to set sleep granularity.");
-		return NULL;
-	}
-
 	glClearColor(0.53f, 0.80f, 0.92f, 1.0f);
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_DEPTH_TEST);
@@ -248,7 +241,7 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 	#endif
 
 	rend->programs[0] = LoadShader("Shaders\\diffuse_array.shader");
-	rend->programs[1] = LoadShader("Shaders\\crosshair.shader");
+	rend->programs[1] = LoadShader("Shaders\\Crosshair.shader");
 
 	GLuint blockTextures;
 
@@ -263,10 +256,10 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 
 	rend->blockTextures = blockTextures;
 
-	GLuint crosshair;
-	LoadTexture(&crosshair, PathToAsset("Assets/Crosshair.png"));
+	GLuint Crosshair;
+	LoadTexture(&Crosshair, PathToAsset("Assets/Crosshair.png"));
 
-	Graphic* graphic = CreateGraphic(1, crosshair);
+	Graphic* graphic = CreateGraphic(1, Crosshair);
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
 	
 	rend->crosshair = graphic;
@@ -276,14 +269,15 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 
 static Ray ScreenCenterToRay(Renderer* rend)
 {
-	mat4 projection = rend->perspective * rend->view;
+	Matrix4 projection = rend->perspective * rend->view;
+
 	int w = rend->windowWidth;
 	int h = rend->windowHeight;
-	vec4 viewport = vec4(0.0f, h, w, -h);
+	Vec4 viewport = NewV4(0.0f, (float)h, (float)w, (float)(-h));
 
-	ivec2 cursor = ivec2(w / 2, h / 2);
+	Vec2i cursor = NewV2i(w / 2, h / 2);
 
-	vec3 origin = unProject(vec3(cursor, 0), mat4(), projection, viewport);
+	Vec3 origin = Unproject(NewV3(cursor, 0.0f), Matrix4(1.0f), projection, viewport);
 
 	return { origin, rend->camera->forward };
 }
@@ -299,11 +293,11 @@ static void RenderScene(Renderer* rend, World* world)
 	UseShader(rend->programs[0]);
 	SetUniform(rend, 0, "view0", rend->view);
 	SetUniform(rend, 0, "projection0", rend->perspective);
-	SetUniform(rend, 0, "ambient0", vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	SetUniform(rend, 0, "ambient0", NewV4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, rend->blockTextures);
 
-	mat4 model;
+	Matrix4 model;
 
 	for (int i = 0; i < world->totalChunks; i++)
 	{
@@ -311,8 +305,8 @@ static void RenderScene(Renderer* rend, World* world)
 
 		if (chunk->state == CHUNK_BUILT)
 		{
-			vec3 wPos = vec3(chunk->cX * CHUNK_SIZE, 0.0f, chunk->cZ * CHUNK_SIZE);
-			model = translate(mat4(), wPos);
+			Vec3 wPos = NewV3((float)(chunk->cX * CHUNK_SIZE), 0.0f, (float)(chunk->cZ * CHUNK_SIZE));
+			model = Translate(Matrix4(1.0f), wPos);
 			SetUniform(rend, 0, "model0", model);
 			DrawMesh(chunk->mesh);
 		}

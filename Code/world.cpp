@@ -1,27 +1,27 @@
 // Voxel Engine
 // Jason Bricco
 
-inline ivec3 ToLocalPos(int wX, int wY, int wZ)
+inline Vec3i ToLocalPos(int wX, int wY, int wZ)
 {
-	return ivec3(wX & CHUNK_SIZE - 1, wY, wZ & CHUNK_SIZE - 1);
+	return NewV3i(wX & CHUNK_SIZE - 1, wY, wZ & CHUNK_SIZE - 1);
 }
 
-inline ivec3 ToLocalPos(ivec3 wPos)
+inline Vec3i ToLocalPos(Vec3i wPos)
 {
 	return ToLocalPos(wPos.x, wPos.y, wPos.z);
 }
 
-inline ivec3 ToChunkPos(int wX, int wZ)
+inline Vec3i ToChunkPos(int wX, int wZ)
 {
-	return ivec3(wX >> CHUNK_SIZE_BITS, 0, wZ >> CHUNK_SIZE_BITS);
+	return NewV3i(wX >> CHUNK_SIZE_BITS, 0, wZ >> CHUNK_SIZE_BITS);
 }
 
-inline ivec3 ToChunkPos(ivec3 wPos)
+inline Vec3i ToChunkPos(Vec3i wPos)
 {
 	return ToChunkPos(wPos.x, wPos.z);
 }
 
-inline ivec3 ToChunkPos(vec3 wPos)
+inline Vec3i ToChunkPos(Vec3 wPos)
 {
 	return ToChunkPos((int)wPos.x, (int)wPos.z);
 }
@@ -36,7 +36,7 @@ inline Chunk* GetChunk(World* world, int cX, int cZ)
 	return world->chunks[ChunkIndex(world, cX, cZ)];
 }
 
-inline Chunk* GetChunk(World* world, ivec3 cPos)
+inline Chunk* GetChunk(World* world, Vec3i cPos)
 {
 	return GetChunk(world, cPos.x, cPos.z);
 }
@@ -122,7 +122,7 @@ inline void SetBlock(Chunk* chunk, int lX, int lY, int lZ, int block)
 	chunk->blocks[lX + CHUNK_SIZE * (lY + WORLD_HEIGHT * lZ)] = block;
 }
 
-inline void SetBlock(Chunk* chunk, ivec3 lPos, int block)
+inline void SetBlock(Chunk* chunk, Vec3i lPos, int block)
 {
 	SetBlock(chunk, lPos.x, lPos.y, lPos.z, block);
 }
@@ -131,17 +131,17 @@ inline void SetBlock(World* world, int wX, int wY, int wZ, int block, bool updat
 {
 	if (wY < 0 || wY >= WORLD_HEIGHT) return;
 
-	ivec3 cPos = ToChunkPos(wX, wZ);
+	Vec3i cPos = ToChunkPos(wX, wZ);
 	Chunk* chunk = GetChunk(world, cPos);
 	Assert(chunk != NULL);
 
-	ivec3 local = ToLocalPos(wX, wY, wZ);
+	Vec3i local = ToLocalPos(wX, wY, wZ);
 	SetBlock(chunk, local, block);
 
 	if (update) UpdateChunk(world, chunk, local);
 }
 
-inline void SetBlock(World* world, ivec3 wPos, int block, bool update)
+inline void SetBlock(World* world, Vec3i wPos, int block, bool update)
 {
 	SetBlock(world, wPos.x, wPos.y, wPos.z, block, update);
 }
@@ -151,12 +151,12 @@ inline int GetBlock(Chunk* chunk, int lX, int lY, int lZ)
 	return chunk->blocks[lX + CHUNK_SIZE * (lY + WORLD_HEIGHT * lZ)];
 }
 
-inline int GetBlock(Chunk* chunk, ivec3 lPos)
+inline int GetBlock(Chunk* chunk, Vec3i lPos)
 {
 	return GetBlock(chunk, lPos.x, lPos.y, lPos.z);
 }
 
-inline int GetBlock(World* world, ivec3 pos)
+inline int GetBlock(World* world, Vec3i pos)
 {
 	return GetBlock(world, pos.x, pos.y, pos.z);
 }
@@ -165,7 +165,7 @@ static int GetBlock(World* world, int wX, int wY, int wZ)
 {
 	if (wY < 0 || wY >= WORLD_HEIGHT) return 0;
 
-	ivec3 cPos = ToChunkPos(wX, wZ);
+	Vec3i cPos = ToChunkPos(wX, wZ);
 	Chunk* chunk = GetChunk(world, cPos);
 	Assert(chunk != NULL);
 
@@ -347,7 +347,7 @@ inline void UpdateChunkDirect(World* world, Chunk* chunk)
 	}
 }
 
-inline void UpdateChunk(World* world, Chunk* chunk, ivec3 lPos)
+inline void UpdateChunk(World* world, Chunk* chunk, Vec3i lPos)
 {
 	UpdateChunkDirect(world, chunk);
 

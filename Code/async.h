@@ -1,6 +1,7 @@
 // Voxel Engine
 // Jason Bricco
 
+#if 0
 #define THREAD_COUNT 7
 
 struct ThreadInfo
@@ -14,3 +15,4 @@ struct WorkItem
 };
 
 static void CreateThreads();
+#endif

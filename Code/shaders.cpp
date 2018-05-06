@@ -157,26 +157,26 @@ inline void SetUniform(Renderer* rend, int ID, GLchar* name, GLfloat f)
 	glUniform1f(loc, f);
 }
 
-inline void SetUniform(Renderer* rend, int ID, GLchar* name, vec2 v)
+inline void SetUniform(Renderer* rend, int ID, GLchar* name, Vec2 v)
 {
 	GLint loc = GetUniformLocation(rend, rend->programs[ID], name);
 	glUniform2f(loc, v.x, v.y);
 }
 
-inline void SetUniform(Renderer* rend, int ID, GLchar* name, vec3 v)
+inline void SetUniform(Renderer* rend, int ID, GLchar* name, Vec3 v)
 {
 	GLint loc = GetUniformLocation(rend, rend->programs[ID], name);
 	glUniform3f(loc, v.x, v.y, v.z);
 }
 
-inline void SetUniform(Renderer* rend, int ID, GLchar* name, vec4 v)
+inline void SetUniform(Renderer* rend, int ID, GLchar* name, Vec4 v)
 {
 	GLint loc = GetUniformLocation(rend, rend->programs[ID], name);
 	glUniform4f(loc, v.x, v.y, v.z, v.w);
 }
 
-inline void SetUniform(Renderer* rend, int ID, GLchar* name, mat4 m)
+inline void SetUniform(Renderer* rend, int ID, GLchar* name, Matrix4 m)
 {
 	GLint loc = GetUniformLocation(rend, rend->programs[ID], name);
-	glUniformMatrix4fv(loc, 1, GL_FALSE, value_ptr(m));
+	glUniformMatrix4fv(loc, 1, GL_FALSE, ValuePtr(m));
 }

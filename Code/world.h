@@ -63,16 +63,16 @@ struct World
 	float pMin, pMax;
 };
 
-inline ivec3 ToLocalPos(int wX, int wY, int wZ);
-inline ivec3 ToLocalPos(ivec3 wPos);
-inline ivec3 ToChunkPos(int wX, int wZ);
-inline ivec3 ToChunkPos(ivec3 wPos);
-inline ivec3 ToChunkPos(vec3 wPos);
+inline Vec3i ToLocalPos(int wX, int wY, int wZ);
+inline Vec3i ToLocalPos(Vec3i wPos);
+inline Vec3i ToChunkPos(int wX, int wZ);
+inline Vec3i ToChunkPos(Vec3i wPos);
+inline Vec3i ToChunkPos(Vec3 wPos);
 
 inline int ChunkIndex(World* world, int cX, int cZ);
 
 inline Chunk* GetChunk(World* world, int cX, int cZ);
-inline Chunk* GetChunk(World* world, ivec3 cPos);
+inline Chunk* GetChunk(World* world, Vec3i cPos);
 
 inline void MoveChunk(World* world, Chunk* chunk, int toX, int toZ);
 
@@ -91,15 +91,15 @@ inline Chunk* ChunkFromHash(World* world, int32_t wX, int32_t wZ);
 inline void AddChunkToHash(World* world, Chunk* chunk);
 
 inline void SetBlock(Chunk* chunk, int lX, int lY, int lZ, int block);
-inline void SetBlock(Chunk* chunk, ivec3 lPos, int block);
+inline void SetBlock(Chunk* chunk, Vec3i lPos, int block);
 
 inline void SetBlock(World* world, int wX, int wY, int wZ, int block, bool update);
-inline void SetBlock(World* world, ivec3 wPos, int block, bool update);
+inline void SetBlock(World* world, Vec3i wPos, int block, bool update);
 
 inline int GetBlock(Chunk* chunk, int lX, int lY, int lZ);
-inline int GetBlock(Chunk* chunk, ivec3 lPos);
+inline int GetBlock(Chunk* chunk, Vec3i lPos);
 
-inline int GetBlock(World* world, ivec3 pos);
+inline int GetBlock(World* world, Vec3i pos);
 static int GetBlock(World* world, int wX, int wY, int wZ);
 
 static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, int startX, int startZ);
@@ -122,7 +122,7 @@ static void BuildChunk(World* world, Chunk* chunk);
 
 // Rebuilds chunk meshes.
 inline void UpdateChunkDirect(World* world, Chunk* chunk);
-inline void UpdateChunk(World* world, Chunk* chunk, ivec3 lPos);
+inline void UpdateChunk(World* world, Chunk* chunk, Vec3i lPos);
 
 // To allow "infinite" terrain, the world is always located near the origin.
 // This function fills the world near the origin based on the reference
