@@ -1,8 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 
-#define MatrixToSIMD(matrix) *(float4(*)[4])(&matrix[0][0])
-
 struct Matrix4
 {
 	Vec4 values[4];
@@ -30,7 +28,7 @@ static void Mul_MatrixMatrix_SIMD(float4 in1[4], float4 in2[4], float4 out[4]);
 inline Matrix4 operator *(Matrix4 a, Matrix4 b)
 {
 	Matrix4 result;
-	Mul_MatrixMatrix_SIMD(MatrixToSIMD(a), MatrixToSIMD(b), MatrixToSIMD(result));
+	Mul_MatrixMatrix_SIMD(&a[0].data, &b[0].data, &result[0].data);
 	return result;
 }
 

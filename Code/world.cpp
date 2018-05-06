@@ -127,23 +127,23 @@ inline void SetBlock(Chunk* chunk, Vec3i lPos, int block)
 	SetBlock(chunk, lPos.x, lPos.y, lPos.z, block);
 }
 
-inline void SetBlock(World* world, int wX, int wY, int wZ, int block, bool update)
+inline void SetBlock(World* world, Vec3i wPos, int block, bool update)
 {
-	if (wY < 0 || wY >= WORLD_HEIGHT) return;
+	if (wPos.y < 0 || wPos.y >= WORLD_HEIGHT) return;
 
-	Vec3i cPos = ToChunkPos(wX, wZ);
+	Vec3i cPos = ToChunkPos(wPos);
 	Chunk* chunk = GetChunk(world, cPos);
 	Assert(chunk != NULL);
 
-	Vec3i local = ToLocalPos(wX, wY, wZ);
+	Vec3i local = ToLocalPos(wPos);
 	SetBlock(chunk, local, block);
 
 	if (update) UpdateChunk(world, chunk, local);
 }
 
-inline void SetBlock(World* world, Vec3i wPos, int block, bool update)
+inline void SetBlock(World* world, int wX, int wY, int wZ, int block, bool update)
 {
-	SetBlock(world, wPos.x, wPos.y, wPos.z, block, update);
+	SetBlock(world, NewV3i(wX, wY, wZ), block, update);
 }
 
 inline int GetBlock(Chunk* chunk, int lX, int lY, int lZ)
@@ -156,20 +156,21 @@ inline int GetBlock(Chunk* chunk, Vec3i lPos)
 	return GetBlock(chunk, lPos.x, lPos.y, lPos.z);
 }
 
-inline int GetBlock(World* world, Vec3i pos)
-{
-	return GetBlock(world, pos.x, pos.y, pos.z);
-}
-
 static int GetBlock(World* world, int wX, int wY, int wZ)
 {
 	if (wY < 0 || wY >= WORLD_HEIGHT) return 0;
 
 	Vec3i cPos = ToChunkPos(wX, wZ);
-	Chunk* chunk = GetChunk(world, cPos);
+	Chunk* chunk = GetChunk(world, cPos.x, cPos.z);
 	Assert(chunk != NULL);
 
-	return GetBlock(chunk, ToLocalPos(wX, wY, wZ));
+	Vec3i lPos = ToLocalPos(wX, wY, wZ);
+	return GetBlock(chunk, lPos);
+}
+
+inline int GetBlock(World* world, Vec3i pos)
+{
+	return GetBlock(world, pos.x, pos.y, pos.z);
 }
 
 static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, int startX, int startZ)

@@ -5,6 +5,7 @@
 #define int4 __m128i
 
 #define Set1_4x(v) _mm_set1_ps(v)
+#define Set1i_4x(v) _mm_set1_epi32(v)
 
 // Sets four floating point values putting 'a' as the most 
 // significant bit and 'd' as the least significant bit.
@@ -12,6 +13,8 @@
 
 // Cast from a float4 to an int4.
 #define CastFloatToInt_4x(v) _mm_castps_si128(v)
+
+#define CastIntToFloat_4x(v) _mm_castsi128_ps(v)
 
 // Converts a float4 value to an int4 value and rounds the result.
 #define ConvertFloatToInt_4x(v) _mm_cvtps_epi32(v)
@@ -32,6 +35,7 @@
 
 #define Add_4x(a, b) _mm_add_ps(a, b)
 #define Sub_4x(a, b) _mm_sub_ps(a, b)
+#define Subi_4x(a, b) _mm_sub_epi32(a, b)
 #define Mul_4x(a, b) _mm_mul_ps(a, b)
 #define Div_4x(a, b) _mm_div_ps(a, b)
 
@@ -57,6 +61,9 @@
 
 #define CompareGreaterEqual_4x(a, b) _mm_cmpge_ps(a, b)
 #define CompareLessEqual_4x(a, b) _mm_cmple_ps(a, b)
+
+#define Floor_4x(v) _mm_floor_ps(v)
+#define Round_4x(v) _mm_round_ps(v)
 
 #define LoadInt_4x(loc) _mm_loadu_si128(loc)
 #define WriteInt_4x(loc, v) _mm_storeu_si128(loc, v)

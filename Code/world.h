@@ -63,9 +63,7 @@ struct World
 	float pMin, pMax;
 };
 
-inline Vec3i ToLocalPos(int wX, int wY, int wZ);
-inline Vec3i ToLocalPos(Vec3i wPos);
-inline Vec3i ToChunkPos(int wX, int wZ);
+__forceinline Vec3i ToLocalPos(Vec3i wPos);
 inline Vec3i ToChunkPos(Vec3i wPos);
 inline Vec3i ToChunkPos(Vec3 wPos);
 
@@ -96,8 +94,8 @@ inline void SetBlock(Chunk* chunk, Vec3i lPos, int block);
 inline void SetBlock(World* world, int wX, int wY, int wZ, int block, bool update);
 inline void SetBlock(World* world, Vec3i wPos, int block, bool update);
 
-inline int GetBlock(Chunk* chunk, int lX, int lY, int lZ);
 inline int GetBlock(Chunk* chunk, Vec3i lPos);
+inline int GetBlock(Chunk* chunk, int lX, int lY, int lZ);
 
 inline int GetBlock(World* world, Vec3i pos);
 static int GetBlock(World* world, int wX, int wY, int wZ);

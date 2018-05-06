@@ -19,8 +19,8 @@
 #include "GLFW/glfw3native.h"
 #include "FastNoiseSIMD.h"
 
-#define PROFILING 0
-#define PROFILING_ONCE 1
+#define PROFILING 1
+#define PROFILING_ONCE 0
 #define ASSERTIONS 1
 #define DEBUG_MEMORY 0
 
@@ -254,6 +254,9 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 		Update(window, player, world, deltaTime);
 		RenderScene(rend, world);
 
+		END_TIMED_BLOCK(GAME_LOOP);
+		FLUSH_COUNTERS();
+
 		glfwSwapBuffers(window);
 
 		#if PROFILING
@@ -265,9 +268,6 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 		double endTime = glfwGetTime();
 		deltaTime = (float)(endTime - lastTime);
 		lastTime = endTime;
-
-		END_TIMED_BLOCK(GAME_LOOP);
-		FLUSH_COUNTERS();
 	}
 
 	glfwTerminate();

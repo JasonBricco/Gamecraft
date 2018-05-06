@@ -1,8 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 
-#define VecToFloat4(vec) *(float4)(&vec[0])
-
 struct Vec2
 {
 	float x, y;
@@ -132,12 +130,12 @@ inline Vec3i operator -(Vec3i a, Vec3i b)
 
 inline Vec3i BlockPos(Vec3 pos)
 {
-	return NewV3i(RoundToInt(pos.x), RoundToInt(pos.y), RoundToInt(pos.z));
+	return { RoundToInt(pos.x), RoundToInt(pos.y), RoundToInt(pos.z) };
 }
 
 inline Vec3 GetV3(Vec3i v)
 {
-	return NewV3((float)v.x, (float)v.y, (float)v.z);
+	return { (float)v.x, (float)v.y, (float)v.z };
 }
 
 union Vec4
@@ -160,27 +158,27 @@ union Vec4
 
 inline Vec4 NewV4(float v)
 {
-	return { { v, v, v, v } };
+	return { v, v, v, v };
 }
 
 inline Vec4 NewV4(float x, float y, float z, float w)
 {
-	return { { x, y, z, w } };
+	return { x, y, z, w };
 }
 
 inline Vec4 NewV4(Vec3 v, float w)
 {
-	return { { v.x, v.y, v.z, w } };
+	return { v.x, v.y, v.z, w };
 }
 
-inline Vec4 operator *(Vec4 a, Vec4 b)
+__forceinline Vec4 operator *(Vec4 a, Vec4 b)
 {
 	Vec4 result;
 	result.data = Mul_4x(a.data, b.data);
 	return result;
 }
 
-inline Vec4 operator *(Vec4 v, float s)
+__forceinline Vec4 operator *(Vec4 v, float s)
 {
 	Vec4 result;
 	float4 s4 = Set1_4x(s);
@@ -188,7 +186,7 @@ inline Vec4 operator *(Vec4 v, float s)
 	return result;
 }
 
-inline Vec4 operator /(Vec4 v, float s)
+__forceinline Vec4 operator /(Vec4 v, float s)
 {
 	Vec4 result;
 	float4 s4 = Set1_4x(s);
@@ -196,14 +194,14 @@ inline Vec4 operator /(Vec4 v, float s)
 	return result;
 }
 
-inline Vec4 operator +(Vec4 a, Vec4 b)
+__forceinline Vec4 operator +(Vec4 a, Vec4 b)
 {
 	Vec4 result;
 	result.data = Add_4x(a.data, b.data);
 	return result;
 }
 
-inline Vec4 operator -(Vec4 v, float s)
+__forceinline Vec4 operator -(Vec4 v, float s)
 {
 	Vec4 result;
 	float4 s4 = Set1_4x(s);

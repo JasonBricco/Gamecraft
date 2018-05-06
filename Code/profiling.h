@@ -18,6 +18,7 @@ struct CycleCounter
 {
 	uint64_t cycles;
 	uint64_t calls;
+	uint64_t lowest = UINT_MAX;
 };
 
 static CycleCounter g_counters[MEASURE_COUNT];
@@ -34,9 +35,13 @@ static void FlushCounters()
 		{
 			uint64_t cycles = g_counters[i].cycles;
 			uint64_t cyclesPerCall = cycles / calls;
+
+			if (cycles < g_counters[i].lowest)
+				g_counters[i].lowest = cycles;
+
 			char buffer[128];
-			sprintf(buffer, "%d: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u\n", 
-				i, cycles, calls, cyclesPerCall);
+			sprintf(buffer, "%d: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u, Lowest: %I64u\n", 
+				i, cycles, calls, cyclesPerCall, g_counters[i].lowest);
 			OutputDebugString(buffer);
 
 			g_counters[i].cycles = 0;

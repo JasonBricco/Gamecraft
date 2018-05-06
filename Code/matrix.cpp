@@ -249,7 +249,7 @@ static void Inverse_SIMD(float4 in[4], float4 out[4])
 inline Matrix4 Inverse(Matrix4 m)
 {
 	Matrix4 result;
-	Inverse_SIMD(MatrixToSIMD(m), MatrixToSIMD(result));
+	Inverse_SIMD(&m[0].data, &result[0].data);
 	return result;
 }
 
