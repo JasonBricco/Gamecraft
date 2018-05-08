@@ -15,7 +15,6 @@ struct Graphic
 	vec2 pos;
 };
 
-// Standard first-person camera.
 struct Camera
 {
 	vec3 pos, target, up;
@@ -35,8 +34,7 @@ struct Renderer
 
 	unordered_map<string, GLint> uniforms;
 
-	mat4 perspective, ortho;
-	mat4 view;
+	mat4 perspective, ortho, view;
 
 	Graphic* crosshair;
 

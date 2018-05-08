@@ -250,6 +250,8 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 	sb_push(paths, PathToAsset("Assets/GrassSide.png"));
 	sb_push(paths, PathToAsset("Assets/Dirt.png"));
 	sb_push(paths, PathToAsset("Assets/Stone.png"));
+	sb_push(paths, PathToAsset("Assets/Water.png"));
+	sb_push(paths, PathToAsset("Assets/Sand.png"));
 
 	LoadTextureArray(&blockTextures, paths, true);
 	sb_free(paths);

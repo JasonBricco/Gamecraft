@@ -2,6 +2,8 @@
 // Jason Bricco
 
 // BUGS/TODO:
+// Bug with view range = 12, assertion failure when moving.
+// Some bug making blocks appear in another chunk when you place them sometimes.
 
 // Look Into:
 // Frustum culling.

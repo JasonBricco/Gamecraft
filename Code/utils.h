@@ -76,7 +76,12 @@ inline float Radians(float degrees)
 	return degrees * 0.01745329f;
 }
 
-inline bool IsInRange(float val, float min, float max) 
+inline bool InRange(float val, float min, float max) 
+{
+	return val >= min && val <= max;
+}
+
+inline int InRange(int val, int min, int max)
 {
 	return val >= min && val <= max;
 }
@@ -95,4 +100,14 @@ inline ivec3 BlockPos(vec3 pos)
 inline vec3 GetV3(ivec3 v)
 {
 	return { v.x, v.y, v.z };
+}
+
+inline float Lerp(float a, float b, float t)
+{
+    return a + t * (b - a);
+}
+
+inline float SCurve3(float a)
+{
+	return (a * a * (3.0f - 2.0f * a));
 }

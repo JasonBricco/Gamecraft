@@ -22,4 +22,10 @@ static void CreateBlockData(BlockData* data)
 
 	BlockData& stone = data[BLOCK_STONE];
 	SetBlockTextures(stone, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f);
+
+	BlockData& water = data[BLOCK_WATER];
+	SetBlockTextures(water, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f);
+
+	BlockData& sand = data[BLOCK_SAND];
+	SetBlockTextures(sand, 5.0f, 5.0f, 5.0f, 5.0f, 5.0f, 5.0f);
 }

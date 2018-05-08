@@ -8,6 +8,8 @@
 #define CHUNK_SIZE_3 32768
 #define CHUNK_HASH_SIZE 1024
 
+#define SEA_LEVEL 12
+
 typedef FastNoiseSIMD Noise;
 
 enum ChunkState

@@ -173,10 +173,108 @@ inline int GetBlock(World* world, ivec3 pos)
 	return GetBlock(world, pos.x, pos.y, pos.z);
 }
 
+inline float GetNoiseValue2D(float* noiseSet, int index)
+{
+	return (noiseSet[index] + 1.0f) / 2.0f;
+}
+
+inline float GetNoiseValue3D(float* noiseSet, int x, int y, int z)
+{
+	return (noiseSet[z + CHUNK_SIZE * (y + WORLD_HEIGHT * x)] + 1.0f) / 2.0f;
+}
+
+inline int GetValidHeight(float val)
+{
+	return Clamp((int)val, 1, WORLD_HEIGHT - 1);
+}
+
 static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, int startX, int startZ)
 {
 	BEGIN_TIMED_BLOCK(GEN_TERRAIN);
 
+	noise->SetFrequency(0.015f);
+	noise->SetFractalOctaves(4);
+	noise->SetFractalType(Noise::RigidMulti);
+	float* ridged = noise->GetSimplexFractalSet(startX, 0, startZ, CHUNK_SIZE, 1, CHUNK_SIZE, 0.5f); 
+
+	noise->SetFrequency(0.025f);
+	noise->SetFractalType(Noise::Billow);
+	float* base = noise->GetSimplexFractalSet(startX, 0, startZ, CHUNK_SIZE, 1, CHUNK_SIZE, 0.5f);
+
+	noise->SetFrequency(0.01f);
+	float* biome = noise->GetSimplexSet(startX, 0, startZ, CHUNK_SIZE, 1, CHUNK_SIZE);
+
+	noise->SetFractalOctaves(2);
+	noise->SetFrequency(0.015f);
+	noise->SetFractalType(Noise::FBM);
+	float* comp = noise->GetSimplexFractalSet(startX, 0, startZ, CHUNK_SIZE, WORLD_HEIGHT, CHUNK_SIZE, 0.2f);
+
+	int index = 0;
+
+	for (int x = 0; x < CHUNK_SIZE; x++)
+    {
+        for (int z = 0; z < CHUNK_SIZE; z++)
+        {
+        	float terrainVal;
+        	float biomeVal = biome[index];
+
+        	// Value for flat terrain.
+        	float flat = GetNoiseValue2D(base, index);
+        	flat = ((flat * 0.2f) * 30.0f) + 10.0f;
+
+        	// Value for mountainous terrain.
+        	float mountain = GetNoiseValue2D(ridged, index);
+        	mountain = (pow(mountain, 3.5f) * 60.0f) + 20.0f;
+
+        	float lower = 0.0f;
+        	float upper = 0.6f;
+
+        	if (biomeVal < lower)
+        		terrainVal = flat;
+        	else if (biomeVal > upper)
+        		terrainVal = mountain;
+        	else
+        	{
+        		// If we're close to the boundary between the two terrain types,
+        		// interpolate between them for a smooth transition.
+        		float a = SCurve3((biomeVal - lower) / (upper - lower));
+        		terrainVal = Lerp(flat, mountain, a);
+        	}
+
+        	int height = GetValidHeight(terrainVal);
+        	index++;
+
+        	for (int y = 0; y <= height; y++)
+        	{
+        		float compVal = GetNoiseValue3D(comp, x, y, z);
+
+        		if (y <= height - 2)
+        		{
+	        		if (compVal <= 0.2f)
+	        		{
+	        			SetBlock(chunk, x, y, z, BLOCK_STONE);
+	        			continue;
+	        		}
+	        	}
+
+        		if (y == height) 
+        			SetBlock(chunk, x, y, z, BLOCK_GRASS);
+        		else SetBlock(chunk, x, y, z, BLOCK_DIRT);
+        	}
+
+        	for (int y = height + 1; y <= SEA_LEVEL; y++)
+        		SetBlock(chunk, x, y, z, BLOCK_WATER);
+        }
+    }
+
+    Noise::FreeNoiseSet(ridged);
+    Noise::FreeNoiseSet(base);
+    Noise::FreeNoiseSet(biome);
+    Noise::FreeNoiseSet(comp);
+
+	END_TIMED_BLOCK(GEN_TERRAIN);
+
+	#if 0
 	// Base terrain.
 	noise->SetFractalOctaves(2);
 	noise->SetFractalGain(0.32);
@@ -229,7 +327,6 @@ static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, int startX, int sta
 
     END_TIMED_BLOCK(GEN_TERRAIN);
 
-	#if 0
 	int index2 = 0, index3 = -1;
 
 	for (int x = 0; x < CHUNK_SIZE; x++)
