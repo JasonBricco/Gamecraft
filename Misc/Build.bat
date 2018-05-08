@@ -2,8 +2,8 @@
 
 pushd ..
 
-set cf=-nologo -fp:fast -Gm- -GR- -EHa- -W4 -wd4100 -wd4201 -wd4505 -FC -std:c++17 -arch:AVX -FeVoxel.exe
-set clb=-incremental:no -opt:ref winmm.lib gdi32.lib user32.lib Shell32.lib opengl32.lib
+set cf=-nologo -fp:fast -Gm- -GR- -EHa- -W4 -wd4100 -wd4201 -wd4505 -FC -std:c++17 -arch:AVX2 -FeVoxel.exe
+set clb=-incremental:no -opt:ref gdi32.lib user32.lib Shell32.lib opengl32.lib
 
 IF "%~1" == "" GOTO end
 IF "%~1" == "-r" GOTO build_release

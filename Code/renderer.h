@@ -3,7 +3,7 @@
 
 #define MESH_PARAMS 10
 #define CAMERA_FOV 45.0f
-#define WORLD_UP NewV3(0.0f, 1.0f, 0.0f)
+#define WORLD_UP vec3(0.0f, 1.0f, 0.0f)
 
 struct Graphic
 {
@@ -12,14 +12,14 @@ struct Graphic
 	float vertices[16];
 	int shaderID;
 	GLuint texture;
-	Vec2 pos;
+	vec2 pos;
 };
 
 // Standard first-person camera.
 struct Camera
 {
-	Vec3 pos, target, up;
-	Vec3 forward, right;
+	vec3 pos, target, up;
+	vec3 forward, right;
 
 	// Angles in degrees.
 	float yaw, pitch;
@@ -35,8 +35,8 @@ struct Renderer
 
 	unordered_map<string, GLint> uniforms;
 
-	Matrix4 perspective, ortho;
-	Matrix4 view;
+	mat4 perspective, ortho;
+	mat4 view;
 
 	Graphic* crosshair;
 

@@ -7,6 +7,12 @@
 #define Min(A, B) ((A < B) ? (A) : (B))
 #define Max(A, B) ((A > B) ? (A) : (B))
 
+struct Ray
+{
+	vec3 origin;
+	vec3 dir;
+};
+
 static char* PathToAsset(char* fileName)
 {
 	int size = MAX_PATH * 2;
@@ -68,4 +74,25 @@ inline bool Approx(float a, float b)
 inline float Radians(float degrees)
 {
 	return degrees * 0.01745329f;
+}
+
+inline bool IsInRange(float val, float min, float max) 
+{
+	return val >= min && val <= max;
+}
+
+inline vec3 MoveDirXZ(vec3 value)
+{
+	vec3 zeroY = vec3(value.x, 0.0f, value.z);
+	return normalize(zeroY);
+}
+
+inline ivec3 BlockPos(vec3 pos)
+{
+	return { RoundToInt(pos.x), RoundToInt(pos.y), RoundToInt(pos.z) };
+}
+
+inline vec3 GetV3(ivec3 v)
+{
+	return { v.x, v.y, v.z };
 }

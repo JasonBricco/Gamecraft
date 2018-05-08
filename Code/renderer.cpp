@@ -59,7 +59,7 @@ static void DrawGraphic(Renderer* rend, Graphic* graphic)
 	int ID = graphic->shaderID;
 	UseShader(rend->programs[ID]);
 
-	Matrix4 model = Translate(Matrix4(1.0f), NewV3(graphic->pos, 0.0f));
+	mat4 model = translate(mat4(1.0f), vec3(graphic->pos, 0.0f));
 	SetUniform(rend, ID, "model1", model);
 	SetUniform(rend, ID, "projection1", rend->ortho);
 
@@ -71,7 +71,7 @@ static void DrawGraphic(Renderer* rend, Graphic* graphic)
 
 inline void SetCrosshairPos(Graphic* crosshair, int width, int height)
 {
-	crosshair->pos = NewV2((width / 2.0f) - 16.0f, (height / 2.0f) - 16.0f);
+	crosshair->pos = vec2((width / 2.0f) - 16.0f, (height / 2.0f) - 16.0f);
 }
 
 static void SetWindowSize(GLFWwindow* window, int width, int height)
@@ -80,8 +80,8 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 	rend->windowWidth = width;
 	rend->windowHeight = height;
 	glViewport(0, 0, width, height);
-	rend->perspective = Perspective(Radians(CAMERA_FOV), (float)width / (float)height, 0.1f, 256.0f);
-	rend->ortho = Ortho(0.0f, (float)width, (float)height, 0.0f);
+	rend->perspective = perspective(Radians(CAMERA_FOV), (float)width / (float)height, 0.1f, 256.0f);
+	rend->ortho = ortho(0.0f, (float)width, (float)height, 0.0f);
 
 	if (rend->crosshair != NULL)
 		SetCrosshairPos(rend->crosshair, width, height);
@@ -96,14 +96,14 @@ static Camera* NewCamera()
 
 static void UpdateCameraVectors(Camera* cam)
 {
-	Vec3 forward;
+	vec3 forward;
 	forward.x = cosf(cam->pitch) * sinf(cam->yaw);
 	forward.y = sinf(cam->pitch);
 	forward.z = cosf(cam->pitch) * cosf(cam->yaw);
 
-	forward = Normalize(forward);
-	cam->right = Normalize(Cross(forward, WORLD_UP));
-	cam->up = Normalize(Cross(cam->right, forward));
+	forward = normalize(forward);
+	cam->right = normalize(cross(forward, WORLD_UP));
+	cam->up = normalize(cross(cam->right, forward));
 
 	cam->forward = forward;
 	cam->target = cam->pos + forward;
@@ -121,7 +121,7 @@ static void RotateCamera(Camera* cam, float yaw, float pitch)
 inline void UpdateViewMatrix(Renderer* rend)
 {
 	Camera* cam = rend->camera;
-	rend->view = LookAt(cam->pos, cam->target, cam->up);
+	rend->view = lookAt(cam->pos, cam->target, cam->up);
 }
 
 static void LoadTexture(GLuint* tex, char* path)
@@ -193,7 +193,7 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 {
 	if (!glfwInit())
 	{
-		LogError("GLFW failed to initialize.");
+		OutputDebugString("GLFW failed to initialize.");
 		return NULL;
 	}
 
@@ -209,7 +209,7 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 
 	if (window == NULL)
 	{
-		LogError("Failed to create window.");
+		OutputDebugString("Failed to create window.");
 		return NULL;
 	}
 
@@ -222,7 +222,7 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 
 	if (glewInit() != GLEW_OK)
 	{
-		LogError("Failed to initialize GLEW.");
+		OutputDebugString("Failed to initialize GLEW.");
 		return NULL;
 	}
 
@@ -249,7 +249,7 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 	sb_push(paths, PathToAsset("Assets/Grass.png"));
 	sb_push(paths, PathToAsset("Assets/GrassSide.png"));
 	sb_push(paths, PathToAsset("Assets/Dirt.png"));
-	sb_push(paths, PathToAsset("Assets/Crosshair.png"));
+	sb_push(paths, PathToAsset("Assets/Stone.png"));
 
 	LoadTextureArray(&blockTextures, paths, true);
 	sb_free(paths);
@@ -269,15 +269,15 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 
 static Ray ScreenCenterToRay(Renderer* rend)
 {
-	Matrix4 projection = rend->perspective * rend->view;
+	mat4 projection = rend->perspective * rend->view;
 
 	int w = rend->windowWidth;
 	int h = rend->windowHeight;
-	Vec4 viewport = NewV4(0.0f, (float)h, (float)w, (float)(-h));
+	vec4 viewport = vec4(0.0f, (float)h, (float)w, (float)(-h));
 
-	Vec2i cursor = NewV2i(w / 2, h / 2);
+	ivec2 cursor = ivec2(w / 2, h / 2);
 
-	Vec3 origin = Unproject(NewV3(cursor, 0.0f), Matrix4(1.0f), projection, viewport);
+	vec3 origin = unProject(vec3(cursor, 0.0f), mat4(1.0f), projection, viewport);
 
 	return { origin, rend->camera->forward };
 }
@@ -293,11 +293,11 @@ static void RenderScene(Renderer* rend, World* world)
 	UseShader(rend->programs[0]);
 	SetUniform(rend, 0, "view0", rend->view);
 	SetUniform(rend, 0, "projection0", rend->perspective);
-	SetUniform(rend, 0, "ambient0", NewV4(1.0f, 1.0f, 1.0f, 1.0f));
+	SetUniform(rend, 0, "ambient0", vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, rend->blockTextures);
 
-	Matrix4 model;
+	mat4 model;
 
 	for (int i = 0; i < world->totalChunks; i++)
 	{
@@ -305,8 +305,8 @@ static void RenderScene(Renderer* rend, World* world)
 
 		if (chunk->state == CHUNK_BUILT)
 		{
-			Vec3 wPos = NewV3((float)(chunk->cX * CHUNK_SIZE), 0.0f, (float)(chunk->cZ * CHUNK_SIZE));
-			model = Translate(Matrix4(1.0f), wPos);
+			vec3 wPos = vec3((float)(chunk->cX * CHUNK_SIZE), 0.0f, (float)(chunk->cZ * CHUNK_SIZE));
+			model = translate(mat4(1.0f), wPos);
 			SetUniform(rend, 0, "model0", model);
 			DrawMesh(chunk->mesh);
 		}

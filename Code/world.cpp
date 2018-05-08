@@ -1,27 +1,27 @@
 // Voxel Engine
 // Jason Bricco
 
-inline Vec3i ToLocalPos(int wX, int wY, int wZ)
+inline ivec3 ToLocalPos(int wX, int wY, int wZ)
 {
-	return NewV3i(wX & CHUNK_SIZE - 1, wY, wZ & CHUNK_SIZE - 1);
+	return ivec3(wX & CHUNK_SIZE - 1, wY, wZ & CHUNK_SIZE - 1);
 }
 
-inline Vec3i ToLocalPos(Vec3i wPos)
+inline ivec3 ToLocalPos(ivec3 wPos)
 {
 	return ToLocalPos(wPos.x, wPos.y, wPos.z);
 }
 
-inline Vec3i ToChunkPos(int wX, int wZ)
+inline ivec3 ToChunkPos(int wX, int wZ)
 {
-	return NewV3i(wX >> CHUNK_SIZE_BITS, 0, wZ >> CHUNK_SIZE_BITS);
+	return ivec3(wX >> CHUNK_SIZE_BITS, 0, wZ >> CHUNK_SIZE_BITS);
 }
 
-inline Vec3i ToChunkPos(Vec3i wPos)
+inline ivec3 ToChunkPos(ivec3 wPos)
 {
 	return ToChunkPos(wPos.x, wPos.z);
 }
 
-inline Vec3i ToChunkPos(Vec3 wPos)
+inline ivec3 ToChunkPos(vec3 wPos)
 {
 	return ToChunkPos((int)wPos.x, (int)wPos.z);
 }
@@ -36,7 +36,7 @@ inline Chunk* GetChunk(World* world, int cX, int cZ)
 	return world->chunks[ChunkIndex(world, cX, cZ)];
 }
 
-inline Chunk* GetChunk(World* world, Vec3i cPos)
+inline Chunk* GetChunk(World* world, ivec3 cPos)
 {
 	return GetChunk(world, cPos.x, cPos.z);
 }
@@ -122,20 +122,20 @@ inline void SetBlock(Chunk* chunk, int lX, int lY, int lZ, int block)
 	chunk->blocks[lX + CHUNK_SIZE * (lY + WORLD_HEIGHT * lZ)] = block;
 }
 
-inline void SetBlock(Chunk* chunk, Vec3i lPos, int block)
+inline void SetBlock(Chunk* chunk, ivec3 lPos, int block)
 {
 	SetBlock(chunk, lPos.x, lPos.y, lPos.z, block);
 }
 
-inline void SetBlock(World* world, Vec3i wPos, int block, bool update)
+inline void SetBlock(World* world, ivec3 wPos, int block, bool update)
 {
 	if (wPos.y < 0 || wPos.y >= WORLD_HEIGHT) return;
 
-	Vec3i cPos = ToChunkPos(wPos);
+	ivec3 cPos = ToChunkPos(wPos);
 	Chunk* chunk = GetChunk(world, cPos);
 	Assert(chunk != NULL);
 
-	Vec3i local = ToLocalPos(wPos);
+	ivec3 local = ToLocalPos(wPos);
 	SetBlock(chunk, local, block);
 
 	if (update) UpdateChunk(world, chunk, local);
@@ -143,7 +143,7 @@ inline void SetBlock(World* world, Vec3i wPos, int block, bool update)
 
 inline void SetBlock(World* world, int wX, int wY, int wZ, int block, bool update)
 {
-	SetBlock(world, NewV3i(wX, wY, wZ), block, update);
+	SetBlock(world, ivec3(wX, wY, wZ), block, update);
 }
 
 inline int GetBlock(Chunk* chunk, int lX, int lY, int lZ)
@@ -151,7 +151,7 @@ inline int GetBlock(Chunk* chunk, int lX, int lY, int lZ)
 	return chunk->blocks[lX + CHUNK_SIZE * (lY + WORLD_HEIGHT * lZ)];
 }
 
-inline int GetBlock(Chunk* chunk, Vec3i lPos)
+inline int GetBlock(Chunk* chunk, ivec3 lPos)
 {
 	return GetBlock(chunk, lPos.x, lPos.y, lPos.z);
 }
@@ -160,15 +160,15 @@ static int GetBlock(World* world, int wX, int wY, int wZ)
 {
 	if (wY < 0 || wY >= WORLD_HEIGHT) return 0;
 
-	Vec3i cPos = ToChunkPos(wX, wZ);
+	ivec3 cPos = ToChunkPos(wX, wZ);
 	Chunk* chunk = GetChunk(world, cPos.x, cPos.z);
 	Assert(chunk != NULL);
 
-	Vec3i lPos = ToLocalPos(wX, wY, wZ);
+	ivec3 lPos = ToLocalPos(wX, wY, wZ);
 	return GetBlock(chunk, lPos);
 }
 
-inline int GetBlock(World* world, Vec3i pos)
+inline int GetBlock(World* world, ivec3 pos)
 {
 	return GetBlock(world, pos.x, pos.y, pos.z);
 }
@@ -177,23 +177,107 @@ static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, int startX, int sta
 {
 	BEGIN_TIMED_BLOCK(GEN_TERRAIN);
 
-	float* noiseSet = noise->GetSimplexSet(startX, 0, startZ, CHUNK_SIZE, 1, CHUNK_SIZE);   
+	// Base terrain.
+	noise->SetFractalOctaves(2);
+	noise->SetFractalGain(0.32);
+	float* terrain = noise->GetSimplexFractalSet(startX, 0, startZ, CHUNK_SIZE, 1, CHUNK_SIZE, 0.6f); 
 
-	int index = 0;
+	// Mountain mask.
+	float* mountainMask = noise->GetSimplexSet(startX, 0, startZ, CHUNK_SIZE, 1, CHUNK_SIZE, 1.0f);
+
+	// Mountains.
+	noise->SetFractalType(Noise::RigidMulti);
+	noise->SetFractalOctaves(6);
+	noise->SetFractalGain(0.5f);
+	float* mountain = noise->GetSimplexFractalSet(startX * 4, 0, startZ * 4, CHUNK_SIZE, 1, CHUNK_SIZE, 1.0f);
+
+	int i = 0;
 
 	for (int x = 0; x < CHUNK_SIZE; x++)
     {
         for (int z = 0; z < CHUNK_SIZE; z++)
         {
-        	int height = (int)((20.0f + noiseSet[index++]) * 3.0f);
-        	height = Clamp(height, 0, WORLD_HEIGHT - 1);
+        	float val = terrain[i];
+        	float height = (val * 15) + 20.0f;
 
-        	for (int y = 0; y <= height; y++)
-        		SetBlock(chunk, x, y, z, 1);
+        	float mask = (mountainMask[i] + 2.0f) / 2.0f;
+
+        	// Create mountains.
+        	if (mask > 0.6f)
+        	{
+        		float rawHeight = mountain[i] * 50.0f;
+        		float actualHeight = rawHeight * Min(1.0f, (mask - 0.6f) / 0.2f);
+        		height += actualHeight;
+        	}
+        	
+        	int terrainHeight = Clamp((int)height, 1, WORLD_HEIGHT - 1);
+
+   			i++;
+
+        	for (int y = 0; y <= terrainHeight; y++)
+        	{
+        		if (y < terrainHeight - 5)
+        			SetBlock(chunk, x, y, z, BLOCK_STONE);
+        		else if (y == terrainHeight)
+        			SetBlock(chunk, x, y, z, BLOCK_GRASS);
+        		else SetBlock(chunk, x, y, z, BLOCK_DIRT);
+        	}
         }
     }
 
+    _aligned_free(terrain);
+
     END_TIMED_BLOCK(GEN_TERRAIN);
+
+	#if 0
+	int index2 = 0, index3 = -1;
+
+	for (int x = 0; x < CHUNK_SIZE; x++)
+    {
+        for (int z = 0; z < CHUNK_SIZE; z++)
+        {
+        	int terrainHeight = Clamp((int)((terrain[index2] * 10) + 20.0f), 1, WORLD_HEIGHT - 1);
+        	int islandHeight = Clamp((int)((island[index2++] * 50) + 20.0f), 1, WORLD_HEIGHT - 1);
+
+        	int maxHeight = Max(terrainHeight, islandHeight);
+
+        	for (int y = 0; y <= maxHeight; y++)
+        	{
+        		index3++;
+
+        		if (y <= terrainHeight) 
+				{
+					float value = terrain3D[index3];
+					
+					if (IsInRange(value, -1.0f, 0.2f))
+						SetBlock(chunk, x, y, z, y == maxHeight ? BLOCK_GRASS : BLOCK_DIRT);
+
+					if (IsInRange(value, 0.2f, 1.0f)) 
+						SetBlock(chunk, x, y, z, BLOCK_STONE);
+
+					continue;
+				}
+
+				if (y <= islandHeight) 
+				{
+					float value = island3D[index3];
+					
+					if (IsInRange(value, 0.4f, 0.6f))
+						SetBlock(chunk, x, y, z, y == maxHeight ? BLOCK_GRASS : BLOCK_DIRT);
+
+					if (IsInRange(value, 0.6f, 1.0f))
+						SetBlock(chunk, x, y, z, BLOCK_STONE);
+
+					continue;
+				}
+        	}
+        }
+    }
+
+	_aligned_free(terrain3D);
+	_aligned_free(island);
+	_aligned_free(island3D);
+	#endif
 }
 
 static void FillChunk(Chunk* chunk, int block)
@@ -246,66 +330,74 @@ static void DestroyChunk(World* world, Chunk* chunk)
 	AddChunkToPool(world, chunk);
 }
 
-static void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, int wX, int wY, int wZ)
+inline void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, int wX, int wY, int wZ, int block)
 {
+	float* textures = world->blockData[block].textures;
+
 	// Top face.
 	if (GetBlock(world, wX, wY + 1, wZ) == 0)
 	{
+		float tex = textures[FACE_TOP];
 		SetMeshIndices(mesh);
-		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
 	// Bottom face.
 	if (GetBlock(world, wX, wY - 1, wZ) == 0)
 	{
+		float tex = textures[FACE_BOTTOM];
 		SetMeshIndices(mesh);
-		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 0.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 0.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
 	// Front face.
 	if (GetBlock(world, wX, wY, wZ + 1) == 0)
 	{
+		float tex = textures[FACE_FRONT];
 		SetMeshIndices(mesh);
-		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f); 
-		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f); 
+		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
 	// Back face.
 	if (GetBlock(world, wX, wY, wZ - 1) == 0)
 	{
+		float tex = textures[FACE_BACK];
 		SetMeshIndices(mesh);
-		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
 	// Right face.
 	if (GetBlock(world, wX + 1, wY, wZ) == 0)
 	{
+		float tex = textures[FACE_RIGHT];
 		SetMeshIndices(mesh);
-		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
 	// Left face.
 	if (GetBlock(world, wX - 1, wY, wZ) == 0)
 	{
+		float tex = textures[FACE_LEFT];
 		SetMeshIndices(mesh);
-		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
 	}
 }
 
@@ -323,11 +415,11 @@ static void BuildChunk(World* world, Chunk* chunk)
 			{
 				int block = GetBlock(chunk, x, y, z);
 
-				if (block != 0)
+				if (block != BLOCK_AIR)
 				{
 					int wX = chunk->cX * CHUNK_SIZE;
 					int wZ = chunk->cZ * CHUNK_SIZE;
-					BuildBlock(world, chunk->mesh, (float)x, (float)y, (float)z, wX + x, y, wZ + z);
+					BuildBlock(world, chunk->mesh, (float)x, (float)y, (float)z, wX + x, y, wZ + z, block);
 				}
 			}
 		}
@@ -348,7 +440,7 @@ inline void UpdateChunkDirect(World* world, Chunk* chunk)
 	}
 }
 
-inline void UpdateChunk(World* world, Chunk* chunk, Vec3i lPos)
+inline void UpdateChunk(World* world, Chunk* chunk, ivec3 lPos)
 {
 	UpdateChunkDirect(world, chunk);
 
@@ -441,6 +533,8 @@ static World* NewWorld(int loadRange)
 
 	world->pMin = (float)((loadRange + 1) * CHUNK_SIZE);
 	world->pMax = world->pMin + CHUNK_SIZE;
+
+	CreateBlockData(world->blockData);
 
 	world->noise = FastNoiseSIMD::NewFastNoiseSIMD();
 	world->noise->SetSeed(rand());

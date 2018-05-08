@@ -49,7 +49,7 @@ inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float 
 {
 	if (mesh->vertCount + MESH_PARAMS > mesh->vertMax)
 	{
-		mesh->vertices = (float*)realloc(mesh->vertices, mesh->vertMax * 2);
+		mesh->vertices = (float*)realloc(mesh->vertices, mesh->vertMax * 2 * sizeof(float));
 		mesh->vertMax *= 2;
 	}
 
@@ -75,7 +75,7 @@ inline void SetMeshIndices(Mesh* mesh)
 {
 	if (mesh->indexCount + 6 > mesh->indexMax)
 	{
-		mesh->indices = (int*)realloc(mesh->indices, mesh->indexMax * 2);
+		mesh->indices = (int*)realloc(mesh->indices, mesh->indexMax * 2 * sizeof(float));
 		mesh->indexMax *= 2;
 	}
 

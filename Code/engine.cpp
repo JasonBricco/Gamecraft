@@ -35,6 +35,19 @@
 #include <queue>
 #include <fstream>
 
+#define GLM_FORCE_AVX2
+#define GLM_FORCE_INLINE
+#define GLM_FORCE_NO_CTOR_INIT
+
+#include "glm/fwd.hpp"
+#include "glm/vec2.hpp"
+#include "glm/vec3.hpp"
+#include "glm/vec4.hpp"
+#include "glm/mat4x4.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
+using namespace glm;
 using namespace std;
 
 #if ASSERTIONS
@@ -66,24 +79,24 @@ static bool g_paused;
 
 #include "profiling.h"
 #include "intrinsics.h"
+#include "random.h"
 #include "utils.h"
-#include "vec.h"
-#include "matrix.h"
+#include "fileio.h"
 #include "async.h"
-#include "logging.h"
 #include "input.h"
 #include "mesh.h"
+#include "block.h"
 #include "world.h"
 #include "renderer.h"
 #include "shaders.h"
 #include "simulation.h"
 
-#include "matrix.cpp"
 #include "async.cpp"
 #include "input.cpp"
 #include "shaders.cpp"
 #include "renderer.cpp"
 #include "mesh.cpp"
+#include "block.cpp"
 #include "world.cpp"
 #include "simulation.cpp"
 
@@ -111,8 +124,8 @@ static void ToggleFullscreen(HWND window)
 	{
 		SetWindowLong(window, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
 		SetWindowPlacement(window, &g_windowPos);
-		SetWindowPos(window, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | 
-			SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+		SetWindowPos(window, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER 
+			| SWP_FRAMECHANGED);
 	}
 }
 
@@ -141,7 +154,7 @@ static void ShowFPS(GLFWwindow* window)
 
 static void CheckWorld(World* world, Player* player)
 {
-	Vec3 pos = player->pos;
+	vec3 pos = player->pos;
 	float min = world->pMin, max = world->pMax;
 
 	if (pos.x < min) 
