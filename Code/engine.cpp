@@ -4,11 +4,16 @@
 // BUGS/TODO:
 // Bug with view range = 12, assertion failure when moving.
 // Some bug making blocks appear in another chunk when you place them sometimes.
+// Optimize CheckWorld() code to only do a single ShiftWorld, since direction isn't important.
 
 // Look Into:
 // Frustum culling.
+// When we frustum cull, we can ensure we only load chunks within the frustum and a short
+// distance around the player. If we already created it and look away, just stop rendering it but leave
+// it as is. We will have freed the other mesh list data and so the memory footprint won't be too huge.
 // GLSL Subroutines for optimizing shaders.
 // Shader precompiling.
+// Noise "quadrants" (actually larger) to solve noise precision issue. 
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLEW_STATIC
@@ -156,32 +161,59 @@ static void ShowFPS(GLFWwindow* window)
 
 static void CheckWorld(World* world, Player* player)
 {
+	Rectf bounds = world->pBounds;
 	vec3 pos = player->pos;
-	float min = world->pMin, max = world->pMax;
+	bool shift = false;
 
-	if (pos.x < min) 
+	Assert(player->pos.x >= 0.0f);
+	Assert(player->pos.y >= 0.0f);
+	Assert(player->pos.z >= 0.0f);
+
+	while (pos.x < bounds.min.x) 
 	{
-		player->pos.x = max - (min - pos.x);
-		world->refX--;
-		ShiftWorld(world);
+		pos.x = bounds.max.x - (bounds.min.x - pos.x);
+		world->ref.x--;
+		shift = true;
 	}
-	else if (pos.x > max) 
+	
+	while (pos.x > bounds.max.x) 
 	{
-		player->pos.x = min + (pos.x - max);
-		world->refX++;
-		ShiftWorld(world);
+		pos.x = bounds.min.x + (pos.x - bounds.max.x);
+		world->ref.x++;
+		shift = true;
 	}
 
-	if (pos.z < min) 
+	while (pos.y < bounds.min.y)
 	{
-		player->pos.z = max - (min - pos.z);
-		world->refZ--;
-		ShiftWorld(world);
+		pos.y = bounds.max.y - (bounds.min.y - pos.y);
+		world->ref.y--;
+		shift = true;
 	}
-	else if (pos.z > max) 
+	
+	while (pos.y > bounds.max.y)
 	{
-		player->pos.z = min + (pos.z - max);
-		world->refZ++;
+		pos.y = bounds.min.y + (pos.y - bounds.max.y);
+		world->ref.y++;
+		shift = true;
+	}
+
+	while (pos.z < bounds.min.z) 
+	{
+		pos.z = bounds.max.z - (bounds.min.z - pos.z);
+		world->ref.z--;
+		shift = true;
+	}
+	
+	while (pos.z > bounds.max.z) 
+	{
+		pos.z = bounds.min.z + (pos.z - bounds.max.z);
+		world->ref.z++;
+		shift = true;
+	}
+
+	if (shift) 
+	{
+		player->pos = pos;
 		ShiftWorld(world);
 	}
 }
@@ -250,9 +282,9 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPos(window, rend->windowWidth / 2.0f, rend->windowHeight / 2.0f);
 
-	World* world = NewWorld(8);
+	World* world = NewWorld(6, 4);
 
-	Player* player = NewPlayer(world->pMin, world->pMax);
+	Player* player = NewPlayer(world->pBounds);
 	rend->camera = player->camera;
 	
 	double lastTime = glfwGetTime();
@@ -281,7 +313,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 		#endif
 
 		double endTime = glfwGetTime();
-		deltaTime = (float)(endTime - lastTime);
+		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
 		lastTime = endTime;
 	}
 

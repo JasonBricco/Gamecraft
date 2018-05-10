@@ -111,3 +111,14 @@ inline float SCurve3(float a)
 {
 	return (a * a * (3.0f - 2.0f * a));
 }
+
+struct Rectf
+{
+    vec3 min;
+    vec3 max;
+};
+
+inline Rectf NewRect(vec3 min, vec3 max)
+{
+    return { min, max };
+}

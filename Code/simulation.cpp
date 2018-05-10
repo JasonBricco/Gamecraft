@@ -1,13 +1,13 @@
 // Voxel Engine
 // Jason Bricco
 
-static Player* NewPlayer(float pMin, float pMax)
+static Player* NewPlayer(Rectf spawnBounds)
 {
 	Player* player = Malloc(Player);
 	player->camera = NewCamera();
 
-	float spawn = pMin + (CHUNK_SIZE / 2.0f);
-	player->pos = vec3(spawn, 80.0f, spawn);
+	vec3 spawn = spawnBounds.min + (CHUNK_SIZE / 2.0f);
+	player->pos = spawn;
 	player->collider = Capsule(0.3f, 1.2f);
 	player->velocity = vec3(0.0f);
 	player->speed = 50.0f;
@@ -495,6 +495,9 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 
 		float deltaLen = length(delta);
 
+		if (deltaLen > 16.0f)
+			delta = normalize(delta) * 16.0f;
+
 		// If our move is too big, try to prevent skipping through terrain.
 		if (deltaLen > 1.5f)
 		{
@@ -508,7 +511,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 		}
 		else player->pos = player->pos + delta;
 
-		ivec3 newBlock = BlockPos(player->pos);
+		LWorldPos newBlock = BlockPos(player->pos);
 
 		// Compute the range of blocks we could touch with our movement. We'll test for collisions
 		// with the blocks in this range.
@@ -530,7 +533,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 				{
 					int block = GetBlock(world, x, y, z);
 
-					if (block != 0)
+					if (block != BLOCK_AIR)
 					{
 						col.pos = player->pos;
 						AABB bb = AABB(vec3(x - 0.5f, y - 0.5f, z - 0.5f), vec3(0.0f), vec3(1.0f));
@@ -589,6 +592,23 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 	}
 
 	Move(world, player, accel, deltaTime);
+
+	if (KeyPressed(KEY_BACKSPACE))
+	{
+		ivec3 cPos = ToChunkPos(player->pos);
+		Chunk* chunk = GetChunk(world, cPos);
+		FillChunk(chunk, BLOCK_AIR);
+
+		LChunkPos cP = chunk->lcPos;
+
+		UpdateChunkDirect(world, chunk);
+		UpdateChunkDirect(world, GetChunk(world, cP.x - 1, cP.y, cP.z));
+		UpdateChunkDirect(world, GetChunk(world, cP.x + 1, cP.y, cP.z));
+		UpdateChunkDirect(world, GetChunk(world, cP.x,cP.y, cP.z - 1));
+		UpdateChunkDirect(world, GetChunk(world, cP.x, cP.y, cP.z + 1));
+		UpdateChunkDirect(world, GetChunk(world, cP.x, cP.y - 1, cP.z));
+		UpdateChunkDirect(world, GetChunk(world, cP.x, cP.y + 1, cP.z));
+	}
 
 	int op = MousePressed(0) ? 0 : MousePressed(1) ? 1 : -1;
 

@@ -13,6 +13,7 @@ enum KeyType
     KEY_TAB,
     KEY_P,
     KEY_T,
+    KEY_BACKSPACE,
     KEY_COUNT
 };
  

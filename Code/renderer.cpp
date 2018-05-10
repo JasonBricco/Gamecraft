@@ -307,8 +307,7 @@ static void RenderScene(Renderer* rend, World* world)
 
 		if (chunk->state == CHUNK_BUILT)
 		{
-			vec3 wPos = vec3((float)(chunk->cX * CHUNK_SIZE), 0.0f, (float)(chunk->cZ * CHUNK_SIZE));
-			model = translate(mat4(1.0f), wPos);
+			model = translate(mat4(1.0f), (vec3)chunk->lwPos);
 			SetUniform(rend, 0, "model0", model);
 			DrawMesh(chunk->mesh);
 		}

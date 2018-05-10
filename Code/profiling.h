@@ -1,7 +1,7 @@
 // Voxel Engine
 // Jason Bricco
 
-#if PROFILING || PROFILING_ONCE
+#if PROFILING
 
 enum MeasureSection
 {
@@ -24,29 +24,40 @@ static CycleCounter g_counters[MEASURE_COUNT];
 
 static void FlushCounters()
 {
-	OutputDebugString("CYCLE COUNTS:\n");
+	static bool profilingEnabled = true;
 
-	for (int i = 0; i < MEASURE_COUNT; i++)
+	if (profilingEnabled)
 	{
-		uint64_t calls = g_counters[i].calls;
+		OutputDebugString("CYCLE COUNTS:\n");
 
-		if (calls > 0)
+		for (int i = 0; i < MEASURE_COUNT; i++)
 		{
-			uint64_t cycles = g_counters[i].cycles;
-			uint64_t cyclesPerCall = cycles / calls;
+			uint64_t calls = g_counters[i].calls;
 
-			if (cycles < g_counters[i].lowest)
-				g_counters[i].lowest = cycles;
+			if (calls > 0)
+			{
+				uint64_t cycles = g_counters[i].cycles;
+				uint64_t cyclesPerCall = cycles / calls;
 
-			char buffer[128];
-			sprintf(buffer, "%d: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u, Lowest: %I64u\n", 
-				i, cycles, calls, cyclesPerCall, g_counters[i].lowest);
-			OutputDebugString(buffer);
+				if (cycles < g_counters[i].lowest)
+					g_counters[i].lowest = cycles;
 
-			g_counters[i].cycles = 0;
-			g_counters[i].calls = 0;
+				char buffer[128];
+				sprintf(buffer, "%d: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u, Lowest: %I64u\n", 
+					i, cycles, calls, cyclesPerCall, g_counters[i].lowest);
+				OutputDebugString(buffer);
+
+				g_counters[i].cycles = 0;
+				g_counters[i].calls = 0;
+			}
 		}
 	}
+
+	#if PROFILING_ONCE
+
+	profilingEnabled = false;
+
+	#endif
 }
 
 inline void EndTimedBlock(int ID, uint64_t start)
@@ -55,30 +66,14 @@ inline void EndTimedBlock(int ID, uint64_t start)
 	g_counters[ID].calls++;
 }
 
-inline void EndTimedBlockDirect(int ID, uint64_t start)
-{
-	EndTimedBlock(ID, start);
-	FlushCounters();
-}
-
 #define BEGIN_TIMED_BLOCK(ID) uint64_t startCount##ID = __rdtsc();
 #define END_TIMED_BLOCK(ID) EndTimedBlock(MEASURE_##ID, startCount##ID)
+#define FLUSH_COUNTERS() FlushCounters();
 
 #else
 
 #define BEGIN_TIMED_BLOCK(ID)
 #define END_TIMED_BLOCK(ID)
-
-#endif
-
-#if PROFILING
-#define FLUSH_COUNTERS() FlushCounters();
-#else 
 #define FLUSH_COUNTERS()
-#endif
 
-#if PROFILING_ONCE
-#define END_TIMED_BLOCK_DIRECT(ID) EndTimedBlockDirect(MEASURE_##ID, startCount##ID);
-#else
-#define END_TIMED_BLOCK_DIRECT(ID)
 #endif

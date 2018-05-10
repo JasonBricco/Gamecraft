@@ -39,9 +39,6 @@ static void DestroyMesh(Mesh* mesh)
 	glDeleteBuffers(1, &mesh->vb);
 	glDeleteBuffers(1, &mesh->ib);
 	glDeleteVertexArrays(1, &mesh->va);
-
-	free(mesh->vertices);
-	free(mesh->indices);
 }
 
 inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex,
@@ -100,6 +97,9 @@ static void FillMeshData(Mesh* mesh)
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_DYNAMIC_DRAW);
+
+	free(mesh->vertices);
+	free(mesh->indices);
 }
 
 static void DrawMesh(Mesh* mesh)

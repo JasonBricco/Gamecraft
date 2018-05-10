@@ -1,125 +1,118 @@
 // Voxel Engine
 // Jason Bricco
 
-inline ivec3 ToLocalPos(int wX, int wY, int wZ)
+inline RelPos ToLocalPos(int lwX, int lwY, int lwZ)
 {
-	return ivec3(wX & CHUNK_SIZE - 1, wY, wZ & CHUNK_SIZE - 1);
+	return ivec3(lwX & CHUNK_SIZE - 1, lwY & CHUNK_SIZE - 1, lwZ & CHUNK_SIZE - 1);
 }
 
-inline ivec3 ToLocalPos(ivec3 wPos)
+inline RelPos ToLocalPos(LWorldPos wPos)
 {
 	return ToLocalPos(wPos.x, wPos.y, wPos.z);
 }
 
-inline ivec3 ToChunkPos(int wX, int wZ)
+inline LChunkPos ToChunkPos(int lwX, int lwY, int lwZ)
 {
-	return ivec3(wX >> CHUNK_SIZE_BITS, 0, wZ >> CHUNK_SIZE_BITS);
+	return ivec3(lwX >> CHUNK_SIZE_BITS, lwY >> CHUNK_SIZE_BITS, lwZ >> CHUNK_SIZE_BITS);
 }
 
-inline ivec3 ToChunkPos(ivec3 wPos)
+inline LChunkPos ToChunkPos(LWorldPos pos)
 {
-	return ToChunkPos(wPos.x, wPos.z);
+	return ToChunkPos(pos.x, pos.y, pos.z);
 }
 
 inline ivec3 ToChunkPos(vec3 wPos)
 {
-	return ToChunkPos((int)wPos.x, (int)wPos.z);
+	return ToChunkPos((int)wPos.x, (int)wPos.y, (int)wPos.z);
 }
 
-inline int ChunkIndex(World* world, int cX, int cZ)
+inline int ChunkIndex(World* world, int lcX, int lcY, int lcZ)
 {
-	return cZ * world->width + cX;
+	return lcX + world->sizeH * (lcY + world->sizeV * lcZ);
 }
 
-inline Chunk* GetChunk(World* world, int cX, int cZ)
+inline Chunk* GetChunk(World* world, int lcX, int lcY, int lcZ)
 {
-	return world->chunks[ChunkIndex(world, cX, cZ)];
+	return world->chunks[ChunkIndex(world, lcX, lcY, lcZ)];
 }
 
-inline Chunk* GetChunk(World* world, ivec3 cPos)
+inline Chunk* GetChunk(World* world, LChunkPos pos)
 {
-	return GetChunk(world, cPos.x, cPos.z);
+	return GetChunk(world, pos.x, pos.y, pos.z);
 }
 
-inline void MoveChunk(World* world, Chunk* chunk, int toX, int toZ)
+inline void MoveChunk(World* world, Chunk* chunk, int toX, int toY, int toZ)
 {
-	world->chunks[ChunkIndex(world, toX, toZ)] = chunk;
+	world->chunks[ChunkIndex(world, toX, toY, toZ)] = chunk;
 }
 
-inline uint32_t ChunkHashBucket(int32_t x, int32_t z)
+inline uint32_t ChunkHashBucket(ivec3 wPos)
 {
-	uint32_t hashValue = (31 + x) * 23 + z;
+	uint32_t hashValue = 7919 * wPos.y + (31 + wPos.x) * 23 + wPos.z;
 	return hashValue & (CHUNK_HASH_SIZE - 1);
 }
 
-inline bool IsCorrect(Chunk* chunk, int32_t wX, int32_t wZ)
-{
-	if (chunk == NULL) return false;
-	return chunk->wX == wX && chunk->wZ == wZ;
-}
-
-static Chunk* ChunkFromHash(World* world, uint32_t bucket, int32_t wX, int32_t wZ)
+static Chunk* ChunkFromHash(World* world, uint32_t bucket, ChunkPos cPos)
 {
     Chunk* chunk = world->chunkHash[bucket];
 
-    if (chunk == NULL) return NULL;
+    if (chunk == NULL) 
+        return NULL;
 
-    if (IsCorrect(chunk, wX, wZ))
+    if (chunk->cPos == cPos)
     {
-    	world->chunkHash[bucket] = NULL;
-    	return chunk;
+        chunk->active = true;
+        return chunk;
     }
- 
- 	Chunk* prev = chunk;
- 	chunk = chunk->nextInHash;
 
-    while (chunk != NULL)
+    uint32_t firstBucket = bucket;
+
+    while (true)
     {
-        if (IsCorrect(chunk, wX, wZ))
+        bucket = (bucket + 1) & (CHUNK_HASH_SIZE - 1);
+
+        if (bucket == firstBucket)
+            return NULL;
+
+        chunk = world->chunkHash[bucket];
+
+        if (chunk != NULL && chunk->cPos == cPos)
         {
-        	prev->nextInHash = chunk->nextInHash;
+            chunk->active = true;
             return chunk;
         }
- 
- 		prev = chunk;
-        chunk = chunk->nextInHash;
     }
- 
-    return NULL;
 }
 
-inline Chunk* ChunkFromHash(World* world, int32_t wX, int32_t wZ)
+inline Chunk* ChunkFromHash(World* world, int32_t wX, int32_t wY, int32_t wZ)
 {
-	 return ChunkFromHash(world, ChunkHashBucket(wX, wZ), wX, wZ);
+	ivec3 wPos = ivec3(wX, wY, wZ);
+	return ChunkFromHash(world, ChunkHashBucket(wPos), wPos);
 }
 
 inline void AddChunkToHash(World* world, Chunk* chunk)
 {
 	if (chunk == NULL) return;
 
-	uint32_t bucket = ChunkHashBucket(chunk->wX, chunk->wZ);
-	Chunk* existing = ChunkFromHash(world, bucket, chunk->wX, chunk->wZ);
+	uint32_t bucket = ChunkHashBucket(chunk->cPos);
 
-	if (existing == NULL)
-		world->chunkHash[bucket] = chunk;
-	else 
-	{
-		while (true)
-		{
-			if (existing->nextInHash == NULL)
-			{
-				existing->nextInHash = chunk;
-				return;
-			}
+    #if ASSERTIONS
+    uint32_t firstBucket = bucket;
+    #endif
 
-			existing = existing->nextInHash;
-		}
-	}
+    while (world->chunkHash[bucket] != NULL)
+    {
+        bucket = (bucket + 1) & (CHUNK_HASH_SIZE - 1);
+        Assert(bucket != firstBucket);
+    }
+
+    chunk->active = false;
+    world->chunkHash[bucket] = chunk;
 }
 
 inline void SetBlock(Chunk* chunk, int lX, int lY, int lZ, int block)
 {
-	chunk->blocks[lX + CHUNK_SIZE * (lY + WORLD_HEIGHT * lZ)] = block;
+	chunk->blocks[lX + CHUNK_SIZE * (lY + CHUNK_SIZE * lZ)] = block;
 }
 
 inline void SetBlock(Chunk* chunk, ivec3 lPos, int block)
@@ -129,8 +122,6 @@ inline void SetBlock(Chunk* chunk, ivec3 lPos, int block)
 
 inline void SetBlock(World* world, ivec3 wPos, int block, bool update)
 {
-	if (wPos.y < 0 || wPos.y >= WORLD_HEIGHT) return;
-
 	ivec3 cPos = ToChunkPos(wPos);
 	Chunk* chunk = GetChunk(world, cPos);
 	Assert(chunk != NULL);
@@ -146,29 +137,27 @@ inline void SetBlock(World* world, int wX, int wY, int wZ, int block, bool updat
 	SetBlock(world, ivec3(wX, wY, wZ), block, update);
 }
 
-inline int GetBlock(Chunk* chunk, int lX, int lY, int lZ)
+inline int GetBlock(Chunk* chunk, int rX, int rY, int rZ)
 {
-	return chunk->blocks[lX + CHUNK_SIZE * (lY + WORLD_HEIGHT * lZ)];
+	return chunk->blocks[rX + CHUNK_SIZE * (rY + CHUNK_SIZE * rZ)];
 }
 
-inline int GetBlock(Chunk* chunk, ivec3 lPos)
+inline int GetBlock(Chunk* chunk, RelPos pos)
 {
-	return GetBlock(chunk, lPos.x, lPos.y, lPos.z);
+	return GetBlock(chunk, pos.x, pos.y, pos.z);
 }
 
-static int GetBlock(World* world, int wX, int wY, int wZ)
+static int GetBlock(World* world, int lwX, int lwY, int lwZ)
 {
-	if (wY < 0 || wY >= WORLD_HEIGHT) return 0;
-
-	ivec3 cPos = ToChunkPos(wX, wZ);
-	Chunk* chunk = GetChunk(world, cPos.x, cPos.z);
+	LChunkPos lcPos = ToChunkPos(lwX, lwY, lwZ);
+	Chunk* chunk = GetChunk(world, lcPos);
 	Assert(chunk != NULL);
 
-	ivec3 lPos = ToLocalPos(wX, wY, wZ);
-	return GetBlock(chunk, lPos);
+	RelPos rPos = ToLocalPos(lwX, lwY, lwZ);
+	return GetBlock(chunk, rPos);
 }
 
-inline int GetBlock(World* world, ivec3 pos)
+inline int GetBlock(World* world, LWorldPos pos)
 {
 	return GetBlock(world, pos.x, pos.y, pos.z);
 }
@@ -180,34 +169,29 @@ inline float GetNoiseValue2D(float* noiseSet, int index)
 
 inline float GetNoiseValue3D(float* noiseSet, int x, int y, int z)
 {
-	return (noiseSet[z + CHUNK_SIZE * (y + WORLD_HEIGHT * x)] + 1.0f) / 2.0f;
+	return (noiseSet[z + CHUNK_SIZE * (y + CHUNK_SIZE * x)] + 1.0f) / 2.0f;
 }
 
-inline int GetValidHeight(float val)
-{
-	return Clamp((int)val, 1, WORLD_HEIGHT - 1);
-}
-
-static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, int startX, int startZ)
+static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, ivec3 start)
 {
 	BEGIN_TIMED_BLOCK(GEN_TERRAIN);
 
 	noise->SetFrequency(0.015f);
 	noise->SetFractalOctaves(4);
 	noise->SetFractalType(Noise::RigidMulti);
-	float* ridged = noise->GetSimplexFractalSet(startX, 0, startZ, CHUNK_SIZE, 1, CHUNK_SIZE, 0.5f); 
+	float* ridged = noise->GetSimplexFractalSet(start.x, 0, start.z, CHUNK_SIZE, 1, CHUNK_SIZE, 0.5f); 
 
 	noise->SetFrequency(0.025f);
 	noise->SetFractalType(Noise::Billow);
-	float* base = noise->GetSimplexFractalSet(startX, 0, startZ, CHUNK_SIZE, 1, CHUNK_SIZE, 0.5f);
+	float* base = noise->GetSimplexFractalSet(start.x, 0, start.z, CHUNK_SIZE, 1, CHUNK_SIZE, 0.5f);
 
 	noise->SetFrequency(0.01f);
-	float* biome = noise->GetSimplexSet(startX, 0, startZ, CHUNK_SIZE, 1, CHUNK_SIZE);
+	float* biome = noise->GetSimplexSet(start.x, 0, start.z, CHUNK_SIZE, 1, CHUNK_SIZE);
 
 	noise->SetFractalOctaves(2);
 	noise->SetFrequency(0.015f);
 	noise->SetFractalType(Noise::FBM);
-	float* comp = noise->GetSimplexFractalSet(startX, 0, startZ, CHUNK_SIZE, WORLD_HEIGHT, CHUNK_SIZE, 0.2f);
+	float* comp = noise->GetSimplexFractalSet(start.x, start.y, start.z, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.2f);
 
 	int index = 0;
 
@@ -241,14 +225,15 @@ static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, int startX, int sta
         		terrainVal = Lerp(flat, mountain, a);
         	}
 
-        	int height = GetValidHeight(terrainVal);
+        	int height = (int)terrainVal;
         	index++;
 
-        	for (int y = 0; y <= height; y++)
+        	for (int y = 0; y < CHUNK_SIZE; y++)
         	{
+        		int wY = start.y + y;
         		float compVal = GetNoiseValue3D(comp, x, y, z);
 
-        		if (y <= height - 2)
+        		if (wY <= height - 10)
         		{
 	        		if (compVal <= 0.2f)
 	        		{
@@ -257,13 +242,16 @@ static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, int startX, int sta
 	        		}
 	        	}
 
-        		if (y == height) 
+        		if (wY == height) 
         			SetBlock(chunk, x, y, z, BLOCK_GRASS);
-        		else SetBlock(chunk, x, y, z, BLOCK_DIRT);
+        		else if (wY > height && wY <= SEA_LEVEL)
+        			SetBlock(chunk, x, y, z, BLOCK_WATER);
+        		else 
+                {
+                    if (wY < height)
+                        SetBlock(chunk, x, y, z, BLOCK_DIRT);
+                }
         	}
-
-        	for (int y = height + 1; y <= SEA_LEVEL; y++)
-        		SetBlock(chunk, x, y, z, BLOCK_WATER);
         }
     }
 
@@ -273,108 +261,6 @@ static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, int startX, int sta
     Noise::FreeNoiseSet(comp);
 
 	END_TIMED_BLOCK(GEN_TERRAIN);
-
-	#if 0
-	// Base terrain.
-	noise->SetFractalOctaves(2);
-	noise->SetFractalGain(0.32);
-	float* terrain = noise->GetSimplexFractalSet(startX, 0, startZ, CHUNK_SIZE, 1, CHUNK_SIZE, 0.6f); 
-
-	// Mountain mask.
-	float* mountainMask = noise->GetSimplexSet(startX, 0, startZ, CHUNK_SIZE, 1, CHUNK_SIZE, 1.0f);
-
-	// Mountains.
-	noise->SetFractalType(Noise::RigidMulti);
-	noise->SetFractalOctaves(6);
-	noise->SetFractalGain(0.5f);
-	float* mountain = noise->GetSimplexFractalSet(startX * 4, 0, startZ * 4, CHUNK_SIZE, 1, CHUNK_SIZE, 1.0f);
-
-	int i = 0;
-
-	for (int x = 0; x < CHUNK_SIZE; x++)
-    {
-        for (int z = 0; z < CHUNK_SIZE; z++)
-        {
-        	float val = terrain[i];
-        	float height = (val * 15) + 20.0f;
-
-        	float mask = (mountainMask[i] + 2.0f) / 2.0f;
-
-        	// Create mountains.
-        	if (mask > 0.6f)
-        	{
-        		float rawHeight = mountain[i] * 50.0f;
-        		float actualHeight = rawHeight * Min(1.0f, (mask - 0.6f) / 0.2f);
-        		height += actualHeight;
-        	}
-        	
-        	int terrainHeight = Clamp((int)height, 1, WORLD_HEIGHT - 1);
-
-   			i++;
-
-        	for (int y = 0; y <= terrainHeight; y++)
-        	{
-        		if (y < terrainHeight - 5)
-        			SetBlock(chunk, x, y, z, BLOCK_STONE);
-        		else if (y == terrainHeight)
-        			SetBlock(chunk, x, y, z, BLOCK_GRASS);
-        		else SetBlock(chunk, x, y, z, BLOCK_DIRT);
-        	}
-        }
-    }
-
-    _aligned_free(terrain);
-
-    END_TIMED_BLOCK(GEN_TERRAIN);
-
-	int index2 = 0, index3 = -1;
-
-	for (int x = 0; x < CHUNK_SIZE; x++)
-    {
-        for (int z = 0; z < CHUNK_SIZE; z++)
-        {
-        	int terrainHeight = Clamp((int)((terrain[index2] * 10) + 20.0f), 1, WORLD_HEIGHT - 1);
-        	int islandHeight = Clamp((int)((island[index2++] * 50) + 20.0f), 1, WORLD_HEIGHT - 1);
-
-        	int maxHeight = Max(terrainHeight, islandHeight);
-
-        	for (int y = 0; y <= maxHeight; y++)
-        	{
-        		index3++;
-
-        		if (y <= terrainHeight) 
-				{
-					float value = terrain3D[index3];
-					
-					if (IsInRange(value, -1.0f, 0.2f))
-						SetBlock(chunk, x, y, z, y == maxHeight ? BLOCK_GRASS : BLOCK_DIRT);
-
-					if (IsInRange(value, 0.2f, 1.0f)) 
-						SetBlock(chunk, x, y, z, BLOCK_STONE);
-
-					continue;
-				}
-
-				if (y <= islandHeight) 
-				{
-					float value = island3D[index3];
-					
-					if (IsInRange(value, 0.4f, 0.6f))
-						SetBlock(chunk, x, y, z, y == maxHeight ? BLOCK_GRASS : BLOCK_DIRT);
-
-					if (IsInRange(value, 0.6f, 1.0f))
-						SetBlock(chunk, x, y, z, BLOCK_STONE);
-
-					continue;
-				}
-        	}
-        }
-    }
-
-	_aligned_free(terrain3D);
-	_aligned_free(island);
-	_aligned_free(island3D);
-	#endif
 }
 
 static void FillChunk(Chunk* chunk, int block)
@@ -385,31 +271,39 @@ static void FillChunk(Chunk* chunk, int block)
 
 inline void AddChunkToPool(World* world, Chunk* chunk)
 {
+    if (world->poolSize + 1 > world->maxPoolSize)
+    {
+        int newMax = world->maxPoolSize + (world->totalChunks / 2);
+        world->pool = (Chunk**)realloc(world->pool, newMax * sizeof(Chunk*));
+        world->maxPoolSize = newMax;
+    }
+
 	memset(chunk, 0, sizeof(Chunk));
 	world->pool[world->poolSize++] = chunk;
 }
 
 inline Chunk* ChunkFromPool(World* world)
 {
-	Assert(world->poolSize > 0);
+	if (world->poolSize == 0)
+        return Calloc(Chunk);
+
 	Chunk* chunk = world->pool[world->poolSize - 1];
 	world->poolSize--;
 	return chunk;
 }
 
-static Chunk* CreateChunk(World* world, int cX, int cZ, int wX, int wZ)
+static Chunk* CreateChunk(World* world, int cX, int cY, int cZ, ChunkPos cPos)
 {
-	int index = ChunkIndex(world, cX, cZ);
+    int index = ChunkIndex(world, cX, cY, cZ);
 	Chunk* chunk = world->chunks[index];
 
 	if (chunk == NULL)
 	{
 		chunk = ChunkFromPool(world);
-		chunk->cX = cX;
-		chunk->cZ = cZ;
-		chunk->wX = wX;
-		chunk->wZ = wZ;
-		GenerateChunkTerrain(world->noise, chunk, wX * CHUNK_SIZE, wZ * CHUNK_SIZE);
+		chunk->lcPos = ivec3(cX, cY, cZ);
+		chunk->cPos = cPos;
+        chunk->lwPos = chunk->lcPos * CHUNK_SIZE;
+		GenerateChunkTerrain(world->noise, chunk, cPos * CHUNK_SIZE);
 		world->chunks[index] = chunk;
 	}
 
@@ -418,21 +312,18 @@ static Chunk* CreateChunk(World* world, int cX, int cZ, int wX, int wZ)
 
 static void DestroyChunk(World* world, Chunk* chunk)
 {
-	if (chunk->nextInHash != NULL)
-		DestroyChunk(world, chunk->nextInHash);
-
 	if (chunk->state == CHUNK_BUILT)
 		DestroyMesh(chunk->mesh);
 
 	AddChunkToPool(world, chunk);
 }
 
-inline void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, int wX, int wY, int wZ, int block)
+inline void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, LWorldPos pos, int block)
 {
 	float* textures = world->blockData[block].textures;
 
 	// Top face.
-	if (GetBlock(world, wX, wY + 1, wZ) == 0)
+	if (GetBlock(world, pos.x, pos.y + 1, pos.z) == BLOCK_AIR)
 	{
 		float tex = textures[FACE_TOP];
 		SetMeshIndices(mesh);
@@ -443,7 +334,7 @@ inline void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, int 
 	}
 
 	// Bottom face.
-	if (GetBlock(world, wX, wY - 1, wZ) == 0)
+	if (GetBlock(world, pos.x, pos.y - 1, pos.z) == BLOCK_AIR)
 	{
 		float tex = textures[FACE_BOTTOM];
 		SetMeshIndices(mesh);
@@ -454,7 +345,7 @@ inline void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, int 
 	}
 
 	// Front face.
-	if (GetBlock(world, wX, wY, wZ + 1) == 0)
+	if (GetBlock(world, pos.x, pos.y, pos.z + 1) == BLOCK_AIR)
 	{
 		float tex = textures[FACE_FRONT];
 		SetMeshIndices(mesh);
@@ -465,7 +356,7 @@ inline void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, int 
 	}
 
 	// Back face.
-	if (GetBlock(world, wX, wY, wZ - 1) == 0)
+	if (GetBlock(world, pos.x, pos.y, pos.z - 1) == BLOCK_AIR)
 	{
 		float tex = textures[FACE_BACK];
 		SetMeshIndices(mesh);
@@ -476,7 +367,7 @@ inline void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, int 
 	}
 
 	// Right face.
-	if (GetBlock(world, wX + 1, wY, wZ) == 0)
+	if (GetBlock(world, pos.x + 1, pos.y, pos.z) == BLOCK_AIR)
 	{
 		float tex = textures[FACE_RIGHT];
 		SetMeshIndices(mesh);
@@ -487,7 +378,7 @@ inline void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, int 
 	}
 
 	// Left face.
-	if (GetBlock(world, wX - 1, wY, wZ) == 0)
+	if (GetBlock(world, pos.x - 1, pos.y, pos.z) == BLOCK_AIR)
 	{
 		float tex = textures[FACE_LEFT];
 		SetMeshIndices(mesh);
@@ -504,7 +395,7 @@ static void BuildChunk(World* world, Chunk* chunk)
 
 	chunk->mesh = CreateMesh();
 
-	for (int y = 0; y < WORLD_HEIGHT; y++)
+	for (int y = 0; y < CHUNK_SIZE; y++)
 	{
 		for (int z = 0; z < CHUNK_SIZE; z++)
 		{
@@ -514,9 +405,8 @@ static void BuildChunk(World* world, Chunk* chunk)
 
 				if (block != BLOCK_AIR)
 				{
-					int wX = chunk->cX * CHUNK_SIZE;
-					int wZ = chunk->cZ * CHUNK_SIZE;
-					BuildBlock(world, chunk->mesh, (float)x, (float)y, (float)z, wX + x, y, wZ + z, block);
+                    LWorldPos pos = chunk->lwPos + ivec3(x, y, z);
+					BuildBlock(world, chunk->mesh, (float)x, (float)y, (float)z, pos, block);
 				}
 			}
 		}
@@ -541,95 +431,121 @@ inline void UpdateChunk(World* world, Chunk* chunk, ivec3 lPos)
 {
 	UpdateChunkDirect(world, chunk);
 
-	int32_t cX = chunk->cX, cZ = chunk->cZ;
+	ivec3 cP = chunk->lcPos;
 
-	if (lPos.x == 0) UpdateChunkDirect(world, GetChunk(world, cX - 1, cZ));
-	else if (lPos.x == CHUNK_SIZE - 1) UpdateChunkDirect(world, GetChunk(world, cX + 1, cZ));
+	if (lPos.x == 0) UpdateChunkDirect(world, GetChunk(world, cP.x - 1, cP.y, cP.z));
+	else if (lPos.x == CHUNK_SIZE - 1) UpdateChunkDirect(world, GetChunk(world, cP.x + 1, cP.y, cP.z));
 	
-	if (lPos.z == 0) UpdateChunkDirect(world, GetChunk(world, cX, cZ - 1));
-	else if (lPos.z == CHUNK_SIZE - 1) UpdateChunkDirect(world, GetChunk(world, cX, cZ + 1));
+	if (lPos.z == 0) UpdateChunkDirect(world, GetChunk(world, cP.x,cP.y, cP.z - 1));
+	else if (lPos.z == CHUNK_SIZE - 1) UpdateChunkDirect(world, GetChunk(world, cP.x, cP.y, cP.z + 1));
+
+	if (lPos.y == 0) UpdateChunkDirect(world, GetChunk(world, cP.x, cP.y - 1, cP.z));
+	else if (lPos.y == CHUNK_SIZE - 1) UpdateChunkDirect(world, GetChunk(world, cP.x, cP.y + 1, cP.z));
 }
 
 static void ShiftWorld(World* world)
 {
-	int edge = world->width - 1;
+	int edgeH = world->sizeH - 1;
+	int edgeV = world->sizeV - 1;
 
+    // Return all chunks in the active area to the hash table.
 	for (int i = 0; i < world->totalChunks; i++)
 	{
 		AddChunkToHash(world, world->chunks[i]);
 		world->chunks[i] = NULL;
 	}
 
-	for (int z = 0; z <= edge; z++)
+    // Any existing chunks that still belong in the active area will be pulled in to their
+    // new position. Any that don't exist in the hash table will be created.
+	for (int z = 0; z <= edgeH; z++)
 	{
-		for (int x = 0; x <= edge; x++)
+		for (int y = 0; y <= edgeV; y++)
 		{
-			int wX = world->refX + x;
-			int wZ = world->refZ + z;
-
-			Chunk* chunk = ChunkFromHash(world, wX, wZ);
-
-			if (chunk == NULL)
-				CreateChunk(world, x, z, wX, wZ);
-			else 
+			for (int x = 0; x <= edgeH; x++)
 			{
-				chunk->cX = x;
-				chunk->cZ = z;
-				world->chunks[ChunkIndex(world, x, z)] = chunk;
+ 				int wX = world->ref.x + x;
+				int wY = world->ref.y + y;
+				int wZ = world->ref.z + z;
+
+				Chunk* chunk = ChunkFromHash(world, wX, wY, wZ);
+
+				if (chunk == NULL)
+					CreateChunk(world, x, y, z, ivec3(wX, wY, wZ));
+				else 
+				{
+					chunk->lcPos = ivec3(x, y, z);
+                    chunk->lwPos = chunk->lcPos * CHUNK_SIZE;
+					world->chunks[ChunkIndex(world, x, y, z)] = chunk;
+				}
 			}
 		}
 	}
 
+    // Any remaining chunks in the hash table are outside of the loaded area range
+    // and should be returned to the pool.
 	for (int c = 0; c < CHUNK_HASH_SIZE; c++)
 	{
 		Chunk* chunk = world->chunkHash[c];
 
-		if (chunk == NULL)
-			continue;
+        if (chunk != NULL && !chunk->active)
+            DestroyChunk(world, chunk);
 
-		DestroyChunk(world, chunk);
-		world->chunkHash[c] = NULL;
+        world->chunkHash[c] = NULL;
 	}
 
-	for (int z = 1; z < edge; z++)
+    // Build meshes for all non-boundary chunks.
+	for (int z = 1; z < edgeH; z++)
 	{
-		for (int x = 1; x < edge; x++)
+		for (int y = 1; y < edgeV; y++)
 		{
-			Chunk* chunk = GetChunk(world, x, z);
+			for (int x = 1; x < edgeH; x++)
+			{
+				Chunk* chunk = GetChunk(world, x, y, z);
 
-			if (chunk->state == CHUNK_GENERATED)
-				BuildChunk(world, chunk);
+				if (chunk->state == CHUNK_GENERATED)
+					BuildChunk(world, chunk);
+			}
 		}
 	}
 }
 
-static World* NewWorld(int loadRange)
+static World* NewWorld(int loadRangeH, int loadRangeV)
 {
 	World* world = Calloc(World);
 
 	// Load range worth of chunks on each side, the middle chunk, and two boundary
 	// chunks form the total width.
-	world->width = (loadRange * 2) + 3;
+	world->sizeH = (loadRangeH * 2) + 3;
+	world->sizeV = (loadRangeV * 2) + 3;
 
-	world->spawnX = 0;
-	world->spawnZ = 0;
+	world->spawnChunk = ivec3(0, 1, 0);
 
-	world->totalChunks = Square(world->width);
+	world->totalChunks = Square(world->sizeH) * world->sizeV;
 	world->chunks = (Chunk**)calloc(1, world->totalChunks * sizeof(Chunk*));
-	world->refX = world->spawnX - loadRange - 1;
-	world->refZ = world->spawnZ - loadRange - 1;
+
+	ivec3 ref;
+	ref.x = world->spawnChunk.x - loadRangeH - 1;
+	ref.y = world->spawnChunk.y - loadRangeV - 1;
+	ref.z = world->spawnChunk.z - loadRangeH - 1;
+	world->ref = ref;
 
 	// Allocate extra chunks for the pool for world shifting. We create new chunks
 	// before we destroy the old ones.
-	int targetPoolSize = world->totalChunks + world->width;
+	int targetPoolSize = world->totalChunks * 2;
 	world->pool = (Chunk**)calloc(1, targetPoolSize * sizeof(Chunk*));
 	world->poolSize = 0;
+    world->maxPoolSize = targetPoolSize;
 
 	for (int i = 0; i < targetPoolSize; i++)
 		AddChunkToPool(world, Malloc(Chunk));
 
-	world->pMin = (float)((loadRange + 1) * CHUNK_SIZE);
-	world->pMax = world->pMin + CHUNK_SIZE;
+	float minH = (float)((loadRangeH + 1) * CHUNK_SIZE);
+	float maxH = minH + CHUNK_SIZE;
+
+	float minV = (float)((loadRangeV + 1) * CHUNK_SIZE);
+	float maxV = minV + CHUNK_SIZE;
+
+	world->pBounds = NewRect(vec3(minH, minV, minH), vec3(maxH, maxV, maxH));
 
 	CreateBlockData(world->blockData);
 
