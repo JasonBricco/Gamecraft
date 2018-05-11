@@ -1,6 +1,8 @@
 // Voxel Engine
 // Jason Bricco
 
+inline void UpdateChunk(World* world, Chunk* chunk, ivec3 lPos);
+
 inline RelPos ToLocalPos(int lwX, int lwY, int lwZ)
 {
 	return ivec3(lwX & CHUNK_SIZE - 1, lwY & CHUNK_SIZE - 1, lwZ & CHUNK_SIZE - 1);
@@ -47,6 +49,10 @@ inline uint32_t ChunkHashBucket(ivec3 wPos)
 	return hashValue & (CHUNK_HASH_SIZE - 1);
 }
 
+// The chunk pool stores existing chunks during a world shift. Chunks will be
+// pulled out from the pool to fill the new world section if applicable.
+// Otherwise, new chunks will be created and the ones remaining in the pool
+// will be destroyed.
 static Chunk* ChunkFromHash(World* world, uint32_t bucket, ChunkPos cPos)
 {
     Chunk* chunk = world->chunkHash[bucket];
@@ -167,9 +173,14 @@ inline float GetNoiseValue3D(float* noiseSet, int x, int y, int z)
 	return (noiseSet[z + CHUNK_SIZE * (y + CHUNK_SIZE * x)] + 1.0f) / 2.0f;
 }
 
-static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, ivec3 start)
+static void GenerateChunkTerrain(World* world, Chunk* chunk)
 {
 	BEGIN_TIMED_BLOCK(GEN_TERRAIN);
+
+    WorldPos start = chunk->cPos * CHUNK_SIZE;
+
+    Noise* noise = Noise::NewFastNoiseSIMD();
+    noise->SetSeed(world->seed);
 
 	noise->SetFrequency(0.015f);
 	noise->SetFractalOctaves(4);
@@ -255,9 +266,18 @@ static void GenerateChunkTerrain(Noise* noise, Chunk* chunk, ivec3 start)
     Noise::FreeNoiseSet(biome);
     Noise::FreeNoiseSet(comp);
 
+    delete noise;
+
+    static int count = 0;
+    count++;
+    char buffer[16];
+    sprintf(buffer, "%i\n", count);
+    OutputDebugString(buffer);
+
 	END_TIMED_BLOCK(GEN_TERRAIN);
 }
 
+// Fill a chunk with a single block type.
 static void FillChunk(Chunk* chunk, int block)
 {
 	for (int i = 0; i < CHUNK_SIZE_3; i++)
@@ -298,7 +318,7 @@ static Chunk* CreateChunk(World* world, int cX, int cY, int cZ, ChunkPos cPos)
 		chunk->lcPos = ivec3(cX, cY, cZ);
 		chunk->cPos = cPos;
         chunk->lwPos = chunk->lcPos * CHUNK_SIZE;
-		GenerateChunkTerrain(world->noise, chunk, cPos * CHUNK_SIZE);
+        QueueAsync(GenerateChunkTerrain, world, chunk);
 		world->chunks[index] = chunk;
 	}
 
@@ -313,6 +333,8 @@ static void DestroyChunk(World* world, Chunk* chunk)
 	AddChunkToPool(world, chunk);
 }
 
+// Builds mesh data for a single block. x, y, and z are relative to the
+// chunk in local world space.
 inline void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, LWorldPos pos, int block)
 {
 	float* textures = world->blockData[block].textures;
@@ -384,6 +406,7 @@ inline void BuildBlock(World* world, Mesh* mesh, float x, float y, float z, LWor
 	}
 }
 
+// Builds mesh data for the chunk.
 static void BuildChunk(World* world, Chunk* chunk)
 {
 	BEGIN_TIMED_BLOCK(BUILD_CHUNK);
@@ -422,6 +445,7 @@ inline void UpdateChunkDirect(World* world, Chunk* chunk)
 	}
 }
 
+// Rebuilds chunk meshes.
 inline void UpdateChunk(World* world, Chunk* chunk, ivec3 lPos)
 {
 	UpdateChunkDirect(world, chunk);
@@ -438,6 +462,9 @@ inline void UpdateChunk(World* world, Chunk* chunk, ivec3 lPos)
 	else if (lPos.y == CHUNK_SIZE - 1) UpdateChunkDirect(world, GetChunk(world, cP.x, cP.y + 1, cP.z));
 }
 
+// To allow "infinite" terrain, the world is always located near the origin.
+// This function fills the world near the origin based on the reference
+// world position within the world.
 static void ShiftWorld(World* world)
 {
 	int edgeH = world->sizeH - 1;
@@ -544,8 +571,8 @@ static World* NewWorld(int loadRangeH, int loadRangeV)
 
 	CreateBlockData(world->blockData);
 
-	world->noise = FastNoiseSIMD::NewFastNoiseSIMD();
-	world->noise->SetSeed(rand());
+    srand((uint32_t)time(0));
+    world->seed = rand();
 
 	ShiftWorld(world);
 

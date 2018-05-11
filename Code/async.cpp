@@ -30,7 +30,7 @@ inline bool DoNextAsync()
         if (atomic_compare_exchange_weak(&g_workQueue.read, &originalRead, nextRead))
         {
             AsyncItem item = g_workQueue.items[originalRead];
-            item.func(item.data);
+            item.func(item.world, item.chunk);
             g_workQueue.completed++;
         }
     }
@@ -48,13 +48,14 @@ static DWORD WINAPI ThreadProc(LPVOID param)
     }
 }
 
-static void QueueAsync(AsyncFunc func, void* data)
+static void QueueAsync(AsyncFunc func, World* world, Chunk* chunk)
 {
 	uint32_t nextWrite = (g_workQueue.write + 1) & (g_workQueue.size - 1);
 	Assert(nextWrite != g_workQueue.read);
 	AsyncItem* item = g_workQueue.items + g_workQueue.write;
 	item->func = func;
-	item->data = data;
+	item->world = world;
+	item->chunk = chunk;
 	g_workQueue.target++;
 	g_workQueue.write = nextWrite;
 	SemaphoreSignal(1);
@@ -65,7 +66,7 @@ static void CreateThreads()
 {
 	g_semaphore = CreateSemaphore(NULL, 0, MAXLONG, NULL);
 
-	g_workQueue.size = 256;
+	g_workQueue.size = 4096;
 	g_workQueue.items = (AsyncItem*)calloc(1, g_workQueue.size * sizeof(AsyncItem));
 
 	for (int i = 0; i < THREAD_COUNT; i++)

@@ -68,31 +68,3 @@ struct Player
 	uint8_t colFlags;
 	bool flying, speedMode;
 };
-
-static Player* NewPlayer(float pMin, float pMax);
-
-static float BlockRayIntersection(vec3 blockPos, Ray ray);
-static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result);
-static HitInfo GetVoxelHit(Renderer* rend, World* world);
-
-// Updates the simplex for the three point (triangle) case. 'abc' must be in 
-// counterclockwise winding order.
-static void UpdateSimplex3(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& search);
-
-// Updates the simplex for the four point (tetrahedron) case. 'a' is the top of the 
-// tetrahedron. 'bcd' is the base in counterclockwise winding order. We know the 
-// origin is above 'bcd' and below 'a' before calling.
-static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& search);
-
-// Expanding polytope algorithm for finding the minimum translation vector.
-static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collider* colB);
-
-// Returns true if two colliders are intersecting using the GJK algorithm. 
-// 'info', if given, will return a minimum translation vector and collision 
-// normal using EPA.
-static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info);
-
-inline void CameraFollow(Player* player);
-
-static void Move(World* world, Player* player, vec3 accel, float deltaTime);
-static void Simulate(Renderer* rend, World* world, Player* player, float deltaTime);

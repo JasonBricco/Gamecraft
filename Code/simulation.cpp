@@ -165,6 +165,8 @@ static HitInfo GetVoxelHit(Renderer* rend, World* world)
 	return info;
 }
 
+// Updates the simplex for the three point (triangle) case. 'abc' must be in 
+// counterclockwise winding order.
 static void UpdateSimplex3(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& search)
 {
 	// Triangle normal.
@@ -211,6 +213,9 @@ static void UpdateSimplex3(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& s
 	search = -norm;
 }
 
+// Updates the simplex for the four point (tetrahedron) case. 'a' is the top of the 
+// tetrahedron. 'bcd' is the base in counterclockwise winding order. We know the 
+// origin is above 'bcd' and below 'a' before calling.
 static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& search)
 {
 	// Normals of the three non-base tetrahedron faces.
@@ -252,6 +257,7 @@ static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& s
 	return true;
 }
 
+// Expanding polytope algorithm for finding the minimum translation vector.
 static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collider* colB)
 {
 	// Each triangle face has three vertices and a normal.
@@ -391,6 +397,9 @@ static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collide
 	return { mtv, faces[closest][3] };
 }
 
+// Returns true if two colliders are intersecting using the GJK algorithm. 
+// 'info', if given, will return a minimum translation vector and collision 
+// normal using EPA.
 static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
 {
 	vec3 a, b, c, d;

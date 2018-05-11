@@ -26,7 +26,3 @@ struct BlockData
 {
 	float textures[6];
 };
-
-inline void SetBlockTextures(BlockData& data, float top, float bottom,
-	float front, float back, float right, float left);
-static void CreateBlockData(BlockData* data);

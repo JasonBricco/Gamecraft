@@ -24,7 +24,7 @@
 #include "GLFW/glfw3native.h"
 #include "FastNoiseSIMD.h"
 
-#define PROFILING 1
+#define PROFILING 0
 #define PROFILING_ONCE 0
 #define ASSERTIONS 1
 #define DEBUG_MEMORY 0
@@ -88,7 +88,6 @@ static bool g_paused;
 #include "random.h"
 #include "utils.h"
 #include "fileio.h"
-#include "async.h"
 #include "input.h"
 #include "mesh.h"
 #include "block.h"
@@ -96,12 +95,13 @@ static bool g_paused;
 #include "renderer.h"
 #include "shaders.h"
 #include "simulation.h"
+#include "async.h"
 
 #include "async.cpp"
 #include "input.cpp"
 #include "shaders.cpp"
-#include "renderer.cpp"
 #include "mesh.cpp"
+#include "renderer.cpp"
 #include "block.cpp"
 #include "world.cpp"
 #include "simulation.cpp"
@@ -267,8 +267,6 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	#endif
 
 	CreateThreads();
-
-	srand((uint32_t)time(0));
 
 	Renderer* rend = new Renderer();
 	GLFWwindow* window = InitRenderer(rend);
