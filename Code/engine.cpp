@@ -2,9 +2,7 @@
 // Jason Bricco
 
 // BUGS/TODO:
-// Bug with view range = 12, assertion failure when moving.
 // Some bug making blocks appear in another chunk when you place them sometimes.
-// Optimize CheckWorld() code to only do a single ShiftWorld, since direction isn't important.
 
 // Look Into:
 // Frustum culling.
@@ -41,6 +39,7 @@
 #include <unordered_map>
 #include <queue>
 #include <fstream>
+#include <atomic>
 
 #define GLM_FORCE_AVX2
 #define GLM_FORCE_INLINE
@@ -267,12 +266,11 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 
 	#endif
 
-	// CreateThreads();
+	CreateThreads();
 
 	srand((uint32_t)time(0));
 
 	Renderer* rend = new Renderer();
-
 	GLFWwindow* window = InitRenderer(rend);
 
 	glfwSetKeyCallback(window, OnKey);

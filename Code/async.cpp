@@ -1,38 +1,77 @@
 // Voxel Engine
 // Jason Bricco
 
-#if 0
-static queue<WorkItem> g_workQueue;
+static ThreadWorkQueue g_workQueue;
+static HANDLE g_semaphore;
+
+inline void SemaphoreWait()
+{
+	WaitForSingleObject(g_semaphore, INFINITE);
+}
+
+inline void SemaphoreSignal(int32_t count)
+{
+	ReleaseSemaphore(g_semaphore, count, NULL);
+}
+
+inline bool DoNextAsync()
+{
+    bool sleep = false;
+ 
+    uint32_t originalRead = g_workQueue.read;
+    uint32_t nextRead = (originalRead + 1) & (g_workQueue.size - 1);
+ 
+    // If read and write are equal, then we have run out of work to do. Write is the location
+    // where the next item will be placed - it isn't placed yet.
+    if (originalRead != g_workQueue.write)
+    {
+        // Increments the work queue's next value only if it matches our expected next value. 
+        // This prevents problems caused by multiple threads running this code.
+        if (atomic_compare_exchange_weak(&g_workQueue.read, &originalRead, nextRead))
+        {
+            AsyncItem item = g_workQueue.items[originalRead];
+            item.func(item.data);
+            g_workQueue.completed++;
+        }
+    }
+    else sleep = true;
+ 
+    return sleep;
+}
 
 static DWORD WINAPI ThreadProc(LPVOID param)
 {
-	ThreadInfo* info = (ThreadInfo*)param;
-
 	while (true)
 	{
-		if (g_workQueue.size > 0)
-		{
-			char* str = g_workQueue.pop();
-			OutputDebugString(str);
-		}
-	}
+		if (DoNextAsync()) 
+			SemaphoreWait();
+    }
 }
 
-static void QueueWork(char* string)
+static void QueueAsync(AsyncFunc func, void* data)
 {
-	WorkItem item = { string };
-	g_workQueue.push(item);
+	uint32_t nextWrite = (g_workQueue.write + 1) & (g_workQueue.size - 1);
+	Assert(nextWrite != g_workQueue.read);
+	AsyncItem* item = g_workQueue.items + g_workQueue.write;
+	item->func = func;
+	item->data = data;
+	g_workQueue.target++;
+	g_workQueue.write = nextWrite;
+	SemaphoreSignal(1);
 }
+
 
 static void CreateThreads()
 {
+	g_semaphore = CreateSemaphore(NULL, 0, MAXLONG, NULL);
+
+	g_workQueue.size = 256;
+	g_workQueue.items = (AsyncItem*)calloc(1, g_workQueue.size * sizeof(AsyncItem));
+
 	for (int i = 0; i < THREAD_COUNT; i++)
 	{
-		ThreadInfo info = { i };
-
 		DWORD threadID; 
-		HANDLE thread = CreateThread(NULL, NULL, ThreadProc, &info, NULL, &threadID);
+		HANDLE thread = CreateThread(NULL, NULL, ThreadProc, NULL, NULL, &threadID);
 		CloseHandle(thread);
 	}
 }
-#endif

@@ -41,11 +41,6 @@ inline Chunk* GetChunk(World* world, LChunkPos pos)
 	return GetChunk(world, pos.x, pos.y, pos.z);
 }
 
-inline void MoveChunk(World* world, Chunk* chunk, int toX, int toY, int toZ)
-{
-	world->chunks[ChunkIndex(world, toX, toY, toZ)] = chunk;
-}
-
 inline uint32_t ChunkHashBucket(ivec3 wPos)
 {
 	uint32_t hashValue = 7919 * wPos.y + (31 + wPos.x) * 23 + wPos.z;
