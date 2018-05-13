@@ -55,12 +55,17 @@
 #define Mul_8x(a, b) _mm256_mul_ps(a, b)
 #define Muli_8x(a, b) _mm256_mullo_epi32(a, b)
 
+#define MulSub_8x(a, b, c) _mm256_fmsub_ps(a, b, c)
+#define MulAdd_8x(a, b, c) _mm512_fmadd_ps(a, b, c)
+
 #define Div_4x(a, b) _mm_div_ps(a, b)
 
 #define NMulAdd_8x(a, b, c) _mm256_fnmadd_ps(a, b, c)
 
 #define Square_4x(v) _mm_mul_ps(v, v)
 #define Sqrt_4x(v) _mm_sqrt_ps(v)
+
+#define InvSqrt_8x(v) _mm256_rsqrt_ps(v)
 
 #define Dot_4x(a, b) _mm_dp_ps(a, b, 0xff)
 

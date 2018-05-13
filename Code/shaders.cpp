@@ -14,7 +14,7 @@ static bool ShaderHasErrors(GLuint handle, ShaderType type)
 		{
 			glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &length);
 
-			GLchar* errorLog = (GLchar*)malloc(length);
+			GLchar* errorLog = Malloc(GLchar, length);
 			glGetProgramInfoLog(handle, length, NULL, errorLog);
 			
 			OutputDebugString("Error! Shader program failed to link.");
@@ -31,7 +31,7 @@ static bool ShaderHasErrors(GLuint handle, ShaderType type)
 		{
 			glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &length);
 
-			GLchar* errorLog = (GLchar*)malloc(length);
+			GLchar* errorLog = Malloc(GLchar, length);
 			glGetShaderInfoLog(handle, length, NULL, errorLog);
 			
 			OutputDebugString("Error! Shader failed to compile.");

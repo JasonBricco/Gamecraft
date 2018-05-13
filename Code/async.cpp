@@ -1,7 +1,9 @@
 // Voxel Engine
 // Jason Bricco
 
-static ThreadWorkQueue g_workQueue;
+// Holds work to be added by the main thread and performed by background threads.
+static WorkQueue g_workQueue;
+
 static HANDLE g_semaphore;
 
 inline void SemaphoreWait()
@@ -31,7 +33,6 @@ inline bool DoNextAsync()
         {
             AsyncItem item = g_workQueue.items[originalRead];
             item.func(item.world, item.chunk);
-            g_workQueue.completed++;
         }
     }
     else sleep = true;
@@ -48,7 +49,7 @@ static DWORD WINAPI ThreadProc(LPVOID param)
     }
 }
 
-static void QueueAsync(AsyncFunc func, World* world, Chunk* chunk)
+inline void QueueAsync(AsyncFunc func, World* world, Chunk* chunk)
 {
 	uint32_t nextWrite = (g_workQueue.write + 1) & (g_workQueue.size - 1);
 	Assert(nextWrite != g_workQueue.read);
@@ -56,23 +57,21 @@ static void QueueAsync(AsyncFunc func, World* world, Chunk* chunk)
 	item->func = func;
 	item->world = world;
 	item->chunk = chunk;
-	g_workQueue.target++;
 	g_workQueue.write = nextWrite;
 	SemaphoreSignal(1);
 }
-
 
 static void CreateThreads()
 {
 	g_semaphore = CreateSemaphore(NULL, 0, MAXLONG, NULL);
 
 	g_workQueue.size = 4096;
-	g_workQueue.items = (AsyncItem*)calloc(1, g_workQueue.size * sizeof(AsyncItem));
+	g_workQueue.items = Calloc(AsyncItem, g_workQueue.size * sizeof(AsyncItem));
 
 	for (int i = 0; i < THREAD_COUNT; i++)
 	{
 		DWORD threadID; 
-		HANDLE thread = CreateThread(NULL, NULL, ThreadProc, NULL, NULL, &threadID);
-		CloseHandle(thread);
+		HANDLE handle = CreateThread(NULL, NULL, ThreadProc, NULL, NULL, &threadID);
+        CloseHandle(handle);
 	}
 }

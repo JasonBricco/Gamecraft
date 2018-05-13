@@ -12,7 +12,7 @@ inline void SetGraphicVertex(float* vertices, int i, float x, float y, float u, 
 
 static Graphic* CreateGraphic(int shaderID, int texture)
 {
-	Graphic* graphic = Calloc(Graphic);
+	Graphic* graphic = Calloc(Graphic, sizeof(Graphic));
 
 	glGenVertexArrays(1, &graphic->va);
 	glBindVertexArray(graphic->va);
@@ -89,7 +89,7 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 
 static Camera* NewCamera()
 {
-	Camera* cam = Calloc(Camera);
+	Camera* cam = Calloc(Camera, sizeof(Camera));
 	cam->sensitivity = 0.05f;
 	return cam;
 }
@@ -148,7 +148,7 @@ static void LoadTexture(GLuint* tex, char* path)
 static void LoadTextureArray(GLuint* tex, char** paths, bool mipMaps)
 {
 	int count = sb_count(paths);
-	uint8_t** dataList = (uint8_t**)malloc(count * sizeof(uint8_t*));
+	uint8_t** dataList = Malloc(uint8_t*, count * sizeof(uint8_t*));
 
 	int width = 0, height = 0, components;
 
@@ -305,7 +305,7 @@ static void RenderScene(Renderer* rend, World* world)
 	{
 		Chunk* chunk = world->chunks[i];
 
-		if (chunk->state == CHUNK_BUILT)
+		if (chunk->state == CHUNK_BUILT && chunk->mesh->vertCount > 0)
 		{
 			model = translate(mat4(1.0f), (vec3)chunk->lwPos);
 			SetUniform(rend, 0, "model0", model);

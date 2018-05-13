@@ -73,8 +73,8 @@ static void HandleAssertion(char* file, int line)
 #define Assert(expression)
 #endif
 
-#define Malloc(type) (type*)malloc(sizeof(type))
-#define Calloc(type) (type*)calloc(1, sizeof(type))
+#define Malloc(type, size) (type*)malloc(size)
+#define Calloc(type, size) (type*)calloc(1, size)
 
 #if DEBUG_MEMORY
 #define _CRTDBG_MAP_ALLOC 1
@@ -158,65 +158,6 @@ static void ShowFPS(GLFWwindow* window)
 	frameCount++;
 }
 
-static void CheckWorld(World* world, Player* player)
-{
-	Rectf bounds = world->pBounds;
-	vec3 pos = player->pos;
-	bool shift = false;
-
-	Assert(player->pos.x >= 0.0f);
-	Assert(player->pos.y >= 0.0f);
-	Assert(player->pos.z >= 0.0f);
-
-	while (pos.x < bounds.min.x) 
-	{
-		pos.x = bounds.max.x - (bounds.min.x - pos.x);
-		world->ref.x--;
-		shift = true;
-	}
-	
-	while (pos.x > bounds.max.x) 
-	{
-		pos.x = bounds.min.x + (pos.x - bounds.max.x);
-		world->ref.x++;
-		shift = true;
-	}
-
-	while (pos.y < bounds.min.y)
-	{
-		pos.y = bounds.max.y - (bounds.min.y - pos.y);
-		world->ref.y--;
-		shift = true;
-	}
-	
-	while (pos.y > bounds.max.y)
-	{
-		pos.y = bounds.min.y + (pos.y - bounds.max.y);
-		world->ref.y++;
-		shift = true;
-	}
-
-	while (pos.z < bounds.min.z) 
-	{
-		pos.z = bounds.max.z - (bounds.min.z - pos.z);
-		world->ref.z--;
-		shift = true;
-	}
-	
-	while (pos.z > bounds.max.z) 
-	{
-		pos.z = bounds.min.z + (pos.z - bounds.max.z);
-		world->ref.z++;
-		shift = true;
-	}
-
-	if (shift) 
-	{
-		player->pos = pos;
-		ShiftWorld(world);
-	}
-}
-
 static void Update(GLFWwindow* window, Player* player, World* world, float deltaTime)
 {
 	if (KeyPressed(KEY_ESCAPE))
@@ -232,12 +173,12 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 		return;
 	}
 
+	UpdateWorld(world, player);
+
 	if (g_paused) return;
 
 	if (KeyPressed(KEY_T))
 		ToggleFullscreen(glfwGetWin32Window(window));
-
-	CheckWorld(world, player);
 
 	double mouseX, mouseY;
 
@@ -261,9 +202,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdShow)
 {
 	#if DEBUG_MEMORY
-
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF | _CRTDBG_CHECK_ALWAYS_DF);
-
 	#endif
 
 	CreateThreads();
@@ -302,11 +241,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 
 		glfwSwapBuffers(window);
 
-		#if PROFILING
-
 		ShowFPS(window);
-
-		#endif
 
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
@@ -314,5 +249,10 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	}
 
 	glfwTerminate();
+
+	#if DEBUG_MEMORY
+	_CrtDumpMemoryLeaks();
+	#endif
+
 	return 0;
 }

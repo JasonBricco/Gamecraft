@@ -3,10 +3,15 @@
 
 // Chunk size in blocks.
 #define CHUNK_SIZE 32
-#define CHUNK_SIZE_BITS 5
-#define CHUNK_SIZE_3 32768
-#define CHUNK_HASH_SIZE 4096
 
+// Size with padding. Padding removes dependency on neighboring chunks.
+#define PADDED_CHUNK_SIZE 34
+#define CHUNK_SIZE_BITS 5
+
+// Full size with padding.
+#define CHUNK_SIZE_3 39304
+
+#define CHUNK_HASH_SIZE 4096
 #define SEA_LEVEL 12
 
 typedef ivec3 LChunkPos;
@@ -19,8 +24,11 @@ typedef FastNoiseSIMD Noise;
 
 enum ChunkState
 {
-	CHUNK_GENERATED = 0,
-	CHUNK_BUILT = 1
+	CHUNK_GENERATING = 0,
+	CHUNK_GENERATED = 1,
+	CHUNK_BUILDING = 2,
+	CHUNK_NEEDS_FILL = 3,
+	CHUNK_BUILT = 4,
 };
 
 struct Chunk
@@ -36,14 +44,15 @@ struct Chunk
 	ChunkState state;
 
 	bool active;
+
+	Chunk* next;
 };
 
-struct TerrainGenData
+struct ChunkQueue
 {
-	int seed;
-	Chunk* chunk;
-
-	TerrainGenData(int s, Chunk* c) : seed(s), chunk(c) {}
+	Chunk* front;
+	Chunk* end;
+	int count;
 };
 
 struct World
@@ -62,6 +71,9 @@ struct World
 
 	// Chunk hash table to store chunks that need to transition.
 	Chunk* chunkHash[CHUNK_HASH_SIZE];
+
+	// Chunks currently awaiting destruction.
+	ChunkQueue destroyQueue;
 
 	// Spawn and reference corner in world chunk coordinates.
 	ivec3 spawnChunk;

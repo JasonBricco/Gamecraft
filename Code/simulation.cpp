@@ -3,7 +3,7 @@
 
 static Player* NewPlayer(Rectf spawnBounds)
 {
-	Player* player = Malloc(Player);
+	Player* player = Malloc(Player, sizeof(Player));
 	player->camera = NewCamera();
 
 	vec3 spawn = spawnBounds.min + (CHUNK_SIZE / 2.0f);
@@ -610,13 +610,13 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 
 		LChunkPos cP = chunk->lcPos;
 
-		UpdateChunkDirect(world, chunk);
-		UpdateChunkDirect(world, GetChunk(world, cP.x - 1, cP.y, cP.z));
-		UpdateChunkDirect(world, GetChunk(world, cP.x + 1, cP.y, cP.z));
-		UpdateChunkDirect(world, GetChunk(world, cP.x,cP.y, cP.z - 1));
-		UpdateChunkDirect(world, GetChunk(world, cP.x, cP.y, cP.z + 1));
-		UpdateChunkDirect(world, GetChunk(world, cP.x, cP.y - 1, cP.z));
-		UpdateChunkDirect(world, GetChunk(world, cP.x, cP.y + 1, cP.z));
+		UpdateChunk(world, chunk);
+		UpdateChunk(world, GetChunk(world, cP.x - 1, cP.y, cP.z));
+		UpdateChunk(world, GetChunk(world, cP.x + 1, cP.y, cP.z));
+		UpdateChunk(world, GetChunk(world, cP.x,cP.y, cP.z - 1));
+		UpdateChunk(world, GetChunk(world, cP.x, cP.y, cP.z + 1));
+		UpdateChunk(world, GetChunk(world, cP.x, cP.y - 1, cP.z));
+		UpdateChunk(world, GetChunk(world, cP.x, cP.y + 1, cP.z));
 	}
 
 	int op = MousePressed(0) ? 0 : MousePressed(1) ? 1 : -1;
@@ -632,12 +632,12 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 			if (op == 0)
 			{
 				setPos = info.adjPos;
-				SetBlock(world, setPos, 1, true);
+				SetBlock(world, setPos, 1);
 			}
 			else
 			{
 				setPos = info.hitPos;
-				SetBlock(world, setPos, 0, true);
+				SetBlock(world, setPos, 0);
 			}
 		}
 	}

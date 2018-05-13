@@ -12,7 +12,7 @@ struct AsyncItem
     Chunk* chunk;
 };
 
-struct ThreadWorkQueue
+struct WorkQueue
 {
     // Read and write mark the locations where we write values into and read values 
     // from the queue. Write should write ahead while read stays behind. If read 
@@ -20,9 +20,6 @@ struct ThreadWorkQueue
     // read, then we will overwrite work in the queue that hasn't been completed yet.
     atomic<uint32_t> read;
     atomic<uint32_t> write;
-
-    atomic<uint32_t> target;
-    atomic<uint32_t> completed;
 
     // Stores all work to be done by background threads.
     AsyncItem* items;
