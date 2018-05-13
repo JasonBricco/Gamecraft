@@ -531,13 +531,21 @@ static void BuildChunk(World* world, Chunk* chunk)
     chunk->state = CHUNK_NEEDS_FILL;
 }
 
+inline void BuildChunkNow(World* world, Chunk* chunk)
+{
+    BuildChunk(world, chunk);
+    FillMeshData(chunk->mesh);
+    chunk->state = CHUNK_BUILT;
+
+}
+
 // Rebuilds chunk meshes.
 inline void UpdateChunk(World* world, Chunk* chunk)
 {
 	if (chunk->state == CHUNK_BUILT)
     {
         DestroyMesh(chunk->mesh);
-        BuildChunk(world, chunk);
+        BuildChunkNow(world, chunk);
     }
 }
 
