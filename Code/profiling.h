@@ -76,3 +76,46 @@ inline void EndTimedBlock(int ID, uint64_t start)
 #define FLUSH_COUNTERS()
 
 #endif
+
+#if DEBUG_MEMORY
+
+static unordered_map<string, uint32_t> g_allocInfo;
+static mutex allocInfoMutex;
+
+inline void TrackAlloc(string id)
+{
+	allocInfoMutex.lock();
+	auto it = g_allocInfo.find(id);
+
+	if (it == g_allocInfo.end())
+		g_allocInfo[id] = 0;
+
+	g_allocInfo[id]++;
+	allocInfoMutex.unlock();
+}
+
+inline void* DebugMalloc(string id, int size)
+{
+	TrackAlloc(id);
+	return malloc(size);
+}
+
+inline void* DebugCalloc(string id, int size)
+{
+	TrackAlloc(id);
+	return calloc(1, size);
+}
+
+inline void DebugFree(string id, void* ptr)
+{
+	allocInfoMutex.lock();
+	auto it = g_allocInfo.find(id);
+	Assert(it != g_allocInfo.end());
+
+	g_allocInfo[id]--;
+	allocInfoMutex.unlock();
+
+	free(ptr);
+}
+
+#endif

@@ -12,7 +12,7 @@ inline void SetGraphicVertex(float* vertices, int i, float x, float y, float u, 
 
 static Graphic* CreateGraphic(int shaderID, int texture)
 {
-	Graphic* graphic = Calloc(Graphic, sizeof(Graphic));
+	Graphic* graphic = Calloc(Graphic, sizeof(Graphic), "Graphic");
 
 	glGenVertexArrays(1, &graphic->va);
 	glBindVertexArray(graphic->va);
@@ -89,7 +89,7 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 
 static Camera* NewCamera()
 {
-	Camera* cam = Calloc(Camera, sizeof(Camera));
+	Camera* cam = Calloc(Camera, sizeof(Camera), "Cam");
 	cam->sensitivity = 0.05f;
 	return cam;
 }
@@ -124,11 +124,13 @@ inline void UpdateViewMatrix(Renderer* rend)
 	rend->view = lookAt(cam->pos, cam->target, cam->up);
 }
 
-static void LoadTexture(GLuint* tex, char* path)
+static void LoadTexture(GLuint* tex, char* asset)
 {
 	int width, height, components;
 
+	char* path = PathToAsset(asset);
 	uint8_t* data = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
+	Free(path, "AssetPath");
 	Assert(data != NULL);
 
 	glGenTextures(1, tex);
@@ -148,13 +150,15 @@ static void LoadTexture(GLuint* tex, char* path)
 static void LoadTextureArray(GLuint* tex, char** paths, bool mipMaps)
 {
 	int count = sb_count(paths);
-	uint8_t** dataList = Malloc(uint8_t*, count * sizeof(uint8_t*));
+	uint8_t** dataList = Malloc(uint8_t*, count * sizeof(uint8_t*), "DataList");
 
 	int width = 0, height = 0, components;
 
 	for (int i = 0; i < count; i++)
 	{
-		dataList[i] = stbi_load(paths[i], &width, &height, &components, STBI_rgb_alpha);
+		char* path = PathToAsset(paths[i]);
+		dataList[i] = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
+		Free(path, "AssetPath");
 		Assert(dataList[i] != NULL);
 	}
 
@@ -177,7 +181,7 @@ static void LoadTextureArray(GLuint* tex, char** paths, bool mipMaps)
 
 	if (mipMaps) glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
 
-	free(dataList);
+	Free(dataList, "DataList");
 	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
 
@@ -246,12 +250,13 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 	GLuint blockTextures;
 
 	char** paths = NULL;
-	sb_push(paths, PathToAsset("Assets/Grass.png"));
-	sb_push(paths, PathToAsset("Assets/GrassSide.png"));
-	sb_push(paths, PathToAsset("Assets/Dirt.png"));
-	sb_push(paths, PathToAsset("Assets/Stone.png"));
-	sb_push(paths, PathToAsset("Assets/Water.png"));
-	sb_push(paths, PathToAsset("Assets/Sand.png"));
+
+	sb_push(paths, "Assets/Grass.png");
+	sb_push(paths, "Assets/GrassSide.png");
+	sb_push(paths, "Assets/Dirt.png");
+	sb_push(paths, "Assets/Stone.png");
+	sb_push(paths, "Assets/Water.png");
+	sb_push(paths, "Assets/Sand.png");
 
 	LoadTextureArray(&blockTextures, paths, true);
 	sb_free(paths);
@@ -259,7 +264,7 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 	rend->blockTextures = blockTextures;
 
 	GLuint Crosshair;
-	LoadTexture(&Crosshair, PathToAsset("Assets/Crosshair.png"));
+	LoadTexture(&Crosshair, "Assets/Crosshair.png");
 
 	Graphic* graphic = CreateGraphic(1, Crosshair);
 	SetCrosshairPos(graphic, screenWidth, screenHeight);

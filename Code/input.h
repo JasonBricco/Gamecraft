@@ -14,6 +14,7 @@ enum KeyType
     KEY_P,
     KEY_T,
     KEY_BACKSPACE,
+    KEY_BACKSLASH,
     KEY_COUNT
 };
  

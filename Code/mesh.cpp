@@ -3,13 +3,13 @@
 
 static Mesh* CreateMesh()
 {
-	Mesh* mesh = Calloc(Mesh, sizeof(Mesh));
+	Mesh* mesh = Calloc(Mesh, sizeof(Mesh), "Mesh");
 
 	mesh->vertMax = 131072;
 	mesh->indexMax = 65536;
 
-	mesh->vertices = Malloc(float, mesh->vertMax * sizeof(float));
-	mesh->indices = Malloc(int, mesh->indexMax * sizeof(int));
+	mesh->vertices = Malloc(float, mesh->vertMax * sizeof(float), "Vertices");
+	mesh->indices = Malloc(int, mesh->indexMax * sizeof(int), "Indices");
 
 	return mesh;
 }
@@ -27,11 +27,11 @@ static void DestroyMesh(Mesh* mesh)
 
 	if (mesh->vertices != NULL)
 	{
-		free(mesh->vertices);
-		free(mesh->indices);
+		Free(mesh->vertices, "Vertices");
+		Free(mesh->indices, "Indices");
 	}
 
-	free(mesh);
+	Free(mesh, "Mesh");
 }
 
 inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex,
@@ -113,8 +113,8 @@ static void FillMeshData(Mesh* mesh)
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_DYNAMIC_DRAW);
 	}
 
-	free(mesh->vertices);
-	free(mesh->indices);
+	Free(mesh->vertices, "Vertices");
+	Free(mesh->indices, "Indices");
 
 	mesh->vertices = NULL;
 	mesh->indices = NULL;

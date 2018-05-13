@@ -16,7 +16,7 @@ struct Ray
 static char* PathToAsset(char* fileName)
 {
 	int size = MAX_PATH * 2;
-	char* path = Malloc(char, size);
+	char* path = Malloc(char, size, "AssetPath");
 	GetModuleFileName(NULL, path, size);
 
 	char* pos = strrchr(path, '\\');

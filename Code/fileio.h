@@ -7,6 +7,7 @@ static char* ReadFileData(char* fileName)
 	char* buffer = NULL;
 
 	ifstream file(path);
+	Free(path, "AssetPath");
 
 	if (file)
 	{

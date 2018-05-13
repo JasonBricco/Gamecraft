@@ -400,7 +400,7 @@ inline void AddChunkToPool(World* world, Chunk* chunk)
 inline Chunk* ChunkFromPool(World* world)
 {
 	if (world->poolSize == 0)
-        return Calloc(Chunk, sizeof(Chunk));
+        return Calloc(Chunk, sizeof(Chunk), "Chunk");
 
 	Chunk* chunk = world->pool[world->poolSize - 1];
 	world->poolSize--;
@@ -594,7 +594,7 @@ static void ShiftWorld(World* world)
 
 static World* NewWorld(int loadRangeH, int loadRangeV)
 {
-	World* world = Calloc(World, sizeof(World));
+	World* world = Calloc(World, sizeof(World), "World");
 
 	// Load range worth of chunks on each side plus the middle chunk.
 	world->sizeH = (loadRangeH * 2) + 1;
@@ -603,7 +603,7 @@ static World* NewWorld(int loadRangeH, int loadRangeV)
 	world->spawnChunk = ivec3(0, 1, 0);
 
 	world->totalChunks = Square(world->sizeH) * world->sizeV;
-	world->chunks = Calloc(Chunk*, world->totalChunks * sizeof(Chunk*));
+	world->chunks = Calloc(Chunk*, world->totalChunks * sizeof(Chunk*), "Chunks");
 
 	ivec3 ref;
 	ref.x = world->spawnChunk.x - loadRangeH;
@@ -614,12 +614,15 @@ static World* NewWorld(int loadRangeH, int loadRangeV)
 	// Allocate extra chunks for the pool for world shifting. We create new chunks
 	// before we destroy the old ones.
 	int targetPoolSize = world->totalChunks * 2;
-	world->pool = Calloc(Chunk*, targetPoolSize * sizeof(Chunk*));
+	world->pool = Calloc(Chunk*, targetPoolSize * sizeof(Chunk*), "ChunkPool");
 	world->poolSize = 0;
     world->maxPoolSize = targetPoolSize;
 
 	for (int i = 0; i < targetPoolSize; i++)
-		AddChunkToPool(world, Malloc(Chunk, sizeof(Chunk)));
+    {
+        Chunk* chunk = Malloc(Chunk, sizeof(Chunk), "Chunk");
+		AddChunkToPool(world, chunk);
+    }
 
 	float minH = (float)(loadRangeH * CHUNK_SIZE);
 	float maxH = minH + CHUNK_SIZE;

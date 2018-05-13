@@ -14,12 +14,12 @@ static bool ShaderHasErrors(GLuint handle, ShaderType type)
 		{
 			glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &length);
 
-			GLchar* errorLog = Malloc(GLchar, length);
+			GLchar* errorLog = Malloc(GLchar, length, "ShaderLink");
 			glGetProgramInfoLog(handle, length, NULL, errorLog);
 			
 			OutputDebugString("Error! Shader program failed to link.");
 			OutputDebugString(errorLog);
-			free(errorLog);
+			Free(errorLog, "ShaderLink");
 			return true;
 		}
 	}
@@ -31,12 +31,12 @@ static bool ShaderHasErrors(GLuint handle, ShaderType type)
 		{
 			glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &length);
 
-			GLchar* errorLog = Malloc(GLchar, length);
+			GLchar* errorLog = Malloc(GLchar, length, "ShaderCompile");
 			glGetShaderInfoLog(handle, length, NULL, errorLog);
 			
 			OutputDebugString("Error! Shader failed to compile.");
 			OutputDebugString(errorLog);
-			free(errorLog);
+			Free(errorLog, "ShaderCompile");
 			return true;
 		}
 	}
@@ -89,7 +89,7 @@ static GLuint LoadShader(char* path)
 		abort();
 	}
 
-	free(code);
+	delete[] code;
 	glDeleteShader(vS);
 	glDeleteShader(fS);
 

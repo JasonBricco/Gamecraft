@@ -66,7 +66,7 @@ static void CreateThreads()
 	g_semaphore = CreateSemaphore(NULL, 0, MAXLONG, NULL);
 
 	g_workQueue.size = 4096;
-	g_workQueue.items = Calloc(AsyncItem, g_workQueue.size * sizeof(AsyncItem));
+	g_workQueue.items = Calloc(AsyncItem, g_workQueue.size * sizeof(AsyncItem), "Thread");
 
 	for (int i = 0; i < THREAD_COUNT; i++)
 	{

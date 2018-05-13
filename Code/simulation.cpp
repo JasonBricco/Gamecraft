@@ -3,7 +3,7 @@
 
 static Player* NewPlayer(Rectf spawnBounds)
 {
-	Player* player = Malloc(Player, sizeof(Player));
+	Player* player = Malloc(Player, sizeof(Player), "Player");
 	player->camera = NewCamera();
 
 	vec3 spawn = spawnBounds.min + (CHUNK_SIZE / 2.0f);

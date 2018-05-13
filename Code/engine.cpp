@@ -37,7 +37,6 @@
 #include "stretchy_buffer.h"
 
 #include <unordered_map>
-#include <queue>
 #include <fstream>
 #include <atomic>
 
@@ -73,12 +72,21 @@ static void HandleAssertion(char* file, int line)
 #define Assert(expression)
 #endif
 
-#define Malloc(type, size) (type*)malloc(size)
-#define Calloc(type, size) (type*)calloc(1, size)
-
 #if DEBUG_MEMORY
-#define _CRTDBG_MAP_ALLOC 1
-#include <crtdbg.h>  
+
+#include <string>
+#include <mutex>
+
+#define Malloc(type, size, id) (type*)DebugMalloc(id, size)
+#define Calloc(type, size, id) (type*)DebugCalloc(id, size)
+#define Free(ptr, id) DebugFree(id, ptr)
+
+#else
+
+#define Malloc(type, size, id) (type*)malloc(size)
+#define Calloc(type, size, id) (type*)calloc(1, size)
+#define Free(ptr, id) free(ptr)
+
 #endif
 
 static bool g_paused;
@@ -201,10 +209,6 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdShow)
 {
-	#if DEBUG_MEMORY
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF | _CRTDBG_CHECK_ALWAYS_DF);
-	#endif
-
 	CreateThreads();
 
 	Renderer* rend = new Renderer();
@@ -246,13 +250,31 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
 		lastTime = endTime;
+
+		#if DEBUG_MEMORY
+
+		if (KeyPressed(KEY_BACKSLASH))
+		{
+			string str;
+			str.append("ALLOC INFO:\n");
+
+			for (pair<string, uint32_t> element : g_allocInfo)
+			{
+				if (element.second > 0)
+				{
+					str.append("ID: " + element.first + "\n");
+					str.append("Count: " + to_string(element.second) + "\n");
+				}
+			}
+
+			str.append("\n");
+			OutputDebugString(str.c_str());
+		}
+
+		#endif
 	}
 
 	glfwTerminate();
-
-	#if DEBUG_MEMORY
-	_CrtDumpMemoryLeaks();
-	#endif
 
 	return 0;
 }

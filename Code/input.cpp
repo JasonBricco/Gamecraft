@@ -85,6 +85,10 @@ static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mod
 		case GLFW_KEY_BACKSPACE:
 			SetKey(KEY_BACKSPACE, action);
 			break;
+
+		case GLFW_KEY_BACKSLASH:
+			SetKey(KEY_BACKSLASH, action);
+			break;
 	}
 
 	if (mode == GLFW_MOD_SHIFT) 
