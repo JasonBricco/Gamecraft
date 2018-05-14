@@ -7,6 +7,8 @@
 #define Min(A, B) ((A < B) ? (A) : (B))
 #define Max(A, B) ((A > B) ? (A) : (B))
 
+#define Align16(v) ((v + 15) & ~15)
+
 struct Ray
 {
 	vec3 origin;

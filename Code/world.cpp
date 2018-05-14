@@ -372,16 +372,44 @@ static void GenerateChunkTerrain(World* world, Chunk* chunk)
 }
 
 // Fill a chunk with a single block type.
-static void FillChunk(Chunk* chunk, int block)
+static void FillChunk(World* world, Chunk* chunk, int block)
 {
+    LChunkPos p = chunk->lcPos;
+
+    Chunk* left = GetChunk(world, p.x - 1, p.y, p.z);
+    Chunk* right = GetChunk(world, p.x + 1, p.y, p.z);
+    Chunk* up = GetChunk(world, p.x, p.y + 1, p.z);
+    Chunk* down = GetChunk(world, p.x, p.y - 1, p.z);
+    Chunk* back = GetChunk(world, p.x, p.y, p.z - 1);
+    Chunk* front = GetChunk(world, p.x, p.y, p.z + 1);
+
     for (int z = 0; z < CHUNK_SIZE; z++)
     {
         for (int y = 0; y < CHUNK_SIZE; y++)
         {
             for (int x = 0; x < CHUNK_SIZE; x++)
+            {
                 SetBlock(chunk, x, y, z, block);
+
+                if (x == 0) SetBlock(left, CHUNK_SIZE, y, z, block);
+                else if (x == CHUNK_SIZE - 1) SetBlock(right, -1, y, z, block);
+
+                if (y == 0) SetBlock(down, x, CHUNK_SIZE, z, block);
+                else if (y == CHUNK_SIZE - 1) SetBlock(up, x, -1, z, block);
+                
+                if (z == 0) SetBlock(back, x, y, CHUNK_SIZE, block);
+                else if (z == CHUNK_SIZE - 1) SetBlock(front, x, y, -1, block);
+            }
         }
     }
+
+    UpdateChunk(world, chunk);
+    UpdateChunk(world, left);
+    UpdateChunk(world, right);
+    UpdateChunk(world, down);
+    UpdateChunk(world, up);
+    UpdateChunk(world, back);
+    UpdateChunk(world, front);
 }
 
 inline void AddChunkToPool(World* world, Chunk* chunk)

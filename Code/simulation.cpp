@@ -606,17 +606,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 	{
 		ivec3 cPos = ToChunkPos(player->pos);
 		Chunk* chunk = GetChunk(world, cPos);
-		FillChunk(chunk, BLOCK_AIR);
-
-		LChunkPos cP = chunk->lcPos;
-
-		UpdateChunk(world, chunk);
-		UpdateChunk(world, GetChunk(world, cP.x - 1, cP.y, cP.z));
-		UpdateChunk(world, GetChunk(world, cP.x + 1, cP.y, cP.z));
-		UpdateChunk(world, GetChunk(world, cP.x,cP.y, cP.z - 1));
-		UpdateChunk(world, GetChunk(world, cP.x, cP.y, cP.z + 1));
-		UpdateChunk(world, GetChunk(world, cP.x, cP.y - 1, cP.z));
-		UpdateChunk(world, GetChunk(world, cP.x, cP.y + 1, cP.z));
+		FillChunk(world, chunk, BLOCK_AIR);
 	}
 
 	int op = MousePressed(0) ? 0 : MousePressed(1) ? 1 : -1;
