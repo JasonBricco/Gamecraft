@@ -1,24 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 
-static Player* NewPlayer(Rectf spawnBounds)
-{
-	Player* player = Malloc(Player, sizeof(Player), "Player");
-	player->camera = NewCamera();
-
-	vec3 spawn = spawnBounds.min + (CHUNK_SIZE / 2.0f);
-	player->pos = spawn;
-	player->collider = Capsule(0.3f, 1.2f);
-	player->velocity = vec3(0.0f);
-	player->speed = 50.0f;
-	player->friction = -8.0f;
-	player->colFlags = HIT_NONE;
-	player->flying = false;
-	player->speedMode = false;
-
-	return player;
-}
-
 AABB::AABB(vec3 p, vec3 minP, vec3 maxP)
 {
 	pos = p;
@@ -631,4 +613,24 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 			}
 		}
 	}
+}
+
+static Player* NewPlayer(Rectf spawnBounds, Camera* camera)
+{
+	Player* player = Malloc(Player, sizeof(Player), "Player");
+	player->camera = camera;
+	vec3 spawn = spawnBounds.min + (CHUNK_SIZE / 2.0f);
+	player->pos = spawn;
+	player->collider = Capsule(0.3f, 1.2f);
+	player->velocity = vec3(0.0f);
+	player->speed = 50.0f;
+	player->friction = -8.0f;
+	player->colFlags = HIT_NONE;
+	player->flying = false;
+	player->speedMode = false;
+
+	CameraFollow(player);
+	player->spawned = true;
+
+	return player;
 }

@@ -65,9 +65,13 @@ struct World
 	Chunk** pool;
 	int poolSize, maxPoolSize;
 
-	// Actively loaded chunks around the player.
+	// All actively loaded chunks around the player.
 	Chunk** chunks;
 	int totalChunks;
+
+	// Chunks to be rendered.
+	Chunk** visibleChunks;
+	int visibleCount;
 
 	// Chunk hash table to store chunks that need to transition.
 	Chunk* chunkHash[CHUNK_HASH_SIZE];
@@ -76,8 +80,8 @@ struct World
 	ChunkQueue destroyQueue;
 
 	// Spawn and reference corner in world chunk coordinates.
-	ivec3 spawnChunk;
-	ivec3 ref;
+	ChunkPos spawnChunk;
+	ChunkPos ref;
 
 	// Specifies the area in float space that the player exists within.
 	// This is the area within the center local chunk.

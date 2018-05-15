@@ -34,9 +34,8 @@ struct Collider
 	virtual vec3 Support(vec3 dir) = 0;
 };
 
-// Axis-aligned bounding box. 'offset' is the offset from the world 
-// position of the entity using this collider. 'min' and 'max' are
-// in local space. 
+// Axis-aligned bounding box.
+// 'min' and 'max' are in local space. 
 struct AABB : Collider
 {
 	vec3 min;
@@ -67,4 +66,5 @@ struct Player
 	float friction;
 	uint8_t colFlags;
 	bool flying, speedMode;
+	bool spawned;
 };

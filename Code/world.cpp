@@ -628,56 +628,6 @@ static void ShiftWorld(World* world)
 	}
 }
 
-static World* NewWorld(int loadRangeH, int loadRangeV)
-{
-	World* world = Calloc(World, sizeof(World), "World");
-
-	// Load range worth of chunks on each side plus the middle chunk.
-	world->sizeH = (loadRangeH * 2) + 1;
-	world->sizeV = (loadRangeV * 2) + 1;
-
-	world->spawnChunk = ivec3(0, 1, 0);
-
-	world->totalChunks = Square(world->sizeH) * world->sizeV;
-	world->chunks = Calloc(Chunk*, world->totalChunks * sizeof(Chunk*), "Chunks");
-
-	ivec3 ref;
-	ref.x = world->spawnChunk.x - loadRangeH;
-	ref.y = world->spawnChunk.y - loadRangeV;
-	ref.z = world->spawnChunk.z - loadRangeH;
-	world->ref = ref;
-
-	// Allocate extra chunks for the pool for world shifting. We create new chunks
-	// before we destroy the old ones.
-	int targetPoolSize = world->totalChunks * 2;
-	world->pool = Calloc(Chunk*, targetPoolSize * sizeof(Chunk*), "ChunkPool");
-	world->poolSize = 0;
-    world->maxPoolSize = targetPoolSize;
-
-	for (int i = 0; i < targetPoolSize; i++)
-    {
-        Chunk* chunk = Malloc(Chunk, sizeof(Chunk), "Chunk");
-		AddChunkToPool(world, chunk);
-    }
-
-	float minH = (float)(loadRangeH * CHUNK_SIZE);
-	float maxH = minH + CHUNK_SIZE;
-
-	float minV = (float)(loadRangeV * CHUNK_SIZE);
-	float maxV = minV + CHUNK_SIZE;
-
-	world->pBounds = NewRect(vec3(minH, minV, minH), vec3(maxH, maxV, maxH));
-
-	CreateBlockData(world->blockData);
-
-    srand((uint32_t)time(0));
-    world->seed = rand();
-
-	ShiftWorld(world);
-
-	return world;
-}
-
 static void CheckWorld(World* world, Player* player)
 {
     Rectf bounds = world->pBounds;
@@ -771,10 +721,56 @@ static void TryBuildMeshes(World* world)
     }
 }
 
-static void UpdateWorld(World* world, Player* player)
+static void GetVisibleChunks(World* world, Camera* cam, LChunkPos min, LChunkPos max)
 {
+    vec3 minW = min * CHUNK_SIZE;
+    vec3 maxW = max * CHUNK_SIZE;
+
+    FrustumVisibility visibility = TestFrustum(cam, minW, maxW);
+
+    if (visibility == FRUSTUM_VISIBLE)
+    {
+        for (int z = min.z; z <= max.z; z++)
+        {
+            for (int y = min.y; y <= max.y; y++)
+            {
+                for (int x = min.x; x <= max.x; x++)
+                    world->visibleChunks[world->visibleCount++] = GetChunk(world, x, y, z);
+            }
+        }
+    }
+    else if (visibility == FRUSTUM_PARTIAL)
+    {
+        ChunkPos mid = min + ((max - min) / 2);
+
+        if (mid == min)
+        {
+            world->visibleChunks[world->visibleCount++] = GetChunk(world, min.x, min.y, min.z);
+            return;
+        }
+
+        GetVisibleChunks(world, cam, min, mid);
+        GetVisibleChunks(world, cam, ivec3(min.x, min.y, mid.z), ivec3(mid.x, mid.y, max.z));
+        GetVisibleChunks(world, cam, ivec3(mid.x, min.y, min.z), ivec3(max.x, mid.y, mid.z));
+        GetVisibleChunks(world, cam, ivec3(mid.x, min.y, mid.z), ivec3(max.x, mid.y, max.z));
+
+        GetVisibleChunks(world, cam, ivec3(min.x, mid.y, min.z), ivec3(mid.x, max.y, mid.z));
+        GetVisibleChunks(world, cam, ivec3(min.x, mid.y, mid.z), ivec3(mid.x, max.y, max.z));
+        GetVisibleChunks(world, cam, ivec3(mid.x, mid.y, min.z), ivec3(max.x, max.y, mid.z));
+        GetVisibleChunks(world, cam, mid, max);
+    }
+}
+
+static void UpdateWorld(World* world, Camera* cam, Player* player)
+{
+    if (!player->spawned) return;
+    
     CheckWorld(world, player);
     TryBuildMeshes(world);
+
+    world->visibleCount = 0;
+    GetCameraPlanes(cam);
+    GetVisibleChunks(world, cam, ivec3(0), ivec3(world->sizeH - 1, world->sizeV - 1, world->sizeH - 1));
 
     while (world->destroyQueue.count > 0)
     {
@@ -784,4 +780,55 @@ static void UpdateWorld(World* world, Player* player)
             DestroyChunk(world, chunk);
         else EnqueueChunk(world->destroyQueue, chunk);
     }
+}
+
+static World* NewWorld(int loadRangeH, int loadRangeV)
+{
+    World* world = Calloc(World, sizeof(World), "World");
+
+    // Load range worth of chunks on each side plus the middle chunk.
+    world->sizeH = (loadRangeH * 2) + 1;
+    world->sizeV = (loadRangeV * 2) + 1;
+
+    world->spawnChunk = ivec3(0, 1, 0);
+
+    world->totalChunks = Square(world->sizeH) * world->sizeV;
+    world->chunks = Calloc(Chunk*, world->totalChunks * sizeof(Chunk*), "Chunks");
+    world->visibleChunks = Calloc(Chunk*, world->totalChunks * sizeof(Chunk*), "VisibleChunks");
+
+    ivec3 ref;
+    ref.x = world->spawnChunk.x - loadRangeH;
+    ref.y = world->spawnChunk.y - loadRangeV;
+    ref.z = world->spawnChunk.z - loadRangeH;
+    world->ref = ref;
+
+    // Allocate extra chunks for the pool for world shifting. We create new chunks
+    // before we destroy the old ones.
+    int targetPoolSize = world->totalChunks * 2;
+    world->pool = Calloc(Chunk*, targetPoolSize * sizeof(Chunk*), "ChunkPool");
+    world->poolSize = 0;
+    world->maxPoolSize = targetPoolSize;
+
+    for (int i = 0; i < targetPoolSize; i++)
+    {
+        Chunk* chunk = Malloc(Chunk, sizeof(Chunk), "Chunk");
+        AddChunkToPool(world, chunk);
+    }
+
+    float minH = (float)(loadRangeH * CHUNK_SIZE);
+    float maxH = minH + CHUNK_SIZE;
+
+    float minV = (float)(loadRangeV * CHUNK_SIZE);
+    float maxV = minV + CHUNK_SIZE;
+
+    world->pBounds = NewRect(vec3(minH, minV, minH), vec3(maxH, maxV, maxH));
+
+    CreateBlockData(world->blockData);
+
+    srand((uint32_t)time(0));
+    world->seed = rand();
+
+    ShiftWorld(world);
+
+    return world;
 }

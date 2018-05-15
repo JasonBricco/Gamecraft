@@ -80,7 +80,19 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 	rend->windowWidth = width;
 	rend->windowHeight = height;
 	glViewport(0, 0, width, height);
-	rend->perspective = perspective(Radians(CAMERA_FOV), (float)width / (float)height, 0.1f, 256.0f);
+
+	Camera* cam = rend->camera;
+
+	float fov = radians(CAMERA_FOV);
+	float ratio = (float)width / (float)height;
+
+	float t = (float)tan(fov * 0.5f);
+	cam->nearH = cam->nearDist * t;
+	cam->nearW = cam->nearH * ratio;
+	cam->farH = cam->farDist * t;
+	cam->farW = cam->farH * ratio;
+
+	rend->perspective = perspective(fov, ratio, cam->nearDist, cam->farDist);
 	rend->ortho = ortho(0.0f, (float)width, (float)height, 0.0f);
 
 	if (rend->crosshair != NULL)
@@ -90,6 +102,8 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 static Camera* NewCamera()
 {
 	Camera* cam = Calloc(Camera, sizeof(Camera), "Cam");
+	cam->nearDist = 0.1f;
+	cam->farDist = 256.0f;
 	cam->sensitivity = 0.05f;
 	return cam;
 }
@@ -111,10 +125,10 @@ static void UpdateCameraVectors(Camera* cam)
 
 static void RotateCamera(Camera* cam, float yaw, float pitch)
 {
-	cam->yaw += Radians(yaw);
-	cam->pitch += Radians(pitch);
+	cam->yaw += radians(yaw);
+	cam->pitch += radians(pitch);
 
-	cam->pitch = Clamp(cam->pitch, -PI / 2.0f + 0.1f, PI / 2.0f - 0.1f);
+	cam->pitch = clamp(cam->pitch, -PI / 2.0f + 0.1f, PI / 2.0f - 0.1f);
 	UpdateCameraVectors(cam);
 }
 
@@ -200,6 +214,8 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 		OutputDebugString("GLFW failed to initialize.");
 		return NULL;
 	}
+
+	rend->camera = NewCamera();
 
 	// Window creation.
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -289,6 +305,96 @@ static Ray ScreenCenterToRay(Renderer* rend)
 	return { origin, rend->camera->forward };
 }
 
+// The six camera frustum planes can be obtained using the eight points the define the corners
+// of the view frustum. This is an optimized version.
+inline void GetCameraPlanes(Camera* cam)
+{	
+	vec3 fc = cam->pos + cam->forward * cam->farDist;
+	vec3 nc = cam->pos + cam->forward * cam->nearDist;
+
+	// Near plane.
+	cam->planes[0] = { nc, cam->forward };
+
+	// Far plane.
+	cam->planes[1] = { fc, -cam->forward };
+
+	// Top plane.
+	vec3 aux = normalize((nc + cam->up * cam->nearH) - cam->pos);
+	vec3 n = cross(aux, cam->right);
+	cam->planes[2] = { nc + cam->up * cam->nearH, n };
+
+	// Bottom plane.
+	aux = normalize((nc - cam->up * cam->nearH) - cam->pos);
+	n = cross(cam->right, aux);
+	cam->planes[3] = { nc - cam->up * cam->nearH, n };
+
+	// Left plane.
+	aux = normalize((nc - cam->right * cam->nearW) - cam->pos);
+	n = cross(aux, cam->up);
+	cam->planes[4] = { nc - cam->right * cam->nearW, n };
+
+	// Right plane.
+	aux = normalize((nc + cam->right * cam->nearW) - cam->pos);
+	n = cross(cam->up, aux);
+	cam->planes[5] = { nc + cam->right * cam->nearW, n };
+}
+
+// Returns the farthest positive vertex from an AABB defined by min and max
+// along the given normal.
+inline vec3 FarthestPositiveVertex(vec3 min, vec3 max, vec3 normal)
+{
+	vec3 v = min;
+
+	if (normal.x >= 0.0f)
+		v.x = max.x;
+
+	if (normal.y >= 0.0f)
+		v.y = max.y;
+
+	if (normal.z >= 0.0f)
+		v.z = max.z;
+
+	return v;
+}
+
+inline vec3 FarthestNegativeVertex(vec3 min, vec3 max, vec3 normal)
+{
+	vec3 v = max;
+
+	if (normal.x >= 0.0f)
+		v.x = min.x;
+
+	if (normal.y >= 0.0f)
+		v.y = min.y;
+
+	if (normal.z >= 0.0f)
+		v.z = min.z;
+
+	return v;
+}
+
+inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
+{
+	for (int i = 0; i < 6; i++)
+	{
+		Plane plane = cam->planes[i];
+
+		vec3 vert = FarthestPositiveVertex(min, max, plane.n);
+		float dist = distance(plane.p, vert);
+
+		if (dist < 0.0f) 
+			return FRUSTUM_INVISIBLE;
+
+		vert = FarthestNegativeVertex(min, max, plane.p);
+		dist = distance(plane.p, vert);
+
+		if (dist < 0.0f) 
+			return FRUSTUM_PARTIAL;
+	}
+
+	return FRUSTUM_VISIBLE;
+}
+
 static void RenderScene(Renderer* rend, World* world)
 {
 	BEGIN_TIMED_BLOCK(RENDER_SCENE);
@@ -306,9 +412,9 @@ static void RenderScene(Renderer* rend, World* world)
 
 	mat4 model;
 
-	for (int i = 0; i < world->totalChunks; i++)
+	for (int i = 0; i < world->visibleCount; i++)
 	{
-		Chunk* chunk = world->chunks[i];
+		Chunk* chunk = world->visibleChunks[i];
 
 		if (chunk->state == CHUNK_BUILT && chunk->mesh->vertCount > 0)
 		{

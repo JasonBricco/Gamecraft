@@ -15,15 +15,37 @@ struct Graphic
 	vec2 pos;
 };
 
+enum FrustumVisibility
+{
+	FRUSTUM_VISIBLE,
+	FRUSTUM_PARTIAL,
+	FRUSTUM_INVISIBLE
+};
+
+// Define a plane as having a point, p, and a normal, n.
+struct Plane
+{
+	vec3 p, n;
+};
+
 struct Camera
 {
 	vec3 pos, target, up;
 	vec3 forward, right;
 
-	// Angles in degrees.
+	// Distance to the near and far frustum planes.
+	float nearDist, farDist;
+
+	// Width and height values for the near and far frustum planes.
+	float nearW, farW;
+	float nearH, farH;
+
+	// Rotation angles in degrees.
 	float yaw, pitch;
 
 	float sensitivity;
+
+	Plane planes[6];
 };
 
 struct Renderer

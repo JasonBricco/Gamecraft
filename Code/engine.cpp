@@ -181,7 +181,8 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 		return;
 	}
 
-	UpdateWorld(world, player);
+	Renderer* rend = (Renderer*)glfwGetWindowUserPointer(window);
+	UpdateWorld(world, rend->camera, player);
 
 	if (g_paused) return;
 
@@ -191,8 +192,6 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	double mouseX, mouseY;
 
 	glfwGetCursorPos(window, &mouseX, &mouseY);
-
-	Renderer* rend = (Renderer*)glfwGetWindowUserPointer(window);
 
 	double cX = rend->windowWidth / 2.0, cY = rend->windowHeight / 2.0f;
 
@@ -223,7 +222,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 
 	World* world = NewWorld(6, 4);
 
-	Player* player = NewPlayer(world->pBounds);
+	Player* player = NewPlayer(world->pBounds, rend->camera);
 	rend->camera = player->camera;
 	
 	double lastTime = glfwGetTime();

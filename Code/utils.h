@@ -28,16 +28,6 @@ static char* PathToAsset(char* fileName)
 	return path;
 }
 
-inline int Clamp(int value, int min, int max)
-{
-	return value <= min ? min : value >= max ? max : value;
-}
-
-inline float Clamp(float value, float min, float max)
-{
-	return value <= min ? min : value >= max ? max : value;
-}
-
 inline int Square(int value)
 {
 	return value * value;
@@ -71,11 +61,6 @@ inline int32_t FloorToInt(float value)
 inline bool Approx(float a, float b)
 {
     return abs(a - b) < EPSILON;
-}
-
-inline float Radians(float degrees)
-{
-	return degrees * 0.01745329f;
 }
 
 inline bool InRange(float val, float min, float max) 
