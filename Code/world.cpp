@@ -683,82 +683,57 @@ static void CheckWorld(World* world, Player* player)
     if (shift) 
     {
         player->pos = pos;
+        CameraFollow(player);
         ShiftWorld(world);
     }
 }
 
 static void TryBuildMeshes(World* world)
 {
-    for (int z = 0; z < world->sizeH; z++)
+    for (int i = 0; i < world->visibleCount; i++)
     {
-        for (int y = 0; y < world->sizeV; y++)
+        Chunk* chunk = world->visibleChunks[i];
+
+        switch (chunk->state)
         {
-            for (int x = 0; x < world->sizeH; x++)
+            case CHUNK_GENERATED:
             {
-                Chunk* chunk = GetChunk(world, x, y, z);
-
-                switch (chunk->state)
-                {
-                    case CHUNK_GENERATED:
-                    {
-                        chunk->state = CHUNK_BUILDING;
-                        QueueAsync(BuildChunk, world, chunk);
-                        break;
-                    }
-
-                    case CHUNK_NEEDS_FILL:
-                    {
-                        FillMeshData(chunk->mesh);
-                        chunk->state = CHUNK_BUILT;
-                        break;
-                    }
-
-                    default:
-                        break;
-                }
+                chunk->state = CHUNK_BUILDING;
+                QueueAsync(BuildChunk, world, chunk);
+                break;
             }
+
+            case CHUNK_NEEDS_FILL:
+            {
+                FillMeshData(chunk->mesh);
+                chunk->state = CHUNK_BUILT;
+                break;
+            }
+
+            default:
+                break;
         }
     }
 }
 
-static void GetVisibleChunks(World* world, Camera* cam, LChunkPos min, LChunkPos max)
+static void GetVisibleChunks(World* world, Camera* cam)
 {
-    vec3 minW = min * CHUNK_SIZE;
-    vec3 maxW = max * CHUNK_SIZE;
-
-    FrustumVisibility visibility = TestFrustum(cam, minW, maxW);
-
-    if (visibility == FRUSTUM_VISIBLE)
+    BEGIN_TIMED_BLOCK(GET_VISIBLE_CHUNKS);
+    
+    for (int i = 0; i < world->totalChunks; i++)
     {
-        for (int z = min.z; z <= max.z; z++)
-        {
-            for (int y = min.y; y <= max.y; y++)
-            {
-                for (int x = min.x; x <= max.x; x++)
-                    world->visibleChunks[world->visibleCount++] = GetChunk(world, x, y, z);
-            }
-        }
+        Chunk* chunk = world->chunks[i];
+        LChunkPos cP = chunk->lcPos;
+        vec3 min = cP * CHUNK_SIZE;
+        vec3 max = min + (CHUNK_SIZE - 1.0f);
+
+        FrustumVisibility visibility = TestFrustum(cam, min, max);
+
+        if (visibility >= FRUSTUM_VISIBLE)
+            world->visibleChunks[world->visibleCount++] = chunk;
     }
-    else if (visibility == FRUSTUM_PARTIAL)
-    {
-        ChunkPos mid = min + ((max - min) / 2);
 
-        if (mid == min)
-        {
-            world->visibleChunks[world->visibleCount++] = GetChunk(world, min.x, min.y, min.z);
-            return;
-        }
-
-        GetVisibleChunks(world, cam, min, mid);
-        GetVisibleChunks(world, cam, ivec3(min.x, min.y, mid.z), ivec3(mid.x, mid.y, max.z));
-        GetVisibleChunks(world, cam, ivec3(mid.x, min.y, min.z), ivec3(max.x, mid.y, mid.z));
-        GetVisibleChunks(world, cam, ivec3(mid.x, min.y, mid.z), ivec3(max.x, mid.y, max.z));
-
-        GetVisibleChunks(world, cam, ivec3(min.x, mid.y, min.z), ivec3(mid.x, max.y, mid.z));
-        GetVisibleChunks(world, cam, ivec3(min.x, mid.y, mid.z), ivec3(mid.x, max.y, max.z));
-        GetVisibleChunks(world, cam, ivec3(mid.x, mid.y, min.z), ivec3(max.x, max.y, mid.z));
-        GetVisibleChunks(world, cam, mid, max);
-    }
+    END_TIMED_BLOCK(GET_VISIBLE_CHUNKS);
 }
 
 static void UpdateWorld(World* world, Camera* cam, Player* player)
@@ -766,11 +741,12 @@ static void UpdateWorld(World* world, Camera* cam, Player* player)
     if (!player->spawned) return;
     
     CheckWorld(world, player);
-    TryBuildMeshes(world);
 
     world->visibleCount = 0;
     GetCameraPlanes(cam);
-    GetVisibleChunks(world, cam, ivec3(0), ivec3(world->sizeH - 1, world->sizeV - 1, world->sizeH - 1));
+    GetVisibleChunks(world, cam);
+
+    TryBuildMeshes(world);
 
     while (world->destroyQueue.count > 0)
     {

@@ -17,9 +17,9 @@ struct Graphic
 
 enum FrustumVisibility
 {
+	FRUSTUM_INVISIBLE,
 	FRUSTUM_VISIBLE,
-	FRUSTUM_PARTIAL,
-	FRUSTUM_INVISIBLE
+	FRUSTUM_PARTIAL
 };
 
 // Define a plane as having a point, p, and a normal, n.

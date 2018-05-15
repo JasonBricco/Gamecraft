@@ -103,7 +103,7 @@ static Camera* NewCamera()
 {
 	Camera* cam = Calloc(Camera, sizeof(Camera), "Cam");
 	cam->nearDist = 0.1f;
-	cam->farDist = 256.0f;
+	cam->farDist = 512.0f;
 	cam->sensitivity = 0.05f;
 	return cam;
 }
@@ -130,6 +130,13 @@ static void RotateCamera(Camera* cam, float yaw, float pitch)
 
 	cam->pitch = clamp(cam->pitch, -PI / 2.0f + 0.1f, PI / 2.0f - 0.1f);
 	UpdateCameraVectors(cam);
+}
+
+inline void CameraFollow(Player* player)
+{	
+	vec3 pos = player->pos;
+	player->camera->pos = vec3(pos.x, pos.y + 1.15f, pos.z);
+	UpdateCameraVectors(player->camera);
 }
 
 inline void UpdateViewMatrix(Renderer* rend)
@@ -309,6 +316,8 @@ static Ray ScreenCenterToRay(Renderer* rend)
 // of the view frustum. This is an optimized version.
 inline void GetCameraPlanes(Camera* cam)
 {	
+	BEGIN_TIMED_BLOCK(CAMERA_PLANES);
+
 	vec3 fc = cam->pos + cam->forward * cam->farDist;
 	vec3 nc = cam->pos + cam->forward * cam->nearDist;
 
@@ -337,6 +346,8 @@ inline void GetCameraPlanes(Camera* cam)
 	aux = normalize((nc + cam->right * cam->nearW) - cam->pos);
 	n = cross(cam->up, aux);
 	cam->planes[5] = { nc + cam->right * cam->nearW, n };
+
+	END_TIMED_BLOCK(CAMERA_PLANES);
 }
 
 // Returns the farthest positive vertex from an AABB defined by min and max
@@ -373,6 +384,11 @@ inline vec3 FarthestNegativeVertex(vec3 min, vec3 max, vec3 normal)
 	return v;
 }
 
+inline float SignedDist(Plane plane, vec3 v) 
+{
+    return dot(plane.n, (v - plane.p));
+}
+
 inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 {
 	for (int i = 0; i < 6; i++)
@@ -380,13 +396,13 @@ inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 		Plane plane = cam->planes[i];
 
 		vec3 vert = FarthestPositiveVertex(min, max, plane.n);
-		float dist = distance(plane.p, vert);
+		float dist = SignedDist(plane, vert);
 
 		if (dist < 0.0f) 
 			return FRUSTUM_INVISIBLE;
 
-		vert = FarthestNegativeVertex(min, max, plane.p);
-		dist = distance(plane.p, vert);
+		vert = FarthestNegativeVertex(min, max, plane.n);
+		dist = SignedDist(plane, vert);
 
 		if (dist < 0.0f) 
 			return FRUSTUM_PARTIAL;

@@ -441,13 +441,6 @@ static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
 	return false;
 }
 
-inline void CameraFollow(Player* player)
-{	
-	vec3 pos = player->pos;
-	player->camera->pos = vec3(pos.x, pos.y + 1.15f, pos.z);
-	UpdateCameraVectors(player->camera);
-}
-
 static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 {
 	accel = accel * player->speed;

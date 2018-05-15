@@ -26,7 +26,7 @@
 
 #define PROFILING 0
 #define PROFILING_ONCE 0
-#define ASSERTIONS 0
+#define ASSERTIONS 1
 #define DEBUG_MEMORY 0
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -72,10 +72,14 @@ static void HandleAssertion(char* file, int line)
 #define Assert(expression)
 #endif
 
-#if DEBUG_MEMORY
+#if PROFILING || DEBUG_MEMORY
 
 #include <string>
 #include <mutex>
+
+#endif
+
+#if DEBUG_MEMORY
 
 #define Malloc(type, size, id) (type*)DebugMalloc(id, size)
 #define Calloc(type, size, id) (type*)DebugCalloc(id, size)

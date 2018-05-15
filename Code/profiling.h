@@ -8,12 +8,15 @@ enum MeasureSection
 	MEASURE_GAME_LOOP = 0,
 	MEASURE_RENDER_SCENE = 1,
 	MEASURE_FILL_MESH = 2,
-	MEASURE_TEMP = 3,
-	MEASURE_COUNT = 4
+	MEASURE_CAMERA_PLANES = 3,
+	MEASURE_GET_VISIBLE_CHUNKS = 4,
+	MEASURE_TEMP = 5,
+	MEASURE_COUNT = 6
 };
 
 struct CycleCounter
 {
+	char* label;
 	uint64_t cycles;
 	uint64_t calls;
 	uint64_t lowest = UINT_MAX;
@@ -42,14 +45,17 @@ static void FlushCounters()
 					g_counters[i].lowest = cycles;
 
 				char buffer[128];
-				sprintf(buffer, "%d: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u, Lowest: %I64u\n", 
-					i, cycles, calls, cyclesPerCall, g_counters[i].lowest);
+				sprintf(buffer, "%s: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u, Lowest: %I64u\n", 
+					g_counters[i].label, cycles, calls, cyclesPerCall, 
+					g_counters[i].lowest);
 				OutputDebugString(buffer);
 
 				g_counters[i].cycles = 0;
 				g_counters[i].calls = 0;
 			}
 		}
+
+		OutputDebugString("\n");
 	}
 
 	#if PROFILING_ONCE
@@ -59,14 +65,15 @@ static void FlushCounters()
 	#endif
 }
 
-inline void EndTimedBlock(int ID, uint64_t start)
+inline void EndTimedBlock(int ID, char* label, uint64_t start)
 {
+	g_counters[ID].label = label;
 	g_counters[ID].cycles += __rdtsc() - start;
 	g_counters[ID].calls++;
 }
 
 #define BEGIN_TIMED_BLOCK(ID) uint64_t startCount##ID = __rdtsc();
-#define END_TIMED_BLOCK(ID) EndTimedBlock(MEASURE_##ID, startCount##ID)
+#define END_TIMED_BLOCK(ID) EndTimedBlock(MEASURE_##ID, #ID, startCount##ID)
 #define FLUSH_COUNTERS() FlushCounters();
 
 #else
@@ -80,18 +87,18 @@ inline void EndTimedBlock(int ID, uint64_t start)
 #if DEBUG_MEMORY
 
 static unordered_map<string, uint32_t> g_allocInfo;
-static mutex allocInfoMutex;
+static mutex g_allocMutex;
 
 inline void TrackAlloc(string id)
 {
-	allocInfoMutex.lock();
+	g_allocMutex.lock();
 	auto it = g_allocInfo.find(id);
 
 	if (it == g_allocInfo.end())
 		g_allocInfo[id] = 0;
 
 	g_allocInfo[id]++;
-	allocInfoMutex.unlock();
+	g_allocMutex.unlock();
 }
 
 inline void* DebugMalloc(string id, int size)
@@ -108,12 +115,12 @@ inline void* DebugCalloc(string id, int size)
 
 inline void DebugFree(string id, void* ptr)
 {
-	allocInfoMutex.lock();
+	g_allocMutex.lock();
 	auto it = g_allocInfo.find(id);
 	Assert(it != g_allocInfo.end());
 
 	g_allocInfo[id]--;
-	allocInfoMutex.unlock();
+	g_allocMutex.unlock();
 
 	free(ptr);
 }

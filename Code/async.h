@@ -1,7 +1,7 @@
 // Voxel Engine
 // Jason Bricco
 
-#define THREAD_COUNT 7
+#define THREAD_COUNT 3
 
 using AsyncFunc = void(*)(World*, Chunk*);
 
