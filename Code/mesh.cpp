@@ -34,8 +34,7 @@ static void DestroyMesh(Mesh* mesh)
 	Free(mesh, "Mesh");
 }
 
-inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex,
-	float r, float g, float b, float a)
+inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex, Color c)
 {
 	if (mesh->vertCount + MESH_PARAMS > mesh->vertMax)
 	{
@@ -53,10 +52,10 @@ inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float 
 	mesh->vertices[count++] = v;
 	mesh->vertices[count++] = tex;
 
-	mesh->vertices[count++] = r;
-	mesh->vertices[count++] = g;
-	mesh->vertices[count++] = b;
-	mesh->vertices[count++] = a;
+	mesh->vertices[count++] = c.r;
+	mesh->vertices[count++] = c.g;
+	mesh->vertices[count++] = c.b;
+	mesh->vertices[count++] = c.a;
 
 	mesh->vertCount = count;
 }

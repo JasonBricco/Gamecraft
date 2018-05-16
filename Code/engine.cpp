@@ -3,15 +3,14 @@
 
 // BUGS/TODO:
 // Some bug making blocks appear in another chunk when you place them sometimes.
+// Revamp how we handle shader uniforms.
+// Support for multiple meshes per chunk (transparent water) and non-air transparent blocks.
+// (GLSL Subroutines for optimizing shaders.)
 
 // Look Into:
-// Frustum culling.
-// When we frustum cull, we can ensure we only load chunks within the frustum and a short
-// distance around the player. If we already created it and look away, just stop rendering it but leave
-// it as is. We will have freed the other mesh list data and so the memory footprint won't be too huge.
-// GLSL Subroutines for optimizing shaders.
 // Shader precompiling.
-// Noise "quadrants" (actually larger) to solve noise precision issue. 
+// Noise "quadrants" (actually larger) to solve noise precision issue. Voronoi regions. Have an island in each
+// region with unique generator properties. Ocean everywhere else. Islands can be massive or small. 
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLEW_STATIC

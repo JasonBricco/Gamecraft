@@ -461,6 +461,58 @@ static void DestroyChunk(World* world, Chunk* chunk)
 	AddChunkToPool(world, chunk);
 }
 
+inline Color VertexLight(Chunk* chunk, Axis axis, RelPos pos, int dx, int dy, int dz)
+{
+    RelPos a, b, c, d;
+
+    switch (axis)
+    {
+        case AXIS_X:
+            a = pos + ivec3(dx, 0, 0);
+            b = pos + ivec3(dx, dy, 0);
+            c = pos + ivec3(dx, 0, dz);
+            d = pos + ivec3(dx, dy, dz);
+            break;
+
+        case AXIS_Y:
+            a = pos + ivec3(0, dy, 0);
+            b = pos + ivec3(dx, dy, 0);
+            c = pos + ivec3(0, dy, dz);
+            d = pos + ivec3(dx, dy, dz);
+            break;
+
+        default:
+            a = pos + ivec3(0, 0, dz);
+            b = pos + ivec3(dx, 0, dz);
+            c = pos + ivec3(0, dy, dz);
+            d = pos + ivec3(dx, dy, dz);
+            break;
+    }
+
+    bool t1 = GetBlock(chunk, b.x, b.y, b.z) == BLOCK_AIR;
+    bool t2 = GetBlock(chunk, c.x, c.y, c.z) == BLOCK_AIR;
+
+    if (t1 || t2) 
+    {
+        Color c1 = GetBlock(chunk, a) == BLOCK_AIR ? vec4(1.0f) : vec4(0.25f);
+        Color c2 = GetBlock(chunk, b) == BLOCK_AIR ? vec4(1.0f) : vec4(0.25f);
+        Color c3 = GetBlock(chunk, c) == BLOCK_AIR ? vec4(1.0f) : vec4(0.25f);
+        Color c4 = GetBlock(chunk, d) == BLOCK_AIR ? vec4(1.0f) : vec4(0.25f);
+
+        return Average(c1, c2, c3, c4);
+    }
+    else 
+    {
+        Color c1 = GetBlock(chunk, a) == BLOCK_AIR ? vec4(1.0f) : vec4(0.25f);
+        Color c2 = GetBlock(chunk, b) == BLOCK_AIR ? vec4(1.0f) : vec4(0.25f);
+        Color c3 = GetBlock(chunk, c) == BLOCK_AIR ? vec4(1.0f) : vec4(0.25f);
+
+        return Average(c1, c2, c3);
+    }
+}
+
+#define VERTEX_LIGHT(axis, off1, off2, off3) VertexLight(chunk, AXIS_##axis, rP, off1, off2, off3)
+
 // Builds mesh data for a single block. x, y, and z are relative to the
 // chunk in local world space.
 inline void BuildBlock(World* world, Chunk* chunk, int xi, int yi, int zi, int block)
@@ -468,72 +520,67 @@ inline void BuildBlock(World* world, Chunk* chunk, int xi, int yi, int zi, int b
     Mesh* mesh = chunk->mesh;
 	float* textures = world->blockData[block].textures;
 
+    RelPos rP = ivec3(xi, yi, zi);
     float x = (float)xi, y = (float)yi, z = (float)zi;
 
-	// Top face.
 	if (GetBlock(chunk, xi, yi + 1, zi) == BLOCK_AIR)
 	{
 		float tex = textures[FACE_TOP];
 		SetMeshIndices(mesh);
-		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 1.0f, tex, VERTEX_LIGHT(Y, 1, 1, -1));
+		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, VERTEX_LIGHT(Y, 1, 1, 1));
+		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, VERTEX_LIGHT(Y, -1, 1, 1));
+		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Y, -1, 1, -1));
 	}
 
-	// Bottom face.
 	if (GetBlock(chunk, xi, yi - 1, zi) == BLOCK_AIR)
 	{
 		float tex = textures[FACE_BOTTOM];
 		SetMeshIndices(mesh);
-		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, VERTEX_LIGHT(Y, -1, -1, -1));
+		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 0.0f, tex, VERTEX_LIGHT(Y, -1, -1, 1));
+		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 0.0f, tex, VERTEX_LIGHT(Y, 1, -1, 1));
+		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Y, 1, -1, -1));
 	}
 
-	// Front face.
 	if (GetBlock(chunk, xi, yi, zi + 1) == BLOCK_AIR)
 	{
 		float tex = textures[FACE_FRONT];
 		SetMeshIndices(mesh);
-		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f); 
-		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f, tex, VERTEX_LIGHT(Z, -1, -1, 1)); 
+		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, VERTEX_LIGHT(Z, -1, 1, 1));
+		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, VERTEX_LIGHT(Z, 1, 1, 1));
+		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Z, 1, -1, 1));
 	}
 
-	// Back face.
 	if (GetBlock(chunk, xi, yi, zi - 1) == BLOCK_AIR)
 	{
 		float tex = textures[FACE_BACK];
 		SetMeshIndices(mesh);
-		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, VERTEX_LIGHT(Z, 1, -1, -1));
+		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, tex, VERTEX_LIGHT(Z, 1, 1, -1));
+		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, tex, VERTEX_LIGHT(Z, -1, 1, -1));
+		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Z, -1, -1, -1));
 	}
 
-	// Right face.
 	if (GetBlock(chunk, xi + 1, yi, zi) == BLOCK_AIR)
 	{
 		float tex = textures[FACE_RIGHT];
 		SetMeshIndices(mesh);
-		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f, tex, VERTEX_LIGHT(X, 1, -1, 1));
+		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, VERTEX_LIGHT(X, 1, 1, 1));
+		SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, tex, VERTEX_LIGHT(X, 1, 1, -1));
+		SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(X, 1, -1, -1));
 	}
 
-	// Left face.
 	if (GetBlock(chunk, xi - 1, yi, zi) == BLOCK_AIR)
 	{
 		float tex = textures[FACE_LEFT];
 		SetMeshIndices(mesh);
-		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
-		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, 1.0f, 1.0f, 1.0f, 1.0f);
+		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, VERTEX_LIGHT(X, -1, -1, -1));
+		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, tex, VERTEX_LIGHT(X, -1, 1, -1));
+		SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, VERTEX_LIGHT(X, -1, 1, 1));
+		SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(X, -1, -1, 1));
 	}
 }
 

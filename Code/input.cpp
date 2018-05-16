@@ -13,6 +13,11 @@ inline bool KeyPressed(KeyType type)
 	return g_input.single[type];
 }
 
+inline int LastNumKey()
+{
+	return g_input.lastNum;
+}
+
 inline bool MousePressed(int button)
 {
 	return g_input.mousePressed[button];
@@ -88,6 +93,56 @@ static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mod
 
 		case GLFW_KEY_BACKSLASH:
 			SetKey(KEY_BACKSLASH, action);
+			break;
+
+		case GLFW_KEY_0:
+			g_input.lastNum = 0;
+			SetKey(KEY_0, action);
+			break;
+
+		case GLFW_KEY_1:
+			g_input.lastNum = 1;
+			SetKey(KEY_1, action);
+			break;
+
+		case GLFW_KEY_2:
+			g_input.lastNum = 2;
+			SetKey(KEY_2, action);
+			break;
+
+		case GLFW_KEY_3:
+			g_input.lastNum = 3;
+			SetKey(KEY_3, action);
+			break;
+
+		case GLFW_KEY_4:
+			g_input.lastNum = 4;
+			SetKey(KEY_4, action);
+			break;
+
+		case GLFW_KEY_5:
+			g_input.lastNum = 5;
+			SetKey(KEY_5, action);
+			break;
+
+		case GLFW_KEY_6:
+			g_input.lastNum = 6;
+			SetKey(KEY_6, action);
+			break;
+
+		case GLFW_KEY_7:
+			g_input.lastNum = 7;
+			SetKey(KEY_7, action);
+			break;
+
+		case GLFW_KEY_8:
+			g_input.lastNum = 8;
+			SetKey(KEY_8, action);
+			break;
+
+		case GLFW_KEY_9:
+			g_input.lastNum = 9;
+			SetKey(KEY_9, action);
 			break;
 	}
 

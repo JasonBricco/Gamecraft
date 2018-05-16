@@ -596,13 +596,14 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 
 			if (op == 0)
 			{
+				int lastNum = LastNumKey();
 				setPos = info.adjPos;
-				SetBlock(world, setPos, 1);
+				SetBlock(world, setPos, Clamp(lastNum, 1, BLOCK_COUNT));
 			}
 			else
 			{
 				setPos = info.hitPos;
-				SetBlock(world, setPos, 0);
+				SetBlock(world, setPos, BLOCK_AIR);
 			}
 		}
 	}

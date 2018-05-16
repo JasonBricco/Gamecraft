@@ -280,6 +280,8 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 	sb_push(paths, "Assets/Stone.png");
 	sb_push(paths, "Assets/Water.png");
 	sb_push(paths, "Assets/Sand.png");
+	sb_push(paths, "Assets/Crate.png");
+	sb_push(paths, "Assets/StoneBrick.png");
 
 	LoadTextureArray(&blockTextures, paths, true);
 	sb_free(paths);

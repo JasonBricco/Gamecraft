@@ -30,7 +30,7 @@ uniform sampler2DArray tex;
 
 void main()
 {
-	outColor = texture(tex, uv) * ambient0 * 1.75f;
+	outColor = texture(tex, uv) * ambient0 * vec4(vertColor, 1.0f) * 1.5f;
 }
 
 #endif

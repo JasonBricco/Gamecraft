@@ -9,23 +9,24 @@
 
 #define Align16(v) ((v + 15) & ~15)
 
+typedef vec4 Color;
+
+enum Axis { AXIS_X, AXIS_Y, AXIS_Z };
+
 struct Ray
 {
 	vec3 origin;
 	vec3 dir;
 };
 
-static char* PathToAsset(char* fileName)
+inline int Clamp(int value, int min, int max)
 {
-	int size = MAX_PATH * 2;
-	char* path = Malloc(char, size, "AssetPath");
-	GetModuleFileName(NULL, path, size);
+    return value <= min ? min : value >= max ? max : value;
+}
 
-	char* pos = strrchr(path, '\\');
-	*(pos + 1) = '\0';
-
-	strcat(path, fileName);
-	return path;
+inline float Clamp(float value, float min, float max)
+{
+    return value <= min ? min : value >= max ? max : value;
 }
 
 inline int Square(int value)
@@ -97,6 +98,26 @@ inline float Lerp(float a, float b, float t)
 inline float SCurve3(float a)
 {
 	return (a * a * (3.0f - 2.0f * a));
+}
+
+inline Color Average(Color first, Color second, Color third, Color fourth)
+{
+    float r = (first.r + second.r + third.r + fourth.r) / 4.0f;
+    float b = (first.b + second.b + third.b + fourth.b) / 4.0f;
+    float g = (first.g + second.g + third.g + fourth.g) / 4.0f;
+    float a = (first.a + second.a + third.a + fourth.a) / 4.0f;
+    
+    return vec4(r, b, g, a);
+}
+
+inline Color Average(Color first, Color second, Color third)
+{
+    float r = (first.r + second.r + third.r) / 3.0f;
+    float b = (first.b + second.b + third.b) / 3.0f;
+    float g = (first.g + second.g + third.g) / 3.0f;
+    float a = (first.a + second.a + third.a) / 3.0f;
+    
+    return vec4(r, b, g, a);
 }
 
 struct Rectf

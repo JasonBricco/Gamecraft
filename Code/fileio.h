@@ -1,6 +1,19 @@
 // Voxel Engine
 // Jason Bricco
 
+static char* PathToAsset(char* fileName)
+{
+	int size = MAX_PATH * 2;
+	char* path = Malloc(char, size, "AssetPath");
+	GetModuleFileName(NULL, path, size);
+
+	char* pos = strrchr(path, '\\');
+	*(pos + 1) = '\0';
+
+	strcat(path, fileName);
+	return path;
+}
+
 static char* ReadFileData(char* fileName)
 {
 	char* path = PathToAsset(fileName);
