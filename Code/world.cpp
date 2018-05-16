@@ -1,8 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 
-inline void UpdateChunk(World* world, Chunk* chunk);
-
 inline void EnqueueChunk(ChunkQueue& queue, Chunk* chunk)
 {
     if (queue.front == NULL)
@@ -130,6 +128,8 @@ inline void AddChunkToHash(World* world, Chunk* chunk)
     world->chunkHash[bucket] = chunk;
 }
 
+// Sets a block to the given chunk. Assumes the coordinates take into account the chunk
+// padding and doesn't offset them.
 inline void SetBlockPadded(Chunk* chunk, int rX, int rY, int rZ, int block)
 {
     int index = rX + PADDED_CHUNK_SIZE * (rY + PADDED_CHUNK_SIZE * rZ);
@@ -142,6 +142,8 @@ inline void SetBlockPadded(Chunk* chunk, RelPos pos, int block)
     SetBlockPadded(chunk, pos.x, pos.y, pos.z, block);
 }
 
+// Sets a block to the given chunk. Assumes the coordinates are in the range 
+// 0 to CHUNK_SIZE and offsets them to account for padding.
 inline void SetBlock(Chunk* chunk, int rX, int rY, int rZ, int block)
 {
     SetBlockPadded(chunk, rX + 1, rY + 1, rZ + 1, block);
@@ -152,6 +154,56 @@ inline void SetBlock(Chunk* chunk, RelPos pos, int block)
 	SetBlock(chunk, pos.x, pos.y, pos.z, block);
 }
 
+#define SET_TO_NEIGHBOR(lcX, lcY, lcZ, rX, rY, rZ) {\
+    chunk = GetChunk(world, lcX, lcY, lcZ);\
+    SetBlock(chunk, rX, rY, rZ, block);\
+    chunk->state = CHUNK_UPDATE;\
+}
+
+// Sets a block to the given chunk. If blocks are on the edge of the chunk,
+// the neighbor chunk's padding will be updated as well.
+inline void SetBlockAndUpdatePadding(World* world, Chunk* chunk, int rX, int rY, int rZ, int block)
+{
+    SetBlock(chunk, rX, rY, rZ, block);
+    chunk->state = CHUNK_UPDATE;
+
+    LChunkPos p = chunk->lcPos;
+
+    // Set this block to neighbor padding if it is on this chunk's edge.
+    if (rX == 0)
+    {
+        SET_TO_NEIGHBOR(p.x - 1, p.y, p.z, CHUNK_SIZE, rY, rZ)
+
+        if (rY == 0) SET_TO_NEIGHBOR(p.x - 1, p.y - 1, p.z, CHUNK_SIZE, CHUNK_SIZE, rZ)
+        if (rY == CHUNK_SIZE - 1) SET_TO_NEIGHBOR(p.x - 1, p.y + 1, p.z, CHUNK_SIZE, -1, rZ)
+    }
+    else if (rX == CHUNK_SIZE - 1)
+    {
+        SET_TO_NEIGHBOR(p.x + 1, p.y, p.z, -1, rY, rZ)
+
+        if (rY == 0) SET_TO_NEIGHBOR(p.x + 1, p.y - 1, p.z, -1, CHUNK_SIZE, rZ)
+        if (rY == CHUNK_SIZE - 1) SET_TO_NEIGHBOR(p.x + 1, p.y + 1, p.z, -1, -1, rZ)
+    }
+
+    if (rY == 0) SET_TO_NEIGHBOR(p.x, p.y - 1, p.z, rX, CHUNK_SIZE, rZ)
+    else if (rY == CHUNK_SIZE - 1) SET_TO_NEIGHBOR(p.x, p.y + 1, p.z, rX, -1, rZ);
+
+    if (rZ == 0)
+    {
+        SET_TO_NEIGHBOR(p.x, p.y, p.z - 1, rX, rY, CHUNK_SIZE)
+
+        if (rY == 0) SET_TO_NEIGHBOR(p.x, p.y - 1, p.z - 1, rX, CHUNK_SIZE, CHUNK_SIZE)
+        if (rY == CHUNK_SIZE - 1) SET_TO_NEIGHBOR(p.x, p.y + 1, p.z - 1, rX, -1, CHUNK_SIZE)
+    }
+    else if (rZ == CHUNK_SIZE - 1)
+    {
+        SET_TO_NEIGHBOR(p.x, p.y, p.z + 1, rX, rY, -1)
+
+        if (rY == 0) SET_TO_NEIGHBOR(p.x, p.y - 1, p.z + 1, rX, CHUNK_SIZE, -1)
+        if (rY == CHUNK_SIZE - 1) SET_TO_NEIGHBOR(p.x, p.y + 1, p.z + 1, rX, -1, -1)
+    }
+}
+
 inline void SetBlock(World* world, LWorldPos wPos, int block)
 {
 	LChunkPos cPos = ToChunkPos(wPos);
@@ -159,48 +211,7 @@ inline void SetBlock(World* world, LWorldPos wPos, int block)
 	Assert(chunk != NULL);
 
 	RelPos local = ToLocalPos(wPos);
-	SetBlock(chunk, local, block);
-    UpdateChunk(world, chunk);
-
-    // Set this block to neighbor padding if it is on this chunk's edge.
-    if (local.x == 0) 
-    {
-        chunk = GetChunk(world, cPos.x - 1, cPos.y, cPos.z);
-        SetBlock(chunk, CHUNK_SIZE, local.y, local.z, block);
-        UpdateChunk(world, chunk);
-    }
-    else if (local.x == CHUNK_SIZE - 1) 
-    {
-        chunk = GetChunk(world, cPos.x + 1, cPos.y, cPos.z);
-        SetBlock(chunk, -1, local.y, local.z, block);
-        UpdateChunk(world, chunk);
-    }
-    
-    if (local.z == 0) 
-    {
-        chunk = GetChunk(world, cPos.x, cPos.y, cPos.z - 1);
-        SetBlock(chunk, local.x, local.y, CHUNK_SIZE, block);
-        UpdateChunk(world, chunk);
-    }
-    else if (local.z == CHUNK_SIZE - 1)
-    {
-        chunk = GetChunk(world, cPos.x, cPos.y, cPos.z + 1);
-        SetBlock(chunk, local.x, local.y, -1, block);
-        UpdateChunk(world, chunk);
-    }
-
-    if (local.y == 0)
-    {
-        chunk = GetChunk(world, cPos.x, cPos.y - 1, cPos.z);
-        SetBlock(chunk, local.x, CHUNK_SIZE, local.z, block);
-        UpdateChunk(world, chunk);
-    }
-    else if (local.y == CHUNK_SIZE - 1)
-    {
-        chunk = GetChunk(world, cPos.x, cPos.y + 1, cPos.z);
-        SetBlock(chunk, local.x, -1, local.z, block);
-        UpdateChunk(world, chunk);
-    }
+	SetBlockAndUpdatePadding(world, chunk, local.x, local.y, local.z, block);
 }
 
 inline void SetBlock(World* world, int lwX, int lwY, int lwZ, int block)
@@ -374,42 +385,14 @@ static void GenerateChunkTerrain(World* world, Chunk* chunk)
 // Fill a chunk with a single block type.
 static void FillChunk(World* world, Chunk* chunk, int block)
 {
-    LChunkPos p = chunk->lcPos;
-
-    Chunk* left = GetChunk(world, p.x - 1, p.y, p.z);
-    Chunk* right = GetChunk(world, p.x + 1, p.y, p.z);
-    Chunk* up = GetChunk(world, p.x, p.y + 1, p.z);
-    Chunk* down = GetChunk(world, p.x, p.y - 1, p.z);
-    Chunk* back = GetChunk(world, p.x, p.y, p.z - 1);
-    Chunk* front = GetChunk(world, p.x, p.y, p.z + 1);
-
     for (int z = 0; z < CHUNK_SIZE; z++)
     {
         for (int y = 0; y < CHUNK_SIZE; y++)
         {
             for (int x = 0; x < CHUNK_SIZE; x++)
-            {
-                SetBlock(chunk, x, y, z, block);
-
-                if (x == 0) SetBlock(left, CHUNK_SIZE, y, z, block);
-                else if (x == CHUNK_SIZE - 1) SetBlock(right, -1, y, z, block);
-
-                if (y == 0) SetBlock(down, x, CHUNK_SIZE, z, block);
-                else if (y == CHUNK_SIZE - 1) SetBlock(up, x, -1, z, block);
-                
-                if (z == 0) SetBlock(back, x, y, CHUNK_SIZE, block);
-                else if (z == CHUNK_SIZE - 1) SetBlock(front, x, y, -1, block);
-            }
+                SetBlockAndUpdatePadding(world, chunk, x, y, z, block);
         }
     }
-
-    UpdateChunk(world, chunk);
-    UpdateChunk(world, left);
-    UpdateChunk(world, right);
-    UpdateChunk(world, down);
-    UpdateChunk(world, up);
-    UpdateChunk(world, back);
-    UpdateChunk(world, front);
 }
 
 inline void AddChunkToPool(World* world, Chunk* chunk)
@@ -614,16 +597,6 @@ inline void BuildChunkNow(World* world, Chunk* chunk)
 
 }
 
-// Rebuilds chunk meshes.
-inline void UpdateChunk(World* world, Chunk* chunk)
-{
-	if (chunk->state == CHUNK_BUILT)
-    {
-        DestroyMesh(chunk->mesh);
-        BuildChunkNow(world, chunk);
-    }
-}
-
 // To allow "infinite" terrain, the world is always located near the origin.
 // This function fills the world near the origin based on the reference
 // world position within the world.
@@ -757,11 +730,20 @@ static void TryBuildMeshes(World* world)
                 break;
             }
 
+            case CHUNK_UPDATE:
+            {
+                DestroyMesh(chunk->mesh);
+                BuildChunkNow(world, chunk);
+                break;
+            }
+
             default:
                 break;
         }
     }
 }
+
+#define FRUSTUM_CULLING 1
 
 static void GetVisibleChunks(World* world, Camera* cam)
 {
@@ -774,10 +756,18 @@ static void GetVisibleChunks(World* world, Camera* cam)
         vec3 min = cP * CHUNK_SIZE;
         vec3 max = min + (CHUNK_SIZE - 1.0f);
 
+        #if FRUSTUM_CULLING 
+
         FrustumVisibility visibility = TestFrustum(cam, min, max);
 
         if (visibility >= FRUSTUM_VISIBLE)
             world->visibleChunks[world->visibleCount++] = chunk;
+
+        #else
+
+        world->visibleChunks[world->visibleCount++] = chunk;
+
+        #endif
     }
 
     END_TIMED_BLOCK(GET_VISIBLE_CHUNKS);

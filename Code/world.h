@@ -29,6 +29,7 @@ enum ChunkState
 	CHUNK_BUILDING = 2,
 	CHUNK_NEEDS_FILL = 3,
 	CHUNK_BUILT = 4,
+	CHUNK_UPDATE = 5
 };
 
 struct Chunk

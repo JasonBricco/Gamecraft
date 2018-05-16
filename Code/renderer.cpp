@@ -434,7 +434,7 @@ static void RenderScene(Renderer* rend, World* world)
 	{
 		Chunk* chunk = world->visibleChunks[i];
 
-		if (chunk->state == CHUNK_BUILT && chunk->mesh->vertCount > 0)
+		if (chunk->state >= CHUNK_BUILT && chunk->mesh->vertCount > 0)
 		{
 			model = translate(mat4(1.0f), (vec3)chunk->lwPos);
 			SetUniform(rend, 0, "model0", model);
