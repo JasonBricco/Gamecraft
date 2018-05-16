@@ -13,6 +13,8 @@ struct Graphic
 	int shaderID;
 	GLuint texture;
 	vec2 pos;
+
+	GLint u_model, u_proj;
 };
 
 enum FrustumVisibility
@@ -54,7 +56,8 @@ struct Renderer
 
 	int windowWidth, windowHeight;
 
-	unordered_map<string, GLint> uniforms;
+	// Shader uniforms.
+	GLint u_view, u_model, u_proj;
 
 	mat4 perspective, ortho, view;
 

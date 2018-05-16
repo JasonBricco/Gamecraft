@@ -7,13 +7,13 @@ layout (location = 2) in vec3 inColor;
 out vec3 uv;
 out vec3 vertColor;
 
-uniform mat4 model0;
-uniform mat4 view0;
-uniform mat4 projection0;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 
 void main()
 {
-	gl_Position = projection0 * view0 * model0 * vec4(pos, 1.0f);
+	gl_Position = projection * view * model * vec4(pos, 1.0f);
 	vertColor = inColor;
 	uv = inUv;
 }
@@ -25,12 +25,11 @@ in vec3 vertColor;
 
 out vec4 outColor;
 
-uniform vec4 ambient0;
 uniform sampler2DArray tex;
 
 void main()
 {
-	outColor = texture(tex, uv) * ambient0 * vec4(vertColor, 1.0f) * 1.5f;
+	outColor = texture(tex, uv) * vec4(vertColor, 1.0f) * 1.5f;
 }
 
 #endif

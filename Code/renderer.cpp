@@ -10,7 +10,7 @@ inline void SetGraphicVertex(float* vertices, int i, float x, float y, float u, 
 	vertices[i + 3] = v;
 }
 
-static Graphic* CreateGraphic(int shaderID, int texture)
+static Graphic* CreateGraphic(Renderer* rend, int shaderID, int texture)
 {
 	Graphic* graphic = Calloc(Graphic, sizeof(Graphic), "Graphic");
 
@@ -51,6 +51,9 @@ static Graphic* CreateGraphic(int shaderID, int texture)
 	graphic->shaderID = shaderID;
 	graphic->texture = texture;
 
+	graphic->u_model = glGetUniformLocation(rend->programs[shaderID], "model");
+	graphic->u_proj = glGetUniformLocation(rend->programs[shaderID], "projection");
+
 	return graphic;
 }
 
@@ -60,8 +63,8 @@ static void DrawGraphic(Renderer* rend, Graphic* graphic)
 	UseShader(rend->programs[ID]);
 
 	mat4 model = translate(mat4(1.0f), vec3(graphic->pos, 0.0f));
-	SetUniform(rend, ID, "model1", model);
-	SetUniform(rend, ID, "projection1", rend->ortho);
+	SetUniform(graphic->u_model, model);
+	SetUniform(graphic->u_proj, rend->ortho);
 
 	glBindTexture(GL_TEXTURE_2D, graphic->texture);
 
@@ -270,6 +273,10 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 	rend->programs[0] = LoadShader("Shaders\\diffuse_array.shader");
 	rend->programs[1] = LoadShader("Shaders\\Crosshair.shader");
 
+	rend->u_view = glGetUniformLocation(rend->programs[0], "view");
+	rend->u_model = glGetUniformLocation(rend->programs[0], "model");
+	rend->u_proj = glGetUniformLocation(rend->programs[0], "projection");
+
 	GLuint blockTextures;
 
 	char** paths = NULL;
@@ -291,7 +298,7 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 	GLuint Crosshair;
 	LoadTexture(&Crosshair, "Assets/Crosshair.png");
 
-	Graphic* graphic = CreateGraphic(1, Crosshair);
+	Graphic* graphic = CreateGraphic(rend, 1, Crosshair);
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
 	
 	rend->crosshair = graphic;
@@ -422,9 +429,8 @@ static void RenderScene(Renderer* rend, World* world)
 	UpdateViewMatrix(rend);
 
 	UseShader(rend->programs[0]);
-	SetUniform(rend, 0, "view0", rend->view);
-	SetUniform(rend, 0, "projection0", rend->perspective);
-	SetUniform(rend, 0, "ambient0", vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	SetUniform(rend->u_view, rend->view);
+	SetUniform(rend->u_proj, rend->perspective);
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, rend->blockTextures);
 
@@ -437,7 +443,7 @@ static void RenderScene(Renderer* rend, World* world)
 		if (chunk->state >= CHUNK_BUILT && chunk->mesh->vertCount > 0)
 		{
 			model = translate(mat4(1.0f), (vec3)chunk->lwPos);
-			SetUniform(rend, 0, "model0", model);
+			SetUniform(rend->u_model, model);
 			DrawMesh(chunk->mesh);
 		}
 	}
