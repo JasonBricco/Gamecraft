@@ -14,6 +14,8 @@
 #define CHUNK_HASH_SIZE 4096
 #define SEA_LEVEL 12
 
+typedef uint16_t Block;
+
 typedef ivec3 LChunkPos;
 typedef ivec3 LWorldPos;
 typedef ivec3 ChunkPos;
@@ -22,7 +24,7 @@ typedef ivec3 RelPos;
 
 typedef FastNoiseSIMD Noise;
 
-enum BlockType
+enum BlockType : Block
 {
     BLOCK_AIR,
     BLOCK_GRASS,
@@ -68,7 +70,7 @@ struct Chunk
     ChunkPos cPos;
     LWorldPos lwPos;
 
-    int blocks[CHUNK_SIZE_3];
+    Block blocks[CHUNK_SIZE_3];
 
     Mesh* meshes[CHUNK_MESH_COUNT];
 
@@ -121,7 +123,7 @@ struct World
     int seed;
 };
 
-using BuildBlockFunc = void(*)(Chunk*, Mesh*, int, int, int, int);
+using BuildBlockFunc = void(*)(Chunk*, Mesh*, int, int, int, Block);
 
 struct BlockData
 {

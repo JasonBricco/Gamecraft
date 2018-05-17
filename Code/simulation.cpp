@@ -94,7 +94,7 @@ static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result)
 		{
 			for (int x = start.x; x <= end.x; x++) 
 			{
-				int block = GetBlock(world, x, y, z);
+				Block block = GetBlock(world, x, y, z);
 
 				if (block == 0) continue;
 
@@ -500,7 +500,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 			{
 				for (int x = minX; x <= maxX; x++)
 				{
-					int block = GetBlock(world, x, y, z);
+					Block block = GetBlock(world, x, y, z);
 
 					if (block != BLOCK_AIR)
 					{
@@ -583,7 +583,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 			{
 				int lastNum = LastNumKey();
 				setPos = info.adjPos;
-				SetBlock(world, setPos, Clamp(lastNum, 1, BLOCK_COUNT));
+				SetBlock(world, setPos, (Block)(Clamp(lastNum, 1, BLOCK_COUNT)));
 			}
 			else
 			{

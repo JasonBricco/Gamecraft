@@ -132,26 +132,26 @@ inline void AddChunkToHash(World* world, Chunk* chunk)
 
 // Sets a block to the given chunk. Assumes the coordinates take into account the chunk
 // padding and doesn't offset them.
-inline void SetBlockPadded(Chunk* chunk, int rX, int rY, int rZ, int block)
+inline void SetBlockPadded(Chunk* chunk, int rX, int rY, int rZ, Block block)
 {
     int index = rX + PADDED_CHUNK_SIZE * (rY + PADDED_CHUNK_SIZE * rZ);
     Assert(index >= 0 && index < CHUNK_SIZE_3);
     chunk->blocks[index] = block;
 }
 
-inline void SetBlockPadded(Chunk* chunk, RelPos pos, int block)
+inline void SetBlockPadded(Chunk* chunk, RelPos pos, Block block)
 {
     SetBlockPadded(chunk, pos.x, pos.y, pos.z, block);
 }
 
 // Sets a block to the given chunk. Assumes the coordinates are in the range 
 // 0 to CHUNK_SIZE and offsets them to account for padding.
-inline void SetBlock(Chunk* chunk, int rX, int rY, int rZ, int block)
+inline void SetBlock(Chunk* chunk, int rX, int rY, int rZ, Block block)
 {
     SetBlockPadded(chunk, rX + 1, rY + 1, rZ + 1, block);
 }
 
-inline void SetBlock(Chunk* chunk, RelPos pos, int block)
+inline void SetBlock(Chunk* chunk, RelPos pos, Block block)
 {
 	SetBlock(chunk, pos.x, pos.y, pos.z, block);
 }
@@ -164,7 +164,7 @@ inline void SetBlock(Chunk* chunk, RelPos pos, int block)
 
 // Sets a block to the given chunk. If blocks are on the edge of the chunk,
 // the neighbor chunk's padding will be updated as well.
-inline void SetBlockAndUpdatePadding(World* world, Chunk* chunk, int rX, int rY, int rZ, int block)
+inline void SetBlockAndUpdatePadding(World* world, Chunk* chunk, int rX, int rY, int rZ, Block block)
 {
     SetBlock(chunk, rX, rY, rZ, block);
     chunk->state = CHUNK_UPDATE;
@@ -206,7 +206,7 @@ inline void SetBlockAndUpdatePadding(World* world, Chunk* chunk, int rX, int rY,
     }
 }
 
-inline void SetBlock(World* world, LWorldPos wPos, int block)
+inline void SetBlock(World* world, LWorldPos wPos, Block block)
 {
 	LChunkPos cPos = ToChunkPos(wPos);
 	Chunk* chunk = GetChunk(world, cPos);
@@ -216,34 +216,34 @@ inline void SetBlock(World* world, LWorldPos wPos, int block)
 	SetBlockAndUpdatePadding(world, chunk, local.x, local.y, local.z, block);
 }
 
-inline void SetBlock(World* world, int lwX, int lwY, int lwZ, int block)
+inline void SetBlock(World* world, int lwX, int lwY, int lwZ, Block block)
 {
 	SetBlock(world, ivec3(lwX, lwY, lwZ), block);
 }
 
-inline int GetBlockPadded(Chunk* chunk, int rX, int rY, int rZ)
+inline Block GetBlockPadded(Chunk* chunk, int rX, int rY, int rZ)
 {
     int index = rX + PADDED_CHUNK_SIZE * (rY + PADDED_CHUNK_SIZE * rZ);
     Assert(index >= 0 && index < CHUNK_SIZE_3);
     return chunk->blocks[index];;
 }
 
-inline int GetBlockPadded(Chunk* chunk, RelPos pos)
+inline Block GetBlockPadded(Chunk* chunk, RelPos pos)
 {
     return GetBlockPadded(chunk, pos.x, pos.y, pos.z);
 }
 
-inline int GetBlock(Chunk* chunk, int rX, int rY, int rZ)
+inline Block GetBlock(Chunk* chunk, int rX, int rY, int rZ)
 {
     return GetBlockPadded(chunk, rX + 1, rY + 1, rZ + 1);
 }
 
-inline int GetBlock(Chunk* chunk, RelPos pos)
+inline Block GetBlock(Chunk* chunk, RelPos pos)
 {
 	return GetBlock(chunk, pos.x, pos.y, pos.z);
 }
 
-static int GetBlock(World* world, int lwX, int lwY, int lwZ)
+static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
 {
 	LChunkPos lcPos = ToChunkPos(lwX, lwY, lwZ);
 	Chunk* chunk = GetChunk(world, lcPos);
@@ -253,7 +253,7 @@ static int GetBlock(World* world, int lwX, int lwY, int lwZ)
 	return GetBlock(chunk, rPos);
 }
 
-inline int GetBlock(World* world, LWorldPos pos)
+inline Block GetBlock(World* world, LWorldPos pos)
 {
 	return GetBlock(world, pos.x, pos.y, pos.z);
 }
@@ -385,7 +385,7 @@ static void GenerateChunkTerrain(World* world, Chunk* chunk)
 }
 
 // Fill a chunk with a single block type.
-static void FillChunk(World* world, Chunk* chunk, int block)
+static void FillChunk(World* world, Chunk* chunk, Block block)
 {
     for (int z = 0; z < CHUNK_SIZE; z++)
     {
@@ -463,7 +463,7 @@ static void BuildChunk(World* world, Chunk* chunk)
 		{
 			for (int x = 0; x < CHUNK_SIZE; x++)
 			{
-				int block = GetBlock(chunk, x, y, z);
+				Block block = GetBlock(chunk, x, y, z);
 
 				if (block != BLOCK_AIR)
                 {
@@ -710,7 +710,7 @@ static void UpdateWorld(World* world, Renderer* rend, Player* player)
 
 // Returns true if the current block should draw its face when placed
 // next to the adjacent block.
-inline bool CanDrawFace(CullType cur, int adjBlock)
+inline bool CanDrawFace(CullType cur, Block adjBlock)
 {
     CullType adj = g_blockData[adjBlock].cull;
 
@@ -775,7 +775,7 @@ inline Color VertexLight(Chunk* chunk, Axis axis, RelPos pos, int dx, int dy, in
 
 // Builds mesh data for a single block. x, y, and z are relative to the
 // chunk in local world space.
-static void BuildBlock(Chunk* chunk, Mesh* mesh, int xi, int yi, int zi, int block)
+static void BuildBlock(Chunk* chunk, Mesh* mesh, int xi, int yi, int zi, Block block)
 {
     float* textures = g_blockData[block].textures;
 
