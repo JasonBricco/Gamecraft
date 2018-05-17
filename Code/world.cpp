@@ -710,9 +710,8 @@ static void UpdateWorld(World* world, Renderer* rend, Player* player)
 
 // Returns true if the current block should draw its face when placed
 // next to the adjacent block.
-inline bool CanDrawFace(int curBlock, int adjBlock)
+inline bool CanDrawFace(CullType cur, int adjBlock)
 {
-    CullType cur = g_blockData[curBlock].cull;
     CullType adj = g_blockData[adjBlock].cull;
 
     if (cur == CULL_OPAQUE)
@@ -772,7 +771,7 @@ inline Color VertexLight(Chunk* chunk, Axis axis, RelPos pos, int dx, int dy, in
     }
 }
 
-#define VERTEX_LIGHT(axis, off1, off2, off3) VertexLight(chunk, AXIS_##axis, rP, off1, off2, off3)
+#define VERTEX_LIGHT(a, o1, o2, o3) cull >= CULL_TRANSPARENT ? vec4(1.0f) : VertexLight(chunk, AXIS_##a, rP, o1, o2, o3)
 
 // Builds mesh data for a single block. x, y, and z are relative to the
 // chunk in local world space.
@@ -783,7 +782,9 @@ static void BuildBlock(Chunk* chunk, Mesh* mesh, int xi, int yi, int zi, int blo
     RelPos rP = ivec3(xi, yi, zi);
     float x = (float)xi, y = (float)yi, z = (float)zi;
 
-    if (CanDrawFace(block, GetBlock(chunk, xi, yi + 1, zi)))
+    CullType cull = g_blockData[block].cull;
+
+    if (CanDrawFace(cull, GetBlock(chunk, xi, yi + 1, zi)))
     {
         float tex = textures[FACE_TOP];
         SetMeshIndices(mesh);
@@ -793,7 +794,7 @@ static void BuildBlock(Chunk* chunk, Mesh* mesh, int xi, int yi, int zi, int blo
         SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Y, -1, 1, -1));
     }
 
-    if (CanDrawFace(block, GetBlock(chunk, xi, yi - 1, zi)))
+    if (CanDrawFace(cull, GetBlock(chunk, xi, yi - 1, zi)))
     {
         float tex = textures[FACE_BOTTOM];
         SetMeshIndices(mesh);
@@ -803,7 +804,7 @@ static void BuildBlock(Chunk* chunk, Mesh* mesh, int xi, int yi, int zi, int blo
         SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Y, 1, -1, -1));
     }
 
-    if (CanDrawFace(block, GetBlock(chunk, xi, yi, zi + 1)))
+    if (CanDrawFace(cull, GetBlock(chunk, xi, yi, zi + 1)))
     {
         float tex = textures[FACE_FRONT];
         SetMeshIndices(mesh);
@@ -813,17 +814,17 @@ static void BuildBlock(Chunk* chunk, Mesh* mesh, int xi, int yi, int zi, int blo
         SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Z, 1, -1, 1));
     }
 
-    if (CanDrawFace(block, GetBlock(chunk, xi, yi, zi - 1)))
+    if (CanDrawFace(cull, GetBlock(chunk, xi, yi, zi - 1)))
     {
         float tex = textures[FACE_BACK];
         SetMeshIndices(mesh);
         SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, VERTEX_LIGHT(Z, 1, -1, -1));
         SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, tex, VERTEX_LIGHT(Z, 1, 1, -1));
         SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, tex, VERTEX_LIGHT(Z, -1, 1, -1));
-        SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Z, -1, -1, -1));
+        SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Z, -1, -1, -1)); 
     }
 
-    if (CanDrawFace(block, GetBlock(chunk, xi + 1, yi, zi)))
+    if (CanDrawFace(cull, GetBlock(chunk, xi + 1, yi, zi)))
     {
         float tex = textures[FACE_RIGHT];
         SetMeshIndices(mesh);
@@ -833,7 +834,7 @@ static void BuildBlock(Chunk* chunk, Mesh* mesh, int xi, int yi, int zi, int blo
         SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(X, 1, -1, -1));
     }
 
-    if (CanDrawFace(block, GetBlock(chunk, xi - 1, yi, zi)))
+    if (CanDrawFace(cull, GetBlock(chunk, xi - 1, yi, zi)))
     {
         float tex = textures[FACE_LEFT];
         SetMeshIndices(mesh);
@@ -841,74 +842,6 @@ static void BuildBlock(Chunk* chunk, Mesh* mesh, int xi, int yi, int zi, int blo
         SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, tex, VERTEX_LIGHT(X, -1, 1, -1));
         SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, VERTEX_LIGHT(X, -1, 1, 1));
         SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(X, -1, -1, 1));
-    }
-}
-
-static void BuildFluid(Chunk* chunk, Mesh* mesh, int xi, int yi, int zi, int block)
-{
-    float* textures = g_blockData[block].textures;
-
-    RelPos rP = ivec3(xi, yi, zi);
-    float x = (float)xi, y = (float)yi, z = (float)zi;
-
-    if (CanDrawFace(block, GetBlock(chunk, xi, yi + 1, zi)))
-    {
-        float tex = textures[FACE_TOP];
-        SetMeshIndices(mesh);
-        SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 1.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 1.0f, tex, vec4(1.0f));
-    }
-
-    if (CanDrawFace(block, GetBlock(chunk, xi, yi - 1, zi)))
-    {
-        float tex = textures[FACE_BOTTOM];
-        SetMeshIndices(mesh);
-        SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 0.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 0.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, vec4(1.0f));
-    }
-
-    if (CanDrawFace(block, GetBlock(chunk, xi, yi, zi + 1)))
-    {
-        float tex = textures[FACE_FRONT];
-        SetMeshIndices(mesh);
-        SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f, tex, vec4(1.0f)); 
-        SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, vec4(1.0f));
-    }
-
-    if (CanDrawFace(block, GetBlock(chunk, xi, yi, zi - 1)))
-    {
-        float tex = textures[FACE_BACK];
-        SetMeshIndices(mesh);
-        SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, vec4(1.0f));
-    }
-
-    if (CanDrawFace(block, GetBlock(chunk, xi + 1, yi, zi)))
-    {
-        float tex = textures[FACE_RIGHT];
-        SetMeshIndices(mesh);
-        SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x + 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, vec4(1.0f));
-    }
-
-    if (CanDrawFace(block, GetBlock(chunk, xi - 1, yi, zi)))
-    {
-        float tex = textures[FACE_LEFT];
-        SetMeshIndices(mesh);
-        SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, vec4(1.0f));
-        SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, vec4(1.0f));
     }
 }
 
@@ -943,7 +876,7 @@ static void CreateBlockData()
     BlockData& water = g_blockData[BLOCK_WATER];
     SetBlockTextures(water, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f);
     water.meshType = MESH_TYPE_FLUID;
-    water.buildFunc = BuildFluid;
+    water.buildFunc = BuildBlock;
     water.cull = CULL_TRANSPARENT;
 
     BlockData& sand = g_blockData[BLOCK_SAND];

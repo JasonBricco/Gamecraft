@@ -113,6 +113,7 @@ static void InitShaders(Renderer* rend)
 	rend->view_1 = glGetUniformLocation(rend->programs[1], "view");
 	rend->model_1 = glGetUniformLocation(rend->programs[1], "model");
 	rend->proj_1 = glGetUniformLocation(rend->programs[1], "projection");
+	rend->time_1 = glGetUniformLocation(rend->programs[1], "time");
 }
 
 inline void UseShader(GLuint program)
@@ -358,7 +359,7 @@ static void OnOpenGLMessage(GLenum src, GLenum type, GLuint id, GLenum severity,
 {
 	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
 		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, msg);
-  	abort();
+  	HandleAssertion(__FILE__, __LINE__);
 }
 
 static GLFWwindow* InitRenderer(Renderer* rend)
@@ -593,6 +594,7 @@ static void RenderScene(Renderer* rend)
 	UseShader(rend->programs[MESH_TYPE_FLUID]);
 	SetUniform(rend->view_1, rend->view);
 	SetUniform(rend->proj_1, rend->perspective);
+	SetUniform(rend->time_1, rend->animTime);
 
 	count = rend->meshLists[MESH_TYPE_FLUID].count;
 

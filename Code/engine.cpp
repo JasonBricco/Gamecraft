@@ -3,9 +3,6 @@
 
 // BUGS/TODO:
 // Some bug making blocks appear in another chunk when you place them sometimes.
-// Revamp how we handle shader uniforms.
-// Support for multiple meshes per chunk (transparent water) and non-air transparent blocks.
-// (GLSL Subroutines for optimizing shaders.)
 
 // Look Into:
 // Shader precompiling.
@@ -247,6 +244,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
+		rend->animTime = fmodf(rend->animTime + deltaTime, 100.0f);
 		lastTime = endTime;
 
 		#if DEBUG_MEMORY

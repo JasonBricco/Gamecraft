@@ -7,6 +7,7 @@ layout (location = 2) in vec3 inColor;
 out vec3 uv;
 out vec3 vertColor;
 
+uniform float time;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
@@ -16,6 +17,7 @@ void main()
     gl_Position = projection * view * model * vec4(pos, 1.0f);
     vertColor = inColor;
     uv = inUv;
+    uv.x += time * 0.2f;
 }
 
 #else

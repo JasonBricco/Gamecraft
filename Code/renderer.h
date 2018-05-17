@@ -101,7 +101,7 @@ struct Renderer
 
     // Shader uniforms.
     GLint view_0, model_0, proj_0;
-    GLint view_1, model_1, proj_1;
+    GLint view_1, model_1, proj_1, time_1;
 
     mat4 perspective, ortho, view;
 
@@ -113,4 +113,7 @@ struct Renderer
     GLuint blockTextures;
 
     GLuint programs[3];
+
+    // Time for shader animation.
+    float animTime;
 };
