@@ -82,41 +82,48 @@ inline void SetMeshIndices(Mesh* mesh)
 	mesh->indexCount = count;
 }
 
-static void FillMeshData(Mesh* mesh)
+static void FillMeshData(Mesh** meshes)
 {
 	BEGIN_TIMED_BLOCK(FILL_MESH);
 
-	if (mesh->vertCount > 0)
+	for (int i = 0; i < CHUNK_MESH_COUNT; i++)
 	{
-		glGenVertexArrays(1, &mesh->va);
-		glBindVertexArray(mesh->va);
+		Mesh* mesh = meshes[i];
 
-		// Vertex position attribute buffer.
-		glGenBuffers(1, &mesh->vb);
-		glBindBuffer(GL_ARRAY_BUFFER, mesh->vb);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * mesh->vertCount, mesh->vertices, GL_DYNAMIC_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat), NULL);
-		glEnableVertexAttribArray(0);
+		if (mesh == NULL) continue;
+		
+		if (mesh->vertCount > 0)
+		{
+			glGenVertexArrays(1, &mesh->va);
+			glBindVertexArray(mesh->va);
 
-		// Texture coordinates (UVs).
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-		glEnableVertexAttribArray(1);
+			// Vertex position attribute buffer.
+			glGenBuffers(1, &mesh->vb);
+			glBindBuffer(GL_ARRAY_BUFFER, mesh->vb);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * mesh->vertCount, mesh->vertices, GL_DYNAMIC_DRAW);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat), NULL);
+			glEnableVertexAttribArray(0);
 
-		// Vertex color attribute buffer.
-		glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
-		glEnableVertexAttribArray(2);
+			// Texture coordinates (UVs).
+			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+			glEnableVertexAttribArray(1);
 
-		// Index buffer.
-		glGenBuffers(1, &mesh->ib);
- 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_DYNAMIC_DRAW);
+			// Vertex color attribute buffer.
+			glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+			glEnableVertexAttribArray(2);
+
+			// Index buffer.
+			glGenBuffers(1, &mesh->ib);
+	 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_DYNAMIC_DRAW);
+		}
+
+		Free(mesh->vertices, "Vertices");
+		Free(mesh->indices, "Indices");
+
+		mesh->vertices = NULL;
+		mesh->indices = NULL;
 	}
-
-	Free(mesh->vertices, "Vertices");
-	Free(mesh->indices, "Indices");
-
-	mesh->vertices = NULL;
-	mesh->indices = NULL;
 
 	END_TIMED_BLOCK(FILL_MESH);
 }

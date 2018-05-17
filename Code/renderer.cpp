@@ -1,6 +1,150 @@
 // Voxel Engine
 // Jason Bricco
 
+#define MESH_PARAMS 10
+#define CAMERA_FOV 45.0f
+#define WORLD_UP vec3(0.0f, 1.0f, 0.0f)
+
+static bool ShaderHasErrors(GLuint handle, ShaderType type)
+{
+	int status = 0;
+	GLint length = 0;
+
+	if (type == SHADER_PROGRAM)
+	{
+		glGetProgramiv(handle, GL_LINK_STATUS, &status);
+
+		if (status == GL_FALSE)
+		{
+			glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &length);
+
+			GLchar* errorLog = Malloc(GLchar, length, "ShaderLink");
+			glGetProgramInfoLog(handle, length, NULL, errorLog);
+			
+			OutputDebugString("Error! Shader program failed to link.");
+			OutputDebugString(errorLog);
+			Free(errorLog, "ShaderLink");
+			return true;
+		}
+	}
+	else
+	{
+		glGetShaderiv(handle, GL_COMPILE_STATUS, &status);
+
+		if (status == GL_FALSE)
+		{
+			glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &length);
+
+			GLchar* errorLog = Malloc(GLchar, length, "ShaderCompile");
+			glGetShaderInfoLog(handle, length, NULL, errorLog);
+			
+			OutputDebugString("Error! Shader failed to compile.");
+			OutputDebugString(errorLog);
+			Free(errorLog, "ShaderCompile");
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static GLuint LoadShader(char* path)
+{
+	char* code = ReadFileData(path);
+
+	if (code == NULL)
+	{
+		OutputDebugString("Failed to load shader from file.");
+		OutputDebugString(path);
+		abort();
+	}
+
+	char* vertex[2] = { "#version 440 core\n#define VERTEX 1\n", code };
+	char* frag[2] = { "#version 440 core\n", code };
+
+	GLuint vS = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vS, 2, vertex, NULL);
+	glCompileShader(vS);
+	
+	if (ShaderHasErrors(vS, VERTEX_SHADER))
+	{
+		OutputDebugString("Failed to compile the vertex shader.");
+		abort();
+	}
+
+	GLuint fS = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fS, 2, frag, NULL);
+	glCompileShader(fS);
+	
+	if (ShaderHasErrors(fS, FRAGMENT_SHADER))
+	{
+		OutputDebugString("Failed to compile the fragment shader.");
+		abort();
+	}
+
+	GLuint program = glCreateProgram();
+	glAttachShader(program, vS);
+	glAttachShader(program, fS);
+	glLinkProgram(program);
+	
+	if (ShaderHasErrors(program, SHADER_PROGRAM))
+	{
+		OutputDebugString("Failed to link the shaders into the program.");
+		abort();
+	}
+
+	delete[] code;
+	glDeleteShader(vS);
+	glDeleteShader(fS);
+
+	return program;
+}
+
+static void InitShaders(Renderer* rend)
+{
+	rend->programs[0] = LoadShader("Shaders\\diffuse_array.shader");
+	rend->programs[1] = LoadShader("Shaders\\fluid_array.shader");
+	rend->programs[2] = LoadShader("Shaders\\Crosshair.shader");
+
+	rend->view_0 = glGetUniformLocation(rend->programs[0], "view");
+	rend->model_0 = glGetUniformLocation(rend->programs[0], "model");
+	rend->proj_0 = glGetUniformLocation(rend->programs[0], "projection");
+
+	rend->view_1 = glGetUniformLocation(rend->programs[1], "view");
+	rend->model_1 = glGetUniformLocation(rend->programs[1], "model");
+	rend->proj_1 = glGetUniformLocation(rend->programs[1], "projection");
+}
+
+inline void UseShader(GLuint program)
+{
+	glUseProgram(program);
+}
+
+inline void SetUniform(GLint loc, GLfloat f)
+{
+	glUniform1f(loc, f);
+}
+
+inline void SetUniform(GLint loc, vec2 v)
+{
+	glUniform2f(loc, v.x, v.y);
+}
+
+inline void SetUniform(GLint loc, vec3 v)
+{
+	glUniform3f(loc, v.x, v.y, v.z);
+}
+
+inline void SetUniform(GLint loc, vec4 v)
+{
+	glUniform4f(loc, v.x, v.y, v.z, v.w);
+}
+
+inline void SetUniform(GLint loc, mat4 m)
+{
+	glUniformMatrix4fv(loc, 1, GL_FALSE, value_ptr(m));
+}
+
 inline void SetGraphicVertex(float* vertices, int i, float x, float y, float u, float v)
 {
 	i *= 4;
@@ -270,12 +414,7 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 
 	#endif
 
-	rend->programs[0] = LoadShader("Shaders\\diffuse_array.shader");
-	rend->programs[1] = LoadShader("Shaders\\Crosshair.shader");
-
-	rend->u_view = glGetUniformLocation(rend->programs[0], "view");
-	rend->u_model = glGetUniformLocation(rend->programs[0], "model");
-	rend->u_proj = glGetUniformLocation(rend->programs[0], "projection");
+	InitShaders(rend);
 
 	GLuint blockTextures;
 
@@ -298,10 +437,13 @@ static GLFWwindow* InitRenderer(Renderer* rend)
 	GLuint Crosshair;
 	LoadTexture(&Crosshair, "Assets/Crosshair.png");
 
-	Graphic* graphic = CreateGraphic(rend, 1, Crosshair);
+	Graphic* graphic = CreateGraphic(rend, 2, Crosshair);
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
 	
 	rend->crosshair = graphic;
+
+	for (int i = 0; i < CHUNK_MESH_COUNT; i++)
+		rend->meshLists[i] = MeshList();
 
 	return window;
 }
@@ -420,7 +562,7 @@ inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 	return FRUSTUM_VISIBLE;
 }
 
-static void RenderScene(Renderer* rend, World* world)
+static void RenderScene(Renderer* rend)
 {
 	BEGIN_TIMED_BLOCK(RENDER_SCENE);
 
@@ -428,36 +570,47 @@ static void RenderScene(Renderer* rend, World* world)
 
 	UpdateViewMatrix(rend);
 
-	UseShader(rend->programs[0]);
-	SetUniform(rend->u_view, rend->view);
-	SetUniform(rend->u_proj, rend->perspective);
+	// Opaque pass.
+	UseShader(rend->programs[MESH_TYPE_OPAQUE]);
+	SetUniform(rend->view_0, rend->view);
+	SetUniform(rend->proj_0, rend->perspective);
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, rend->blockTextures);
+	int count = rend->meshLists[MESH_TYPE_OPAQUE].count;
 
-	mat4 model;
-
-	for (int i = 0; i < world->visibleCount; i++)
+	for (int i = 0; i < count; i++)
 	{
-		Chunk* chunk = world->visibleChunks[i];
+		Mesh* mesh = rend->meshLists[MESH_TYPE_OPAQUE].GetMesh(i);
+		mat4 model = translate(mat4(1.0f), mesh->lwPos);
+		SetUniform(rend->model_0, model);
+		DrawMesh(mesh);
+	}
 
-		if (chunk->state >= CHUNK_BUILT && chunk->mesh->vertCount > 0)
-		{
-			model = translate(mat4(1.0f), (vec3)chunk->lwPos);
-			SetUniform(rend->u_model, model);
-			DrawMesh(chunk->mesh);
-		}
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// Fluid pass.
+	UseShader(rend->programs[MESH_TYPE_FLUID]);
+	SetUniform(rend->view_1, rend->view);
+	SetUniform(rend->proj_1, rend->perspective);
+
+	count = rend->meshLists[MESH_TYPE_FLUID].count;
+
+	for (int i = 0; i < count; i++)
+	{
+		Mesh* mesh = rend->meshLists[MESH_TYPE_FLUID].GetMesh(i);
+		mat4 model = translate(mat4(1.0f), mesh->lwPos);
+		SetUniform(rend->model_1, model);
+		DrawMesh(mesh);
 	}
 
 	if (!g_paused)
 	{
-		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
-
 		DrawGraphic(rend, rend->crosshair);
-
-		glDisable(GL_BLEND);
 	}
 
+	glDisable(GL_BLEND);
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	END_TIMED_BLOCK(RENDER_SCENE);

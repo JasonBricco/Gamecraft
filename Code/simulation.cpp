@@ -1,21 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 
-AABB::AABB(vec3 p, vec3 minP, vec3 maxP)
-{
-	pos = p;
-	min = minP;
-	max = maxP;
-}
-
-Capsule::Capsule(float radius, float h)
-{
-	pos = vec3(0.0f);
-	r = radius;
-	yBase = 0.0f;
-	yTop = h;
-}
-
 // Returns the farthest point along an AABB in the given direction in world space.
 inline vec3 AABB::Support(vec3 dir)
 {

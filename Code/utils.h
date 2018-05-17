@@ -15,8 +15,8 @@ enum Axis { AXIS_X, AXIS_Y, AXIS_Z };
 
 struct Ray
 {
-	vec3 origin;
-	vec3 dir;
+    vec3 origin;
+    vec3 dir;
 };
 
 inline int Clamp(int value, int min, int max)
@@ -31,27 +31,27 @@ inline float Clamp(float value, float min, float max)
 
 inline int Square(int value)
 {
-	return value * value;
+    return value * value;
 }
 
 inline float Square(float value)
 {
-	return value * value;
+    return value * value;
 }
 
 inline float InverseSqrt(float v)
 {
-	return 1.0f / sqrt(v);
+    return 1.0f / sqrt(v);
 }
 
 inline int CeilToInt(float value)
 {
-	return (int)ceilf(value);
+    return (int)ceilf(value);
 }
 
 inline int RoundToInt(float value)
 {
-	return (int)roundf(value);
+    return (int)roundf(value);
 }
 
 inline int32_t FloorToInt(float value)
@@ -66,28 +66,28 @@ inline bool Approx(float a, float b)
 
 inline bool InRange(float val, float min, float max) 
 {
-	return val >= min && val <= max;
+    return val >= min && val <= max;
 }
 
 inline int InRange(int val, int min, int max)
 {
-	return val >= min && val <= max;
+    return val >= min && val <= max;
 }
 
 inline vec3 MoveDirXZ(vec3 value)
 {
-	vec3 zeroY = vec3(value.x, 0.0f, value.z);
-	return normalize(zeroY);
+    vec3 zeroY = vec3(value.x, 0.0f, value.z);
+    return normalize(zeroY);
 }
 
 inline ivec3 BlockPos(vec3 pos)
 {
-	return { RoundToInt(pos.x), RoundToInt(pos.y), RoundToInt(pos.z) };
+    return { RoundToInt(pos.x), RoundToInt(pos.y), RoundToInt(pos.z) };
 }
 
 inline vec3 GetV3(ivec3 v)
 {
-	return { v.x, v.y, v.z };
+    return { v.x, v.y, v.z };
 }
 
 inline float Lerp(float a, float b, float t)
@@ -97,7 +97,7 @@ inline float Lerp(float a, float b, float t)
 
 inline float SCurve3(float a)
 {
-	return (a * a * (3.0f - 2.0f * a));
+    return (a * a * (3.0f - 2.0f * a));
 }
 
 inline Color Average(Color first, Color second, Color third, Color fourth)

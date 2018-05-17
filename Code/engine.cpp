@@ -98,22 +98,18 @@ static bool g_paused;
 #include "intrinsics.h"
 #include "random.h"
 #include "utils.h"
-#include "fileio.h"
 #include "input.h"
 #include "mesh.h"
-#include "block.h"
 #include "world.h"
 #include "renderer.h"
-#include "shaders.h"
 #include "simulation.h"
 #include "async.h"
 
+#include "fileio.cpp"
 #include "async.cpp"
 #include "input.cpp"
-#include "shaders.cpp"
 #include "mesh.cpp"
 #include "renderer.cpp"
-#include "block.cpp"
 #include "world.cpp"
 #include "simulation.cpp"
 
@@ -185,7 +181,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	}
 
 	Renderer* rend = (Renderer*)glfwGetWindowUserPointer(window);
-	UpdateWorld(world, rend->camera, player);
+	UpdateWorld(world, rend, player);
 
 	if (g_paused) return;
 
@@ -213,7 +209,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 {
 	CreateThreads();
 
-	Renderer* rend = new Renderer();
+	Renderer* rend = Calloc(Renderer, sizeof(Renderer), "Renderer");
 	GLFWwindow* window = InitRenderer(rend);
 
 	glfwSetKeyCallback(window, OnKey);
@@ -240,7 +236,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 		glfwPollEvents();
 
 		Update(window, player, world, deltaTime);
-		RenderScene(rend, world);
+		RenderScene(rend);
 
 		END_TIMED_BLOCK(GAME_LOOP);
 		FLUSH_COUNTERS();
