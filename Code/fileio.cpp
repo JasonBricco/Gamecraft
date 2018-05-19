@@ -1,7 +1,7 @@
 // Voxel Engine
 // Jason Bricco
 
-static char* PathToAsset(char* fileName)
+static char* PathToExe(char* fileName)
 {
 	int size = MAX_PATH * 2;
 	char* path = Malloc(char, size, "AssetPath");
@@ -16,7 +16,7 @@ static char* PathToAsset(char* fileName)
 
 static char* ReadFileData(char* fileName)
 {
-	char* path = PathToAsset(fileName);
+	char* path = PathToExe(fileName);
 	char* buffer = NULL;
 
 	ifstream file(path);
@@ -53,4 +53,27 @@ static char* ReadFileData(char* fileName)
 	}
 
 	return buffer;
+}
+
+inline void WriteBinary(char* path, char* data, int length)
+{
+	ofstream file;
+    file.open(path, ios::out | ios::binary);
+    Assert(file.is_open());
+    file.write(data, length);
+    file.close();
+}
+
+inline void ReadBinary(char* path, char* ptr)
+{
+	ifstream file;
+    file.open(path, ios::out | ios::binary);
+    Assert(file.is_open());
+
+    file.seekg(0, file.end);
+    auto length = file.tellg();
+    file.seekg(0, file.beg);
+
+    file.read(ptr, length);
+    file.close();
 }

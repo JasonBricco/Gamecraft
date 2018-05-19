@@ -76,7 +76,7 @@ struct Chunk
 
     ChunkState state;
 
-    bool active;
+    bool active, modified;
 
     Chunk* next;
 };

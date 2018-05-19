@@ -14,6 +14,7 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
+#include <Shlwapi.h>
 #include <time.h>
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
@@ -270,6 +271,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 		#endif
 	}
 
+	SaveWorld(world);
 	glfwTerminate();
 
 	return 0;

@@ -297,7 +297,7 @@ static void LoadTexture(GLuint* tex, char* asset)
 {
 	int width, height, components;
 
-	char* path = PathToAsset(asset);
+	char* path = PathToExe(asset);
 	uint8_t* data = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
 	Free(path, "AssetPath");
 	Assert(data != NULL);
@@ -325,7 +325,7 @@ static void LoadTextureArray(GLuint* tex, char** paths, bool mipMaps)
 
 	for (int i = 0; i < count; i++)
 	{
-		char* path = PathToAsset(paths[i]);
+		char* path = PathToExe(paths[i]);
 		dataList[i] = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
 		Free(path, "AssetPath");
 		Assert(dataList[i] != NULL);

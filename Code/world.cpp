@@ -160,6 +160,7 @@ inline void SetBlock(Chunk* chunk, RelPos pos, Block block)
     chunk = GetChunk(world, lcX, lcY, lcZ);\
     SetBlock(chunk, rX, rY, rZ, block);\
     chunk->state = CHUNK_UPDATE;\
+    chunk->modified = true;\
 }
 
 // Sets a block to the given chunk. If blocks are on the edge of the chunk,
@@ -168,6 +169,7 @@ inline void SetBlockAndUpdatePadding(World* world, Chunk* chunk, int rX, int rY,
 {
     SetBlock(chunk, rX, rY, rZ, block);
     chunk->state = CHUNK_UPDATE;
+    chunk->modified = true;
 
     LChunkPos p = chunk->lcPos;
 
@@ -380,8 +382,37 @@ static void GenerateChunkTerrain(World* world, Chunk* chunk)
     Noise::FreeNoiseSet(biome);
     Noise::FreeNoiseSet(comp);
 
-    chunk->state = CHUNK_GENERATED;
     delete noise;
+}
+
+static void LoadChunk(World* world, Chunk* chunk)
+{
+    ChunkPos p = chunk->cPos;
+
+    char path[MAX_PATH];
+    sprintf(path, "%s\\%i%i%i.txt", PathToExe("Saves"), p.x, p.y, p.z);
+
+    if (!PathFileExists(path))
+        GenerateChunkTerrain(world, chunk);
+    else
+    {
+        uint16_t data[CHUNK_SIZE_3 * 2];
+        ReadBinary(path, (char*)data);
+
+        int i = 0; 
+        int loc = 0;
+
+        while (i < CHUNK_SIZE_3)
+        {
+            uint16_t count = data[loc++];
+            Block block = data[loc++];
+
+            for (int j = 0; j < count; j++)
+                chunk->blocks[i++] = block;
+        }
+    }
+
+    chunk->state = CHUNK_GENERATED;
 }
 
 // Fill a chunk with a single block type.
@@ -432,7 +463,7 @@ static Chunk* CreateChunk(World* world, int cX, int cY, int cZ, ChunkPos cPos)
 		chunk->cPos = cPos;
         chunk->lwPos = chunk->lcPos * CHUNK_SIZE;
         chunk->active = true;
-        QueueAsync(GenerateChunkTerrain, world, chunk);
+        QueueAsync(LoadChunk, world, chunk);
 		world->chunks[index] = chunk;
 	}
 
@@ -448,8 +479,63 @@ inline void DestroyChunkMeshes(Chunk* chunk)
     }
 }
 
+static void SaveChunk(Chunk* chunk)
+{
+    ChunkPos p = chunk->cPos;
+
+    char path[MAX_PATH];
+    sprintf(path, "%s\\%i%i%i.txt", PathToExe("Saves"), p.x, p.y, p.z);
+
+    uint16_t data[CHUNK_SIZE_3 * 2];
+    int loc = 0;
+
+    Block currentBlock = chunk->blocks[0];
+    uint16_t count = 1;
+
+    for (int i = 1; i < CHUNK_SIZE_3; i++)
+    {
+        Block block = chunk->blocks[i];
+
+        if (block != currentBlock)
+        {
+            data[loc++] = count;
+            data[loc++] = currentBlock;
+            count = 1;
+            currentBlock = block;
+        }
+        else count++;
+
+        if (i == CHUNK_SIZE_3 - 1)
+        {
+            data[loc++] = count;
+            data[loc++] = currentBlock;
+        }
+    }
+
+    WriteBinary(path, (char*)data, sizeof(uint16_t) * loc);
+}
+
+static void SaveWorld(World* world)
+{
+    char path[MAX_PATH];
+    sprintf(path, "%s\\WorldData.txt", PathToExe("Saves"));
+
+    WriteBinary(path, (char*)&world->seed, sizeof(int));
+
+    for (int i = 0; i < world->totalChunks; i++)
+    {
+        Chunk* chunk = world->chunks[i];
+
+        if (chunk->modified)
+            SaveChunk(chunk);
+    }
+}
+
 static void DestroyChunk(World* world, Chunk* chunk)
 {
+    if (chunk->modified)
+        SaveChunk(chunk);
+
     DestroyChunkMeshes(chunk);
 	AddChunkToPool(world, chunk);
 }
@@ -935,8 +1021,20 @@ static World* NewWorld(int loadRangeH, int loadRangeV)
 
     CreateBlockData();
 
-    srand((uint32_t)time(0));
-    world->seed = rand();
+    char path[MAX_PATH];
+    sprintf(path, "%s\\WorldData.txt", PathToExe("Saves"));
+
+    if (!PathFileExists(path))
+    {
+        srand((uint32_t)time(0));
+        world->seed = rand();
+    }
+    else
+    {
+        int seed;
+        ReadBinary(path, (char*)&seed);
+        world->seed = seed;
+    }
 
     ShiftWorld(world);
 
