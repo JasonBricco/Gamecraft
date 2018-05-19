@@ -583,7 +583,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 			{
 				int lastNum = LastNumKey();
 				setPos = info.adjPos;
-				SetBlock(world, setPos, (Block)(Clamp(lastNum, 1, BLOCK_COUNT)));
+				SetBlock(world, setPos, (Block)(Clamp(lastNum, 1, BLOCK_COUNT - 1)));
 			}
 			else
 			{

@@ -2,7 +2,8 @@
 // Jason Bricco
 
 // BUGS/TODO:
-// Some bug making blocks appear in another chunk when you place them sometimes.
+// Using keyboard number keys that aren't assigned to a block crashes it.
+// Some bug making blocks appear in another chunk when you place them sometimes. Still a bug?
 
 // Look Into:
 // Shader precompiling.
@@ -21,7 +22,7 @@
 #include "GLFW/glfw3native.h"
 #include "FastNoiseSIMD.h"
 
-#define PROFILING 0
+#define PROFILING 1
 #define PROFILING_ONCE 0
 #define ASSERTIONS 1
 #define DEBUG_MEMORY 0

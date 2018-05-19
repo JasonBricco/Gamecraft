@@ -171,40 +171,69 @@ inline void SetBlockAndUpdatePadding(World* world, Chunk* chunk, int rX, int rY,
     chunk->state = CHUNK_UPDATE;
     chunk->modified = true;
 
-    LChunkPos p = chunk->lcPos;
+    ivec3 dir = ivec3(0);
+    ivec3 bP = ivec3(0);
 
-    // Set this block to neighbor padding if it is on this chunk's edge.
     if (rX == 0)
     {
-        SET_TO_NEIGHBOR(p.x - 1, p.y, p.z, CHUNK_SIZE, rY, rZ)
-
-        if (rY == 0) SET_TO_NEIGHBOR(p.x - 1, p.y - 1, p.z, CHUNK_SIZE, CHUNK_SIZE, rZ)
-        if (rY == CHUNK_SIZE - 1) SET_TO_NEIGHBOR(p.x - 1, p.y + 1, p.z, CHUNK_SIZE, -1, rZ)
+        dir.x = -1;
+        bP.x = CHUNK_SIZE;
     }
     else if (rX == CHUNK_SIZE - 1)
     {
-        SET_TO_NEIGHBOR(p.x + 1, p.y, p.z, -1, rY, rZ)
-
-        if (rY == 0) SET_TO_NEIGHBOR(p.x + 1, p.y - 1, p.z, -1, CHUNK_SIZE, rZ)
-        if (rY == CHUNK_SIZE - 1) SET_TO_NEIGHBOR(p.x + 1, p.y + 1, p.z, -1, -1, rZ)
+        dir.x = 1;
+        bP.x = -1;
     }
 
-    if (rY == 0) SET_TO_NEIGHBOR(p.x, p.y - 1, p.z, rX, CHUNK_SIZE, rZ)
-    else if (rY == CHUNK_SIZE - 1) SET_TO_NEIGHBOR(p.x, p.y + 1, p.z, rX, -1, rZ);
+    if (rY == 0)
+    {
+        dir.y = -1;
+        bP.y = CHUNK_SIZE;
+    }
+    else if (rY == CHUNK_SIZE - 1)
+    {
+        dir.y = 1;
+        bP.y = -1;
+    }
 
     if (rZ == 0)
     {
-        SET_TO_NEIGHBOR(p.x, p.y, p.z - 1, rX, rY, CHUNK_SIZE)
-
-        if (rY == 0) SET_TO_NEIGHBOR(p.x, p.y - 1, p.z - 1, rX, CHUNK_SIZE, CHUNK_SIZE)
-        if (rY == CHUNK_SIZE - 1) SET_TO_NEIGHBOR(p.x, p.y + 1, p.z - 1, rX, -1, CHUNK_SIZE)
+        dir.z = -1;
+        bP.z = CHUNK_SIZE;
     }
     else if (rZ == CHUNK_SIZE - 1)
     {
-        SET_TO_NEIGHBOR(p.x, p.y, p.z + 1, rX, rY, -1)
+        dir.z = 1;
+        bP.z = -1;
+    }
 
-        if (rY == 0) SET_TO_NEIGHBOR(p.x, p.y - 1, p.z + 1, rX, CHUNK_SIZE, -1)
-        if (rY == CHUNK_SIZE - 1) SET_TO_NEIGHBOR(p.x, p.y + 1, p.z + 1, rX, -1, -1)
+    LChunkPos p = chunk->lcPos;
+
+    if (dir.x != 0)
+    {
+        SET_TO_NEIGHBOR(p.x + dir.x, p.y, p.z, bP.x, rY, rZ);
+
+        if (dir.y != 0) 
+        {
+            SET_TO_NEIGHBOR(p.x + dir.x, p.y + dir.y, p.x, bP.x, bP.y, rZ);
+
+            if (dir.z != 0)
+                SET_TO_NEIGHBOR(p.x + dir.x, p.y + dir.y, p.z + dir.z, bP.x, bP.y, bP.z);
+        }
+
+        if (dir.z != 0)
+            SET_TO_NEIGHBOR(p.x + dir.x, p.y, p.z + dir.z, bP.x, rY, bP.z);
+    }
+
+    if (dir.y != 0)
+        SET_TO_NEIGHBOR(p.x, p.y + dir.y, p.z, rX, bP.y, rZ);
+
+    if (dir.z != 0)
+    {
+        SET_TO_NEIGHBOR(p.x, p.y, p.z + dir.z, rX, rY, bP.z);
+
+        if (dir.y != 0)
+            SET_TO_NEIGHBOR(p.x, p.y + dir.y, p.z + dir.z, rX, bP.y, bP.z);
     }
 }
 
@@ -483,11 +512,17 @@ static void SaveChunk(Chunk* chunk)
 {
     ChunkPos p = chunk->cPos;
 
+    BEGIN_TIMED_BLOCK(BUFFER_CREATE);
+
     char path[MAX_PATH];
     sprintf(path, "%s\\%i%i%i.txt", PathToExe("Saves"), p.x, p.y, p.z);
 
     uint16_t data[CHUNK_SIZE_3 * 2];
     int loc = 0;
+
+    END_TIMED_BLOCK(BUFFER_CREATE);
+
+    BEGIN_TIMED_BLOCK(ENCODE);
 
     Block currentBlock = chunk->blocks[0];
     uint16_t count = 1;
@@ -512,7 +547,13 @@ static void SaveChunk(Chunk* chunk)
         }
     }
 
+    END_TIMED_BLOCK(ENCODE);
+
+    BEGIN_TIMED_BLOCK(WRITE);
+
     WriteBinary(path, (char*)data, sizeof(uint16_t) * loc);
+
+    END_TIMED_BLOCK(WRITE);
 }
 
 static void SaveWorld(World* world)
