@@ -1,10 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 
-#define MESH_PARAMS 10
-#define CAMERA_FOV 45.0f
-#define WORLD_UP vec3(0.0f, 1.0f, 0.0f)
-
 static bool ShaderHasErrors(GLuint handle, ShaderType type)
 {
 	int status = 0;

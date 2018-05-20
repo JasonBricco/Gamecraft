@@ -1,10 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 
-// BUGS/TODO:
-// Using keyboard number keys that aren't assigned to a block crashes it.
-// Some bug making blocks appear in another chunk when you place them sometimes. Still a bug?
-
 // Look Into:
 // Shader precompiling.
 // Noise "quadrants" (actually larger) to solve noise precision issue. Voronoi regions. Have an island in each

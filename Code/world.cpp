@@ -425,8 +425,23 @@ static void LoadChunk(World* world, Chunk* chunk)
         GenerateChunkTerrain(world, chunk);
     else
     {
+        BEGIN_TIMED_BLOCK(READ_CREATE);
+
         uint16_t data[CHUNK_SIZE_3];
-        ReadBinary(path, (char*)data);
+
+        END_TIMED_BLOCK(READ_CREATE);
+        BEGIN_TIMED_BLOCK(READ);
+
+        HANDLE file = CreateFile(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        Assert(file != INVALID_HANDLE_VALUE);
+
+        BOOL error = ReadFile(file, data, sizeof(uint16_t) * CHUNK_SIZE_3, NULL, NULL);
+        Assert(error != FALSE);
+        
+        CloseHandle(file);
+
+        END_TIMED_BLOCK(READ);
+        BEGIN_TIMED_BLOCK(DECODE);
 
         int i = 0; 
         int loc = 0;
@@ -439,6 +454,8 @@ static void LoadChunk(World* world, Chunk* chunk)
             for (int j = 0; j < count; j++)
                 chunk->blocks[i++] = block;
         }
+
+        END_TIMED_BLOCK(DECODE);
     }
 
     chunk->state = CHUNK_GENERATED;
@@ -550,7 +567,17 @@ static void SaveChunk(Chunk* chunk)
 
     BEGIN_TIMED_BLOCK(WRITE);
 
-    WriteBinary(path, (char*)data, sizeof(uint16_t) * loc);
+    HANDLE file = CreateFile(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    Assert(file != INVALID_HANDLE_VALUE);
+
+    DWORD bytesToWrite = sizeof(uint16_t) * loc;
+    DWORD bytesWritten;
+
+    BOOL error = WriteFile(file, data, bytesToWrite, &bytesWritten, NULL);
+    Assert(error != FALSE);
+    Assert(bytesWritten == bytesToWrite);
+
+    CloseHandle(file);
 
     END_TIMED_BLOCK(WRITE);
 }
