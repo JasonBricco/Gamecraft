@@ -425,7 +425,7 @@ static void LoadChunk(World* world, Chunk* chunk)
         GenerateChunkTerrain(world, chunk);
     else
     {
-        uint16_t data[CHUNK_SIZE_3 * 2];
+        uint16_t data[CHUNK_SIZE_3];
         ReadBinary(path, (char*)data);
 
         int i = 0; 
@@ -517,11 +517,10 @@ static void SaveChunk(Chunk* chunk)
     char path[MAX_PATH];
     sprintf(path, "%s\\%i%i%i.txt", PathToExe("Saves"), p.x, p.y, p.z);
 
-    uint16_t data[CHUNK_SIZE_3 * 2];
+    uint16_t data[CHUNK_SIZE_3];
     int loc = 0;
 
     END_TIMED_BLOCK(BUFFER_CREATE);
-
     BEGIN_TIMED_BLOCK(ENCODE);
 
     Block currentBlock = chunk->blocks[0];

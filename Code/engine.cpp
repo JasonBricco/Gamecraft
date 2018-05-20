@@ -274,6 +274,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 
 	SaveWorld(world);
 	glfwTerminate();
+	FLUSH_COUNTERS();
 
 	return 0;
 }
