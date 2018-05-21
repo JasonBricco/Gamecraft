@@ -21,3 +21,14 @@ struct Mesh
 
     vec3 lwPos;
 };
+
+struct Mesh2D
+{
+    GLuint vb, ib, va;
+
+    float* vertices;
+    int* indices;
+
+    int vertMax, indexMax;
+    int vertCount, indexCount;
+};

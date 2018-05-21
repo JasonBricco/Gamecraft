@@ -14,14 +14,10 @@ enum ShaderType
 
 struct Graphic
 {
-    GLuint vb, ib, va;
-    int indices[6];
-    float vertices[16];
-    int shaderID;
-    GLuint texture;
     vec2 pos;
-
-    GLint u_model, u_proj;
+    Mesh2D mesh;
+    Texture texture;
+    Shader shader;
 };
 
 enum FrustumVisibility
@@ -108,11 +104,6 @@ struct Renderer
     MeshList meshLists[CHUNK_MESH_COUNT];
 
     Graphic* crosshair;
-
-    // Textures.
-    GLuint blockTextures;
-
-    GLuint programs[3];
 
     // Time for shader animation.
     float animTime;

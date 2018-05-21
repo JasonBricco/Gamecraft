@@ -1,216 +1,39 @@
 // Voxel Engine
 // Jason Bricco
 
-static bool ShaderHasErrors(GLuint handle, ShaderType type)
+inline void UseShader(Shader shader)
 {
-	int status = 0;
-	GLint length = 0;
-
-	if (type == SHADER_PROGRAM)
-	{
-		glGetProgramiv(handle, GL_LINK_STATUS, &status);
-
-		if (status == GL_FALSE)
-		{
-			glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &length);
-
-			GLchar* errorLog = Malloc(GLchar, length, "ShaderLink");
-			glGetProgramInfoLog(handle, length, NULL, errorLog);
-			
-			OutputDebugString("Error! Shader program failed to link.");
-			OutputDebugString(errorLog);
-			Free(errorLog, "ShaderLink");
-			return true;
-		}
-	}
-	else
-	{
-		glGetShaderiv(handle, GL_COMPILE_STATUS, &status);
-
-		if (status == GL_FALSE)
-		{
-			glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &length);
-
-			GLchar* errorLog = Malloc(GLchar, length, "ShaderCompile");
-			glGetShaderInfoLog(handle, length, NULL, errorLog);
-			
-			OutputDebugString("Error! Shader failed to compile.");
-			OutputDebugString(errorLog);
-			Free(errorLog, "ShaderCompile");
-			return true;
-		}
-	}
-
-	return false;
+    glUseProgram(shader.handle);
 }
 
-static GLuint LoadShader(char* path)
-{
-	char* code = ReadFileData(path);
-
-	if (code == NULL)
-	{
-		OutputDebugString("Failed to load shader from file.");
-		OutputDebugString(path);
-		abort();
-	}
-
-	char* vertex[2] = { "#version 440 core\n#define VERTEX 1\n", code };
-	char* frag[2] = { "#version 440 core\n", code };
-
-	GLuint vS = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vS, 2, vertex, NULL);
-	glCompileShader(vS);
-	
-	if (ShaderHasErrors(vS, VERTEX_SHADER))
-	{
-		OutputDebugString("Failed to compile the vertex shader.");
-		abort();
-	}
-
-	GLuint fS = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fS, 2, frag, NULL);
-	glCompileShader(fS);
-	
-	if (ShaderHasErrors(fS, FRAGMENT_SHADER))
-	{
-		OutputDebugString("Failed to compile the fragment shader.");
-		abort();
-	}
-
-	GLuint program = glCreateProgram();
-	glAttachShader(program, vS);
-	glAttachShader(program, fS);
-	glLinkProgram(program);
-	
-	if (ShaderHasErrors(program, SHADER_PROGRAM))
-	{
-		OutputDebugString("Failed to link the shaders into the program.");
-		abort();
-	}
-
-	delete[] code;
-	glDeleteShader(vS);
-	glDeleteShader(fS);
-
-	return program;
-}
-
-static void InitShaders(Renderer* rend)
-{
-	rend->programs[0] = LoadShader("Shaders\\diffuse_array.shader");
-	rend->programs[1] = LoadShader("Shaders\\fluid_array.shader");
-	rend->programs[2] = LoadShader("Shaders\\Crosshair.shader");
-
-	rend->view_0 = glGetUniformLocation(rend->programs[0], "view");
-	rend->model_0 = glGetUniformLocation(rend->programs[0], "model");
-	rend->proj_0 = glGetUniformLocation(rend->programs[0], "projection");
-
-	rend->view_1 = glGetUniformLocation(rend->programs[1], "view");
-	rend->model_1 = glGetUniformLocation(rend->programs[1], "model");
-	rend->proj_1 = glGetUniformLocation(rend->programs[1], "projection");
-	rend->time_1 = glGetUniformLocation(rend->programs[1], "time");
-}
-
-inline void UseShader(GLuint program)
-{
-	glUseProgram(program);
-}
-
-inline void SetUniform(GLint loc, GLfloat f)
-{
-	glUniform1f(loc, f);
-}
-
-inline void SetUniform(GLint loc, vec2 v)
-{
-	glUniform2f(loc, v.x, v.y);
-}
-
-inline void SetUniform(GLint loc, vec3 v)
-{
-	glUniform3f(loc, v.x, v.y, v.z);
-}
-
-inline void SetUniform(GLint loc, vec4 v)
-{
-	glUniform4f(loc, v.x, v.y, v.z, v.w);
-}
-
-inline void SetUniform(GLint loc, mat4 m)
-{
-	glUniformMatrix4fv(loc, 1, GL_FALSE, value_ptr(m));
-}
-
-inline void SetGraphicVertex(float* vertices, int i, float x, float y, float u, float v)
-{
-	i *= 4;
-	vertices[i] = x;
-	vertices[i + 1] = y;
-	vertices[i + 2] = u;
-	vertices[i + 3] = v;
-}
-
-static Graphic* CreateGraphic(Renderer* rend, int shaderID, int texture)
+static Graphic* CreateGraphic(Renderer* rend, Shader shader, Texture texture)
 {
 	Graphic* graphic = Calloc(Graphic, sizeof(Graphic), "Graphic");
+	CreateMesh2D(&graphic->mesh, 16, 6);
 
-	glGenVertexArrays(1, &graphic->va);
-	glBindVertexArray(graphic->va);
+	SetMeshIndices2D(&graphic->mesh);
 
-	glGenBuffers(1, &graphic->vb);
-	glBindBuffer(GL_ARRAY_BUFFER, graphic->vb);
+	SetMeshVertex2D(&graphic->mesh, 32.0f, 0.0f, 0.0f, 1.0f);
+	SetMeshVertex2D(&graphic->mesh, 32.0f, 32.0f, 0.0f, 0.0f);
+	SetMeshVertex2D(&graphic->mesh, 0.0f, 32.0f, 1.0f, 0.0f);
+	SetMeshVertex2D(&graphic->mesh, 0.0f, 0.0f, 1.0f, 1.0f);
+	
+	FillMeshData2D(&graphic->mesh);
 
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), NULL);
-	glEnableVertexAttribArray(0);
-
-	// Texture coordinates (UVs).
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(1);
-
-	// Index buffer.
-	glGenBuffers(1, &graphic->ib);
-
-	SetGraphicVertex(graphic->vertices, 0, 32.0f, 0.0f, 0.0f, 1.0f);
-	SetGraphicVertex(graphic->vertices, 1, 32.0f, 32.0f, 0.0f, 0.0f);
-	SetGraphicVertex(graphic->vertices, 2, 0.0f, 32.0f, 1.0f, 0.0f);
-	SetGraphicVertex(graphic->vertices, 3, 0.0f, 0.0f, 1.0f, 1.0f);
-
-	graphic->indices[0] = 2;
-	graphic->indices[1] = 1;
-	graphic->indices[2] = 0;
-
-	graphic->indices[3] = 3;
-	graphic->indices[4] = 2;
-	graphic->indices[5] = 0;
-
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 16, graphic->vertices, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, graphic->ib);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * 6, graphic->indices, GL_STATIC_DRAW);
-
-	graphic->shaderID = shaderID;
+	graphic->shader = shader;
 	graphic->texture = texture;
-
-	graphic->u_model = glGetUniformLocation(rend->programs[shaderID], "model");
-	graphic->u_proj = glGetUniformLocation(rend->programs[shaderID], "projection");
 
 	return graphic;
 }
 
 static void DrawGraphic(Renderer* rend, Graphic* graphic)
 {
-	int ID = graphic->shaderID;
-	UseShader(rend->programs[ID]);
-
-	mat4 model = translate(mat4(1.0f), vec3(graphic->pos, 0.0f));
-	SetUniform(graphic->u_model, model);
-	SetUniform(graphic->u_proj, rend->ortho);
+	Shader shader = graphic->shader;
+	UseShader(shader);
+	SetUniform(shader.proj, rend->ortho);
 
 	glBindTexture(GL_TEXTURE_2D, graphic->texture);
-
-	glBindVertexArray(graphic->va);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	DrawMesh2D(&graphic->mesh, shader, graphic->pos);
 }
 
 inline void SetCrosshairPos(Graphic* crosshair, int width, int height)
@@ -289,67 +112,6 @@ inline void UpdateViewMatrix(Renderer* rend)
 	rend->view = lookAt(cam->pos, cam->target, cam->up);
 }
 
-static void LoadTexture(GLuint* tex, char* asset)
-{
-	int width, height, components;
-
-	char* path = PathToExe(asset);
-	uint8_t* data = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
-	Free(path, "AssetPath");
-	Assert(data != NULL);
-
-	glGenTextures(1, tex);
-	glBindTexture(GL_TEXTURE_2D, *tex);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-	stbi_image_free(data);
-	glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-static void LoadTextureArray(GLuint* tex, char** paths, bool mipMaps)
-{
-	int count = sb_count(paths);
-	uint8_t** dataList = Malloc(uint8_t*, count * sizeof(uint8_t*), "DataList");
-
-	int width = 0, height = 0, components;
-
-	for (int i = 0; i < count; i++)
-	{
-		char* path = PathToExe(paths[i]);
-		dataList[i] = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
-		Free(path, "AssetPath");
-		Assert(dataList[i] != NULL);
-	}
-
-	glGenTextures(1, tex);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, *tex);
-
-	glTexStorage3D(GL_TEXTURE_2D_ARRAY, 6, GL_RGBA8, width, height, count);
-
-	for (int i = 0; i < count; i++)
-	{
-		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA,
-			GL_UNSIGNED_BYTE, dataList[i]);
-		stbi_image_free(dataList[i]);
-	}
-
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	if (mipMaps) glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
-
-	Free(dataList, "DataList");
-	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-}
-
 static void OnOpenGLMessage(GLenum src, GLenum type, GLuint id, GLenum severity,
 	GLsizei length, const GLchar* msg, const void* param)
 {
@@ -358,91 +120,17 @@ static void OnOpenGLMessage(GLenum src, GLenum type, GLuint id, GLenum severity,
   	HandleAssertion(__FILE__, __LINE__);
 }
 
-static GLFWwindow* InitRenderer(Renderer* rend)
+static void InitRenderer(Renderer* rend, Assets* assets, int screenWidth, int screenHeight)
 {
-	if (!glfwInit())
-	{
-		OutputDebugString("GLFW failed to initialize.");
-		return NULL;
-	}
-
 	rend->camera = NewCamera();
 
-	// Window creation.
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-	int screenWidth = 1024, screenHeight = 768;
-
-	GLFWwindow* window = glfwCreateWindow(screenWidth, screenHeight, "Voxel Engine", NULL, NULL);
-
-	if (window == NULL)
-	{
-		OutputDebugString("Failed to create window.");
-		return NULL;
-	}
-
-	glfwSetWindowUserPointer(window, rend);
-	SetWindowSize(window, screenWidth, screenHeight);
-	glfwMakeContextCurrent(window);
-
-	// Set vertical synchronization to the monitor refresh rate.
-	glfwSwapInterval(1);
-
-	if (glewInit() != GLEW_OK)
-	{
-		OutputDebugString("Failed to initialize GLEW.");
-		return NULL;
-	}
-
-	glewExperimental = GL_TRUE;
-
-	glClearColor(0.53f, 0.80f, 0.92f, 1.0f);
-	glPolygonMode(GL_FRONT, GL_FILL);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-
-	#if ASSERTIONS
-
-	glEnable(GL_DEBUG_OUTPUT);
-	glDebugMessageCallback((GLDEBUGPROC)OnOpenGLMessage, 0);
-
-	#endif
-
-	InitShaders(rend);
-
-	GLuint blockTextures;
-
-	char** paths = NULL;
-
-	sb_push(paths, "Assets/Grass.png");
-	sb_push(paths, "Assets/GrassSide.png");
-	sb_push(paths, "Assets/Dirt.png");
-	sb_push(paths, "Assets/Stone.png");
-	sb_push(paths, "Assets/Water.png");
-	sb_push(paths, "Assets/Sand.png");
-	sb_push(paths, "Assets/Crate.png");
-	sb_push(paths, "Assets/StoneBrick.png");
-
-	LoadTextureArray(&blockTextures, paths, true);
-	sb_free(paths);
-
-	rend->blockTextures = blockTextures;
-
-	GLuint Crosshair;
-	LoadTexture(&Crosshair, "Assets/Crosshair.png");
-
-	Graphic* graphic = CreateGraphic(rend, 2, Crosshair);
+	Graphic* graphic = CreateGraphic(rend, assets->crosshair, assets->crosshairTex);
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
 	
 	rend->crosshair = graphic;
 
 	for (int i = 0; i < CHUNK_MESH_COUNT; i++)
 		rend->meshLists[i] = MeshList();
-
-	return window;
 }
 
 static Ray ScreenCenterToRay(Renderer* rend)
@@ -559,7 +247,7 @@ inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 	return FRUSTUM_VISIBLE;
 }
 
-static void RenderScene(Renderer* rend)
+static void RenderScene(Renderer* rend, Assets* assets)
 {
 	BEGIN_TIMED_BLOCK(RENDER_SCENE);
 
@@ -568,39 +256,33 @@ static void RenderScene(Renderer* rend)
 	UpdateViewMatrix(rend);
 
 	// Opaque pass.
-	UseShader(rend->programs[MESH_TYPE_OPAQUE]);
-	SetUniform(rend->view_0, rend->view);
-	SetUniform(rend->proj_0, rend->perspective);
+	Shader shader = assets->diffuseArray;
 
-	glBindTexture(GL_TEXTURE_2D_ARRAY, rend->blockTextures);
+	UseShader(shader);
+	SetUniform(shader.view, rend->view);
+	SetUniform(shader.proj, rend->perspective);
+
+	glBindTexture(GL_TEXTURE_2D_ARRAY, assets->blockTextures);
 	int count = rend->meshLists[MESH_TYPE_OPAQUE].count;
 
 	for (int i = 0; i < count; i++)
-	{
-		Mesh* mesh = rend->meshLists[MESH_TYPE_OPAQUE].GetMesh(i);
-		mat4 model = translate(mat4(1.0f), mesh->lwPos);
-		SetUniform(rend->model_0, model);
-		DrawMesh(mesh);
-	}
+		DrawMesh(rend->meshLists[MESH_TYPE_OPAQUE].GetMesh(i), shader);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Fluid pass.
-	UseShader(rend->programs[MESH_TYPE_FLUID]);
-	SetUniform(rend->view_1, rend->view);
-	SetUniform(rend->proj_1, rend->perspective);
-	SetUniform(rend->time_1, rend->animTime);
+	shader = assets->fluidArray;
+
+	UseShader(shader);
+	SetUniform(shader.view, rend->view);
+	SetUniform(shader.proj, rend->perspective);
+	SetUniform(shader.time, rend->animTime);
 
 	count = rend->meshLists[MESH_TYPE_FLUID].count;
 
 	for (int i = 0; i < count; i++)
-	{
-		Mesh* mesh = rend->meshLists[MESH_TYPE_FLUID].GetMesh(i);
-		mat4 model = translate(mat4(1.0f), mesh->lwPos);
-		SetUniform(rend->model_1, model);
-		DrawMesh(mesh);
-	}
+		DrawMesh(rend->meshLists[MESH_TYPE_FLUID].GetMesh(i), shader);
 
 	if (!g_paused)
 	{

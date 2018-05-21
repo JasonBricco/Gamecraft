@@ -91,16 +91,18 @@ static bool g_paused;
 
 #include "profiling.h"
 #include "intrinsics.h"
+#include "assets.h"
 #include "random.h"
 #include "utils.h"
 #include "input.h"
+#include "uniforms.h"
 #include "mesh.h"
 #include "world.h"
 #include "renderer.h"
 #include "simulation.h"
 #include "async.h"
 
-#include "fileio.cpp"
+#include "assets.cpp"
 #include "async.cpp"
 #include "input.cpp"
 #include "mesh.cpp"
@@ -202,10 +204,63 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdShow)
 {
+	if (!glfwInit())
+	{
+		OutputDebugString("GLFW failed to initialize.");
+		return NULL;
+	}
+
+	// Window creation.
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+	int screenWidth = 1024, screenHeight = 768;
+
+	GLFWwindow* window = glfwCreateWindow(screenWidth, screenHeight, "Voxel Engine", NULL, NULL);
+
+	if (window == NULL)
+	{
+		OutputDebugString("Failed to create window.");
+		return NULL;
+	}
+
+	glfwMakeContextCurrent(window);
+
+	if (glewInit() != GLEW_OK)
+	{
+		OutputDebugString("Failed to initialize GLEW.");
+		return NULL;
+	}
+
+	glewExperimental = GL_TRUE;
+
+	// Set vertical synchronization to the monitor refresh rate.
+	glfwSwapInterval(1);
+
+	glClearColor(0.53f, 0.80f, 0.92f, 1.0f);
+	glPolygonMode(GL_FRONT, GL_FILL);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+
+	#if ASSERTIONS
+
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback((GLDEBUGPROC)OnOpenGLMessage, 0);
+
+	#endif
+	
 	CreateThreads();
 
+	Assets assets;
+	LoadAssets(&assets);
+
 	Renderer* rend = Calloc(Renderer, sizeof(Renderer), "Renderer");
-	GLFWwindow* window = InitRenderer(rend);
+	InitRenderer(rend, &assets, screenWidth, screenHeight);
+
+	glfwSetWindowUserPointer(window, rend);
+	SetWindowSize(window, screenWidth, screenHeight);
 
 	glfwSetKeyCallback(window, OnKey);
 	glfwSetWindowSizeCallback(window, SetWindowSize);
@@ -231,7 +286,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 		glfwPollEvents();
 
 		Update(window, player, world, deltaTime);
-		RenderScene(rend);
+		RenderScene(rend, &assets);
 
 		END_TIMED_BLOCK(GAME_LOOP);
 		FLUSH_COUNTERS();
