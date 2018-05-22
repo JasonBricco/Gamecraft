@@ -207,7 +207,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	if (!glfwInit())
 	{
 		OutputDebugString("GLFW failed to initialize.");
-		return NULL;
+		return -1;
 	}
 
 	// Window creation.
@@ -220,10 +220,10 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 
 	GLFWwindow* window = glfwCreateWindow(screenWidth, screenHeight, "Voxel Engine", NULL, NULL);
 
-	if (window == NULL)
+	if (window == nullptr)
 	{
 		OutputDebugString("Failed to create window.");
-		return NULL;
+		return -2;
 	}
 
 	glfwMakeContextCurrent(window);
@@ -231,7 +231,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	if (glewInit() != GLEW_OK)
 	{
 		OutputDebugString("Failed to initialize GLEW.");
-		return NULL;
+		return -3;
 	}
 
 	glewExperimental = GL_TRUE;

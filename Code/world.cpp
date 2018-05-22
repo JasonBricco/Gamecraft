@@ -5,7 +5,7 @@ static BlockData g_blockData[BLOCK_COUNT];
 
 inline void EnqueueChunk(ChunkQueue& queue, Chunk* chunk)
 {
-    if (queue.front == NULL)
+    if (queue.front == nullptr)
         queue.front = chunk;
     else queue.end->next = chunk;
 
@@ -17,7 +17,7 @@ inline Chunk* DequeueChunk(ChunkQueue& queue)
 {
     Chunk* front = queue.front;
     queue.front = front->next;
-    front->next = NULL;
+    front->next = nullptr;
     queue.count--;
     return front;
 }
@@ -76,8 +76,8 @@ static Chunk* ChunkFromHash(World* world, uint32_t bucket, ChunkPos cPos)
 {
     Chunk* chunk = world->chunkHash[bucket];
 
-    if (chunk == NULL) 
-        return NULL;
+    if (chunk == nullptr) 
+        return nullptr;
 
     if (chunk->cPos == cPos)
     {
@@ -92,11 +92,11 @@ static Chunk* ChunkFromHash(World* world, uint32_t bucket, ChunkPos cPos)
         bucket = (bucket + 1) & (CHUNK_HASH_SIZE - 1);
 
         if (bucket == firstBucket)
-            return NULL;
+            return nullptr;
 
         chunk = world->chunkHash[bucket];
 
-        if (chunk != NULL && chunk->cPos == cPos)
+        if (chunk != nullptr && chunk->cPos == cPos)
         {
             chunk->active = true;
             return chunk;
@@ -112,7 +112,7 @@ inline Chunk* ChunkFromHash(World* world, int32_t wX, int32_t wY, int32_t wZ)
 
 inline void AddChunkToHash(World* world, Chunk* chunk)
 {
-	if (chunk == NULL) return;
+	if (chunk == nullptr) return;
 
 	uint32_t bucket = ChunkHashBucket(chunk->cPos);
 
@@ -120,7 +120,7 @@ inline void AddChunkToHash(World* world, Chunk* chunk)
     uint32_t firstBucket = bucket;
     #endif
 
-    while (world->chunkHash[bucket] != NULL)
+    while (world->chunkHash[bucket] != nullptr)
     {
         bucket = (bucket + 1) & (CHUNK_HASH_SIZE - 1);
         Assert(bucket != firstBucket);
@@ -241,7 +241,7 @@ inline void SetBlock(World* world, LWorldPos wPos, Block block)
 {
 	LChunkPos cPos = ToChunkPos(wPos);
 	Chunk* chunk = GetChunk(world, cPos);
-	Assert(chunk != NULL);
+	Assert(chunk != nullptr);
 
 	RelPos local = ToLocalPos(wPos);
 	SetBlockAndUpdatePadding(world, chunk, local.x, local.y, local.z, block);
@@ -278,7 +278,7 @@ static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
 {
 	LChunkPos lcPos = ToChunkPos(lwX, lwY, lwZ);
 	Chunk* chunk = GetChunk(world, lcPos);
-	Assert(chunk != NULL);
+	Assert(chunk != nullptr);
 
 	RelPos rPos = ToLocalPos(lwX, lwY, lwZ);
 	return GetBlock(chunk, rPos);
@@ -502,7 +502,7 @@ static Chunk* CreateChunk(World* world, int cX, int cY, int cZ, ChunkPos cPos)
     int index = ChunkIndex(world, cX, cY, cZ);
 	Chunk* chunk = world->chunks[index];
 
-	if (chunk == NULL)
+	if (chunk == nullptr)
 	{
 		chunk = ChunkFromPool(world);
 		chunk->lcPos = ivec3(cX, cY, cZ);
@@ -521,7 +521,7 @@ inline void DestroyChunkMeshes(Chunk* chunk)
     for (int i = 0; i < CHUNK_MESH_COUNT; i++)
     {
        DestroyMesh(chunk->meshes[i]);
-       chunk->meshes[i] = NULL;
+       chunk->meshes[i] = nullptr;
     }
 }
 
@@ -623,7 +623,7 @@ static void BuildChunk(World* world, Chunk* chunk)
                     BlockMeshType type = g_blockData[block].meshType;
                     Mesh* mesh = chunk->meshes[type];
 
-                    if (mesh == NULL)
+                    if (mesh == nullptr)
                     {
                         mesh = CreateMesh();
                         chunk->meshes[type] = mesh;
@@ -654,7 +654,7 @@ static void ShiftWorld(World* world)
 	for (int i = 0; i < world->totalChunks; i++)
 	{
 		AddChunkToHash(world, world->chunks[i]);
-		world->chunks[i] = NULL;
+		world->chunks[i] = nullptr;
 	}
 
     // Any existing chunks that still belong in the active area will be pulled in to their
@@ -671,7 +671,7 @@ static void ShiftWorld(World* world)
 
 				Chunk* chunk = ChunkFromHash(world, wX, wY, wZ);
 
-				if (chunk == NULL)
+				if (chunk == nullptr)
 					CreateChunk(world, x, y, z, ivec3(wX, wY, wZ));
 				else 
 				{
@@ -689,10 +689,10 @@ static void ShiftWorld(World* world)
 	{
 		Chunk* chunk = world->chunkHash[c];
 
-        if (chunk != NULL && !chunk->active)
+        if (chunk != nullptr && !chunk->active)
             EnqueueChunk(world->destroyQueue, chunk);
 
-        world->chunkHash[c] = NULL;
+        world->chunkHash[c] = nullptr;
 	}
 }
 
@@ -793,7 +793,7 @@ static void TryBuildMeshes(World* world, Renderer* rend)
                 {
                     Mesh* mesh = chunk->meshes[m];
 
-                    if (mesh != NULL && mesh->vertCount > 0)
+                    if (mesh != nullptr && mesh->vertCount > 0)
                     {
                         mesh->lwPos = (vec3)chunk->lwPos;
                         rend->meshLists[m].AddMesh(mesh);

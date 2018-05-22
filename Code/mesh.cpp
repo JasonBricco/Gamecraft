@@ -41,7 +41,7 @@ static void CreateMesh2D(Mesh2D* mesh, int vertMax = 131072, int indexMax = 6553
 
 static void DestroyMesh(Mesh* mesh)
 {
-	if (mesh == NULL) return;
+	if (mesh == nullptr) return;
 
 	if (mesh->vertCount > 0)
 	{
@@ -50,7 +50,7 @@ static void DestroyMesh(Mesh* mesh)
 		glDeleteVertexArrays(1, &mesh->va);
 	}
 
-	if (mesh->vertices != NULL)
+	if (mesh->vertices != nullptr)
 	{
 		Free(mesh->vertices, "Vertices");
 		Free(mesh->indices, "Indices");
@@ -143,7 +143,7 @@ static void FillMeshData(Mesh** meshes)
 	{
 		Mesh* mesh = meshes[i];
 
-		if (mesh == NULL) continue;
+		if (mesh == nullptr) continue;
 		
 		if (mesh->vertCount > 0)
 		{
@@ -174,8 +174,8 @@ static void FillMeshData(Mesh** meshes)
 		Free(mesh->vertices, "Vertices");
 		Free(mesh->indices, "Indices");
 
-		mesh->vertices = NULL;
-		mesh->indices = NULL;
+		mesh->vertices = nullptr;
+		mesh->indices = nullptr;
 	}
 
 	END_TIMED_BLOCK(FILL_MESH);

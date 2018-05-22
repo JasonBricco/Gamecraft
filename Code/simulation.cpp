@@ -415,7 +415,7 @@ static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
 		{
 			if (UpdateSimplex4(a, b, c, d, dim, search))
 			{
-				if (info != NULL)
+				if (info != nullptr)
 					*info = EPA(a, b, c, d, colA, colB);
 				
 				return true;

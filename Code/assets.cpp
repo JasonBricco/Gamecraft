@@ -5,7 +5,7 @@ static char* PathToExe(char* fileName)
 {
     int size = MAX_PATH * 2;
     char* path = Malloc(char, size, "AssetPath");
-    GetModuleFileName(NULL, path, size);
+    GetModuleFileName(0, path, size);
 
     char* pos = strrchr(path, '\\');
     *(pos + 1) = '\0';
@@ -17,7 +17,7 @@ static char* PathToExe(char* fileName)
 static char* ReadFileData(char* fileName)
 {
     char* path = PathToExe(fileName);
-    char* buffer = NULL;
+    char* buffer = nullptr;
 
     ifstream file(path);
     Free(path, "AssetPath");
@@ -39,17 +39,17 @@ static char* ReadFileData(char* fileName)
             OutputDebugString("Failed to read file!");
             file.close();
             delete[] inputBuffer;
-            return NULL;
+            return nullptr;
         }
 
         buffer = inputBuffer;
-        inputBuffer = NULL;
+        inputBuffer = nullptr;
     }
     else
     {
         OutputDebugString("Could not find the file: ");
         OutputDebugString(path);
-        return NULL;
+        return nullptr;
     }
 
     return buffer;
@@ -85,7 +85,7 @@ static void LoadTexture(Texture* tex, char* asset)
     char* path = PathToExe(asset);
     uint8_t* data = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
     Free(path, "AssetPath");
-    Assert(data != NULL);
+    Assert(data != nullptr);
 
     glGenTextures(1, tex);
     glBindTexture(GL_TEXTURE_2D, *tex);
@@ -113,7 +113,7 @@ static void LoadTextureArray(TextureArray* tex, char** paths, bool mipMaps)
         char* path = PathToExe(paths[i]);
         dataList[i] = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
         Free(path, "AssetPath");
-        Assert(dataList[i] != NULL);
+        Assert(dataList[i] != nullptr);
     }
 
     glGenTextures(1, tex);
@@ -186,7 +186,7 @@ static Shader LoadShader(char* path)
 {
     char* code = ReadFileData(path);
 
-    if (code == NULL)
+    if (code == nullptr)
     {
         OutputDebugString("Failed to load shader from file.");
         OutputDebugString(path);

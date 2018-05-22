@@ -62,7 +62,7 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 	rend->perspective = perspective(fov, ratio, cam->nearDist, cam->farDist);
 	rend->ortho = ortho(0.0f, (float)width, (float)height, 0.0f);
 
-	if (rend->crosshair != NULL)
+	if (rend->crosshair != nullptr)
 		SetCrosshairPos(rend->crosshair, width, height);
 }
 
