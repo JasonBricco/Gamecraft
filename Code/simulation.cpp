@@ -1,5 +1,6 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
 // Returns the farthest point along an AABB in the given direction in world space.
 inline vec3 AABB::Support(vec3 dir)
@@ -596,7 +597,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 
 static Player* NewPlayer(Rectf spawnBounds, Camera* camera)
 {
-	Player* player = Malloc(Player, sizeof(Player), "Player");
+	Player* player = Malloc<Player>();
 	player->camera = camera;
 	vec3 spawn = spawnBounds.min + (CHUNK_SIZE / 2.0f);
 	player->pos = spawn;

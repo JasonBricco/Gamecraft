@@ -1,10 +1,11 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
 static char* PathToExe(char* fileName)
 {
     int size = MAX_PATH * 2;
-    char* path = Malloc(char, size, "AssetPath");
+    char* path = Malloc<char>(size);
     GetModuleFileName(0, path, size);
 
     char* pos = strrchr(path, '\\');
@@ -20,7 +21,7 @@ static char* ReadFileData(char* fileName)
     char* buffer = nullptr;
 
     ifstream file(path);
-    Free(path, "AssetPath");
+    Free<char>(path);
 
     if (file)
     {
@@ -55,20 +56,20 @@ static char* ReadFileData(char* fileName)
     return buffer;
 }
 
-inline void WriteBinary(char* path, char* data, int length)
+static inline void WriteBinary(char* path, char* data, int length)
 {
     ofstream file;
     file.open(path, ios::out | ios::binary);
-    Assert(file.is_open());
+    assert(file.is_open());
     file.write(data, length);
     file.close();
 }
 
-inline void ReadBinary(char* path, char* ptr)
+static inline void ReadBinary(char* path, char* ptr)
 {
     ifstream file;
     file.open(path, ios::out | ios::binary);
-    Assert(file.is_open());
+    assert(file.is_open());
 
     file.seekg(0, file.end);
     auto length = file.tellg();
@@ -84,8 +85,8 @@ static void LoadTexture(Texture* tex, char* asset)
 
     char* path = PathToExe(asset);
     uint8_t* data = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
-    Free(path, "AssetPath");
-    Assert(data != nullptr);
+    Free<char>(path);
+    assert(data != nullptr);
 
     glGenTextures(1, tex);
     glBindTexture(GL_TEXTURE_2D, *tex);
@@ -104,7 +105,7 @@ static void LoadTexture(Texture* tex, char* asset)
 static void LoadTextureArray(TextureArray* tex, char** paths, bool mipMaps)
 {
     int count = sb_count(paths);
-    uint8_t** dataList = Malloc(uint8_t*, count * sizeof(uint8_t*), "DataList");
+    uint8_t** dataList = Malloc<uint8_t*>(count);
 
     int width = 0, height = 0, components;
 
@@ -112,8 +113,8 @@ static void LoadTextureArray(TextureArray* tex, char** paths, bool mipMaps)
     {
         char* path = PathToExe(paths[i]);
         dataList[i] = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
-        Free(path, "AssetPath");
-        Assert(dataList[i] != nullptr);
+        Free<char>(path);
+        assert(dataList[i] != nullptr);
     }
 
     glGenTextures(1, tex);
@@ -135,7 +136,7 @@ static void LoadTextureArray(TextureArray* tex, char** paths, bool mipMaps)
 
     if (mipMaps) glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
 
-    Free(dataList, "DataList");
+    Free<uint8_t*>(dataList);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
 
@@ -152,12 +153,12 @@ static bool ShaderHasErrors(GLuint shader, ShaderType type)
         {
             glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
 
-            GLchar* errorLog = Malloc(GLchar, length, "ShaderLink");
+            GLchar* errorLog = Malloc<GLchar>(length);
             glGetProgramInfoLog(shader, length, NULL, errorLog);
             
             OutputDebugString("Error! Shader program failed to link.");
             OutputDebugString(errorLog);
-            Free(errorLog, "ShaderLink");
+            Free<GLchar>(errorLog);
             return true;
         }
     }
@@ -169,12 +170,12 @@ static bool ShaderHasErrors(GLuint shader, ShaderType type)
         {
             glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
 
-            GLchar* errorLog = Malloc(GLchar, length, "ShaderCompile");
+            GLchar* errorLog = Malloc<GLchar>(length);
             glGetShaderInfoLog(shader, length, NULL, errorLog);
             
             OutputDebugString("Error! Shader failed to compile.");
             OutputDebugString(errorLog);
-            Free(errorLog, "ShaderCompile");
+            Free<GLchar>(errorLog);
             return true;
         }
     }

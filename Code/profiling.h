@@ -1,5 +1,6 @@
-// Voxel Engine
+//
 // Jason Bricco
+// 
 
 #if PROFILING
 
@@ -16,7 +17,7 @@ enum MeasureSection
     MEASURE_READ_CREATE,
     MEASURE_DECODE,
     MEASURE_READ,
-    MEASURE_COUNT,
+    MEASURE_COUNT
 };
 
 struct CycleCounter
@@ -91,43 +92,105 @@ inline void EndTimedBlock(int ID, char* label, uint64_t start)
 
 #if DEBUG_MEMORY
 
-static unordered_map<string, uint32_t> g_allocInfo;
-static mutex g_allocMutex;
+static unordered_map<string, uint32_t> allocInfo;
+static mutex allocMutex;
 
-inline void TrackAlloc(string id)
+static void DebugTrackAlloc(string id)
 {
-    g_allocMutex.lock();
-    auto it = g_allocInfo.find(id);
+    allocMutex.lock();
+    auto it = allocInfo.find(id);
 
-    if (it == g_allocInfo.end())
-        g_allocInfo[id] = 0;
+    if (it == allocInfo.end())
+        allocInfo[id] = 0;
 
-    g_allocInfo[id]++;
-    g_allocMutex.unlock();
+    allocInfo[id]++;
+    allocMutex.unlock();
 }
 
-inline void* DebugMalloc(string id, int size)
+static void DebugUntrackAlloc(string id)
 {
-    TrackAlloc(id);
-    return malloc(size);
+    allocMutex.lock();
+    auto it = allocInfo.find(id);
+    assert(it != allocInfo.end());
+
+    allocInfo[id]--;
+    allocMutex.unlock();
 }
 
-inline void* DebugCalloc(string id, int size)
+static void LogMemoryStatus()
 {
-    TrackAlloc(id);
-    return calloc(1, size);
+    string str;
+    str.append("ALLOC INFO:\n");
+
+    for (pair<string, uint32_t> element : allocInfo)
+    {
+        if (element.second > 0)
+        {
+            str.append("ID: " + element.first + "\n");
+            str.append("Count: " + to_string(element.second) + "\n");
+        }
+    }
+
+    str.append("\n");
+    OutputDebugString(str.c_str());
 }
 
-inline void DebugFree(string id, void* ptr)
-{
-    g_allocMutex.lock();
-    auto it = g_allocInfo.find(id);
-    Assert(it != g_allocInfo.end());
+#define TrackAlloc(id) DebugTrackAlloc(typeid(id).name())
+#define UntrackAlloc(id) DebugUntrackAlloc(typeid(id).name())
 
-    g_allocInfo[id]--;
-    g_allocMutex.unlock();
+#else
 
-    free(ptr);
-}
+#define TrackAlloc(id)
+#define UntrackAlloc(id)
 
 #endif
+
+template <class T, typename... args>
+static inline T* Calloc()
+{
+    TrackAlloc(T);
+    T* data = (T*)calloc(1, sizeof(T));
+    return new (data)T(args...);
+}
+
+template <class T, typename... args>
+static inline T* Malloc()
+{
+    TrackAlloc(T);
+    T* data = (T*)malloc(sizeof(T));
+    return new (data)T(args...);
+}
+
+template <class T>
+static inline T* Malloc(int count)
+{
+    TrackAlloc(T);
+    return (T*)malloc(count * sizeof(T));
+}
+
+template <class T>
+static inline T* Calloc(int count)
+{
+    TrackAlloc(T);
+    return (T*)calloc(count, sizeof(T));
+}
+
+template <class T>
+static inline T* Realloc(void* ptr, int count)
+{
+    return (T*)realloc(ptr, count * sizeof(T));
+}
+
+template <class T>
+static inline T* AlignedMalloc(int count, int alignment)
+{
+    TrackAlloc(T);
+    return (T*)_aligned_malloc(count * sizeof(T), alignment);
+}
+
+template <class T>
+static inline void Free(void* ptr)
+{
+    UntrackAlloc(T);
+    free(ptr);
+}

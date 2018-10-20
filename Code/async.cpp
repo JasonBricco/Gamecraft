@@ -1,22 +1,23 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
 // Holds work to be added by the main thread and performed by background threads.
 static WorkQueue g_workQueue;
 
 static HANDLE g_semaphore;
 
-inline void SemaphoreWait()
+static inline void SemaphoreWait()
 {
 	WaitForSingleObject(g_semaphore, INFINITE);
 }
 
-inline void SemaphoreSignal(int32_t count)
+static inline void SemaphoreSignal(int32_t count)
 {
 	ReleaseSemaphore(g_semaphore, count, NULL);
 }
 
-inline bool DoNextAsync()
+static inline bool DoNextAsync()
 {
     bool sleep = false;
  
@@ -49,10 +50,10 @@ static DWORD WINAPI ThreadProc(LPVOID param)
     }
 }
 
-inline void QueueAsync(AsyncFunc func, World* world, Chunk* chunk)
+static inline void QueueAsync(AsyncFunc func, World* world, Chunk* chunk)
 {
 	uint32_t nextWrite = (g_workQueue.write + 1) & (g_workQueue.size - 1);
-	Assert(nextWrite != g_workQueue.read);
+	assert(nextWrite != g_workQueue.read);
 	AsyncItem* item = g_workQueue.items + g_workQueue.write;
 	item->func = func;
 	item->world = world;
@@ -66,7 +67,7 @@ static void CreateThreads()
 	g_semaphore = CreateSemaphore(NULL, 0, MAXLONG, NULL);
 
 	g_workQueue.size = 4096;
-	g_workQueue.items = Calloc(AsyncItem, g_workQueue.size * sizeof(AsyncItem), "Thread");
+	g_workQueue.items = Calloc<AsyncItem>(g_workQueue.size);
 
 	for (int i = 0; i < THREAD_COUNT; i++)
 	{

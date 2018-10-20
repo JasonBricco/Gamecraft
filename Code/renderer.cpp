@@ -1,14 +1,15 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
-inline void UseShader(Shader shader)
+static inline void UseShader(Shader shader)
 {
     glUseProgram(shader.handle);
 }
 
 static Graphic* CreateGraphic(Renderer* rend, Shader shader, Texture texture)
 {
-	Graphic* graphic = Calloc(Graphic, sizeof(Graphic), "Graphic");
+	Graphic* graphic = Calloc<Graphic>();
 	CreateMesh2D(&graphic->mesh, 16, 6);
 
 	SetMeshIndices2D(&graphic->mesh);
@@ -36,7 +37,7 @@ static void DrawGraphic(Renderer* rend, Graphic* graphic)
 	DrawMesh2D(&graphic->mesh, shader, graphic->pos);
 }
 
-inline void SetCrosshairPos(Graphic* crosshair, int width, int height)
+static inline void SetCrosshairPos(Graphic* crosshair, int width, int height)
 {
 	crosshair->pos = vec2((width / 2.0f) - 16.0f, (height / 2.0f) - 16.0f);
 }
@@ -68,7 +69,7 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 
 static Camera* NewCamera()
 {
-	Camera* cam = Calloc(Camera, sizeof(Camera), "Cam");
+	Camera* cam = Calloc<Camera>();
 	cam->nearDist = 0.1f;
 	cam->farDist = 512.0f;
 	cam->sensitivity = 0.05f;
@@ -99,14 +100,14 @@ static void RotateCamera(Camera* cam, float yaw, float pitch)
 	UpdateCameraVectors(cam);
 }
 
-inline void CameraFollow(Player* player)
+static inline void CameraFollow(Player* player)
 {	
 	vec3 pos = player->pos;
 	player->camera->pos = vec3(pos.x, pos.y + 1.15f, pos.z);
 	UpdateCameraVectors(player->camera);
 }
 
-inline void UpdateViewMatrix(Renderer* rend)
+static inline void UpdateViewMatrix(Renderer* rend)
 {
 	Camera* cam = rend->camera;
 	rend->view = lookAt(cam->pos, cam->target, cam->up);
@@ -117,7 +118,6 @@ static void OnOpenGLMessage(GLenum src, GLenum type, GLuint id, GLenum severity,
 {
 	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
 		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, msg);
-  	HandleAssertion(__FILE__, __LINE__);
 }
 
 static void InitRenderer(Renderer* rend, Assets* assets, int screenWidth, int screenHeight)
@@ -130,7 +130,7 @@ static void InitRenderer(Renderer* rend, Assets* assets, int screenWidth, int sc
 	rend->crosshair = graphic;
 
 	for (int i = 0; i < CHUNK_MESH_COUNT; i++)
-		rend->meshLists[i] = MeshList();
+		rend->meshLists[i].reserve(512);
 }
 
 static Ray ScreenCenterToRay(Renderer* rend)
@@ -150,7 +150,7 @@ static Ray ScreenCenterToRay(Renderer* rend)
 
 // The six camera frustum planes can be obtained using the eight points the define the corners
 // of the view frustum. This is an optimized version.
-inline void GetCameraPlanes(Camera* cam)
+static inline void GetCameraPlanes(Camera* cam)
 {	
 	BEGIN_TIMED_BLOCK(CAMERA_PLANES);
 
@@ -188,7 +188,7 @@ inline void GetCameraPlanes(Camera* cam)
 
 // Returns the farthest positive vertex from an AABB defined by min and max
 // along the given normal.
-inline vec3 FarthestPositiveVertex(vec3 min, vec3 max, vec3 normal)
+static inline vec3 FarthestPositiveVertex(vec3 min, vec3 max, vec3 normal)
 {
 	vec3 v = min;
 
@@ -204,7 +204,7 @@ inline vec3 FarthestPositiveVertex(vec3 min, vec3 max, vec3 normal)
 	return v;
 }
 
-inline vec3 FarthestNegativeVertex(vec3 min, vec3 max, vec3 normal)
+static inline vec3 FarthestNegativeVertex(vec3 min, vec3 max, vec3 normal)
 {
 	vec3 v = max;
 
@@ -220,12 +220,12 @@ inline vec3 FarthestNegativeVertex(vec3 min, vec3 max, vec3 normal)
 	return v;
 }
 
-inline float SignedDist(Plane plane, vec3 v) 
+static inline float SignedDist(Plane plane, vec3 v) 
 {
     return dot(plane.n, (v - plane.p));
 }
 
-inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
+static inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 {
 	for (int i = 0; i < 6; i++)
 	{
@@ -263,10 +263,10 @@ static void RenderScene(Renderer* rend, Assets* assets)
 	SetUniform(shader.proj, rend->perspective);
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, assets->blockTextures);
-	int count = rend->meshLists[MESH_TYPE_OPAQUE].count;
+	int count = (int)rend->meshLists[MESH_TYPE_OPAQUE].size();
 
 	for (int i = 0; i < count; i++)
-		DrawMesh(rend->meshLists[MESH_TYPE_OPAQUE].GetMesh(i), shader);
+		DrawMesh(rend->meshLists[MESH_TYPE_OPAQUE][i], shader);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -279,10 +279,10 @@ static void RenderScene(Renderer* rend, Assets* assets)
 	SetUniform(shader.proj, rend->perspective);
 	SetUniform(shader.time, rend->animTime);
 
-	count = rend->meshLists[MESH_TYPE_FLUID].count;
+	count = (int)rend->meshLists[MESH_TYPE_FLUID].size();
 
 	for (int i = 0; i < count; i++)
-		DrawMesh(rend->meshLists[MESH_TYPE_FLUID].GetMesh(i), shader);
+		DrawMesh(rend->meshLists[MESH_TYPE_FLUID][i], shader);
 
 	if (!g_paused)
 	{

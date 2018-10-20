@@ -1,5 +1,6 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
 #define MESH_PARAMS 10
 #define CAMERA_FOV 45.0f
@@ -53,42 +54,6 @@ struct Camera
     Plane planes[6];
 };
 
-struct MeshList
-{
-    Mesh** meshes;
-    int count;
-    int maxCount;
-
-    MeshList()
-    {
-        meshes = Malloc(Mesh*, sizeof(Mesh*) * 512, "MeshList");
-        count = 0;
-        maxCount = 512;
-    }
-
-    inline void AddMesh(Mesh* mesh)
-    {
-        if (count + 1 > maxCount)
-        {
-            int newSize = maxCount * 2;
-            meshes = (Mesh**)realloc(meshes, sizeof(Mesh*) * newSize);
-            maxCount = newSize;
-        }
-
-        meshes[count++] = mesh;
-    }
-
-    inline Mesh* GetMesh(int i)
-    {
-        return meshes[i];
-    }
-
-    inline void Reset()
-    {
-        count = 0;
-    }
-};
-
 struct Renderer
 {
     Camera* camera;
@@ -101,7 +66,7 @@ struct Renderer
 
     mat4 perspective, ortho, view;
 
-    MeshList meshLists[CHUNK_MESH_COUNT];
+    vector<Mesh*> meshLists[CHUNK_MESH_COUNT];
 
     Graphic* crosshair;
 

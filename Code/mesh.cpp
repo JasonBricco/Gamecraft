@@ -1,15 +1,16 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
 static Mesh* CreateMesh(int vertMax = 131072, int indexMax = 65536)
 {
-	Mesh* mesh = Calloc(Mesh, sizeof(Mesh), "Mesh");
+	Mesh* mesh = Calloc<Mesh>();
 
 	mesh->vertMax = vertMax;
 	mesh->indexMax = indexMax;
 
-	mesh->vertices = Malloc(float, mesh->vertMax * sizeof(float), "Vertices");
-	mesh->indices = Malloc(int, mesh->indexMax * sizeof(int), "Indices");
+	mesh->vertices = Malloc<float>(mesh->vertMax);
+	mesh->indices = Malloc<int>(mesh->indexMax);
 
 	return mesh;
 }
@@ -19,8 +20,8 @@ static void CreateMesh2D(Mesh2D* mesh, int vertMax = 131072, int indexMax = 6553
 	mesh->vertMax = vertMax;
 	mesh->indexMax = indexMax;
 
-	mesh->vertices = Malloc(float, mesh->vertMax * sizeof(float), "Vertices2D");
-	mesh->indices = Malloc(int, mesh->indexMax * sizeof(int), "Indices2D");
+	mesh->vertices = Malloc<float>(mesh->vertMax);
+	mesh->indices = Malloc<int>(mesh->indexMax);
 
 	glGenVertexArrays(1, &mesh->va);
 	glBindVertexArray(mesh->va);
@@ -52,14 +53,14 @@ static void DestroyMesh(Mesh* mesh)
 
 	if (mesh->vertices != nullptr)
 	{
-		Free(mesh->vertices, "Vertices");
-		Free(mesh->indices, "Indices");
+		Free<float>(mesh->vertices);
+		Free<int>(mesh->indices);
 	}
 
-	Free(mesh, "Mesh");
+	Free<Mesh>(mesh);
 }
 
-inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex, Color c)
+static inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex, Color c)
 {
 	if (mesh->vertCount + MESH_PARAMS > mesh->vertMax)
 	{
@@ -85,7 +86,7 @@ inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float 
 	mesh->vertCount = count;
 }
 
-inline void SetMeshVertex2D(Mesh2D* mesh, float x, float y, float u, float v)
+static inline void SetMeshVertex2D(Mesh2D* mesh, float x, float y, float u, float v)
 {
 	int count = mesh->vertCount;
 
@@ -97,7 +98,7 @@ inline void SetMeshVertex2D(Mesh2D* mesh, float x, float y, float u, float v)
 	mesh->vertCount = count;
 }
 
-inline void SetMeshIndices(Mesh* mesh)
+static inline void SetMeshIndices(Mesh* mesh)
 {
 	if (mesh->indexCount + 6 > mesh->indexMax)
 	{
@@ -119,7 +120,7 @@ inline void SetMeshIndices(Mesh* mesh)
 	mesh->indexCount = count;
 }
 
-inline void SetMeshIndices2D(Mesh2D* mesh)
+static inline void SetMeshIndices2D(Mesh2D* mesh)
 {
 	int offset = mesh->vertCount / MESH_PARAMS;
 	int count = mesh->indexCount;
@@ -171,8 +172,8 @@ static void FillMeshData(Mesh** meshes)
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_DYNAMIC_DRAW);
 		}
 
-		Free(mesh->vertices, "Vertices");
-		Free(mesh->indices, "Indices");
+		Free<float>(mesh->vertices);
+		Free<int>(mesh->indices);
 
 		mesh->vertices = nullptr;
 		mesh->indices = nullptr;
@@ -189,7 +190,7 @@ static void FillMeshData2D(Mesh2D* mesh)
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_STATIC_DRAW);
 }
 
-inline void DrawMesh(Mesh* mesh, Shader shader)
+static inline void DrawMesh(Mesh* mesh, Shader shader)
 {
 	mat4 model = translate(mat4(1.0f), mesh->lwPos);
 	SetUniform(shader.model, model);

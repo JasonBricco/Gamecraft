@@ -1,5 +1,6 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
 #define EPA_TOLERANCE 0.001f
 
@@ -52,7 +53,9 @@ struct Capsule : Collider
     float yBase;
     float yTop;
 
+    Capsule() {}
     Capsule(float r, float h);
+    
     inline vec3 Support(vec3 dir);
 };
 
@@ -67,6 +70,8 @@ struct Player
     uint8_t colFlags;
     bool flying, speedMode;
     bool spawned;
+
+    Player() {}
 };
 
 AABB::AABB(vec3 p, vec3 minP, vec3 maxP)
