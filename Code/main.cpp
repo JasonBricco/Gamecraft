@@ -49,10 +49,17 @@ using namespace std;
 
 #endif
 
+#define Print(...) { \
+    char buffer[256]; \
+    snprintf(buffer, sizeof(buffer), __VA_ARGS__); \
+    OutputDebugString(buffer); \
+}
+
 static bool g_paused;
 
 #include "profiling.h"
 #include "intrinsics.h"
+#include "filehelper.h"
 #include "assets.h"
 #include "random.h"
 #include "utils.h"
@@ -87,17 +94,14 @@ static void ToggleFullscreen(HWND window)
 			GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &mi))
 		{
 			SetWindowLong(window, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
-			SetWindowPos(window, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, 
-				mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top, 
-				SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+			SetWindowPos(window, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 		}
 	}
 	else
 	{
 		SetWindowLong(window, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
 		SetWindowPlacement(window, &g_windowPos);
-		SetWindowPos(window, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER 
-			| SWP_FRAMECHANGED);
+		SetWindowPos(window, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 	}
 }
 

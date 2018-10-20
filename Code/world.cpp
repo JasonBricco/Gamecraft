@@ -437,11 +437,16 @@ static void LoadChunk(World* world, Chunk* chunk)
         assert(file != INVALID_HANDLE_VALUE);
 
         BOOL error = ReadFile(file, data, sizeof(uint16_t) * CHUNK_SIZE_3, NULL, NULL);
-        assert(error != FALSE);
-        
         CloseHandle(file);
 
         END_TIMED_BLOCK(READ);
+
+        if (error)
+        {
+            Print("Failed to load chunk.");
+            return;
+        }
+
         BEGIN_TIMED_BLOCK(DECODE);
 
         int i = 0; 
@@ -575,12 +580,13 @@ static void SaveChunk(Chunk* chunk)
     DWORD bytesWritten;
 
     BOOL error = WriteFile(file, data, bytesToWrite, &bytesWritten, NULL);
-    assert(error != FALSE);
     assert(bytesWritten == bytesToWrite);
 
     CloseHandle(file);
 
     END_TIMED_BLOCK(WRITE);
+
+    if (error) Print("Failed to save chunk.");
 }
 
 static void SaveWorld(World* world)
