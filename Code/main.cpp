@@ -241,7 +241,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 
 	World* world = NewWorld(6, 4);
 
-	Player* player = NewPlayer(world->pBounds, rend->camera);
+	Player* player = NewPlayer(rend->camera);
 	rend->camera = player->camera;
 	
 	double lastTime = glfwGetTime();

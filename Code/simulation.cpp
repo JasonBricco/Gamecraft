@@ -529,6 +529,8 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 
 static void Simulate(Renderer* rend, World* world, Player* player, float deltaTime)
 {
+	if (!player->spawned) return;
+	
 	Camera* cam = player->camera;
 
 	vec3 accel = vec3(0.0f);
@@ -565,7 +567,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 
 	if (KeyPressed(KEY_BACKSPACE))
 	{
-		ivec3 cPos = ToChunkPos(player->pos);
+		ivec3 cPos = LWorldToLChunkPos(player->pos);
 		Chunk* chunk = GetChunk(world, cPos);
 		FillChunk(world, chunk, BLOCK_AIR);
 	}
@@ -595,12 +597,11 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 	}
 }
 
-static Player* NewPlayer(Rectf spawnBounds, Camera* camera)
+// Creates and spawns the player. The player is spawned within the center local space chunk.
+static Player* NewPlayer(Camera* camera)
 {
 	Player* player = Malloc<Player>();
 	player->camera = camera;
-	vec3 spawn = spawnBounds.min + (CHUNK_SIZE / 2.0f);
-	player->pos = spawn;
 	player->collider = Capsule(0.3f, 1.2f);
 	player->velocity = vec3(0.0f);
 	player->speed = 50.0f;
@@ -608,9 +609,15 @@ static Player* NewPlayer(Rectf spawnBounds, Camera* camera)
 	player->colFlags = HIT_NONE;
 	player->flying = false;
 	player->speedMode = false;
+	player->spawned = false;
+	return player;
+}
+
+static void SpawnPlayer(Player* player, Rectf spawnBounds)
+{
+	vec3 spawn = spawnBounds.min + (CHUNK_SIZE / 2.0f);
+	player->pos = spawn;
 
 	CameraFollow(player);
 	player->spawned = true;
-
-	return player;
 }

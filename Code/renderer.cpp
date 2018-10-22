@@ -152,8 +152,6 @@ static Ray ScreenCenterToRay(Renderer* rend)
 // of the view frustum. This is an optimized version.
 static inline void GetCameraPlanes(Camera* cam)
 {	
-	BEGIN_TIMED_BLOCK(CAMERA_PLANES);
-
 	vec3 fc = cam->pos + cam->forward * cam->farDist;
 	vec3 nc = cam->pos + cam->forward * cam->nearDist;
 
@@ -182,8 +180,6 @@ static inline void GetCameraPlanes(Camera* cam)
 	aux = normalize((nc + cam->right * cam->nearW) - cam->pos);
 	n = cross(cam->up, aux);
 	cam->planes[5] = { nc + cam->right * cam->nearW, n };
-
-	END_TIMED_BLOCK(CAMERA_PLANES);
 }
 
 // Returns the farthest positive vertex from an AABB defined by min and max

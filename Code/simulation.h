@@ -88,3 +88,5 @@ Capsule::Capsule(float radius, float h)
     yBase = 0.0f;
     yTop = h;
 }
+
+static void SpawnPlayer(Player* player, Rectf spawnBounds);

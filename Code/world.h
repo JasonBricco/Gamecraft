@@ -69,12 +69,12 @@ enum CullType
 
 enum ChunkState
 {
-    CHUNK_GENERATING = 0,
-    CHUNK_GENERATED = 1,
-    CHUNK_BUILDING = 2,
-    CHUNK_NEEDS_FILL = 3,
-    CHUNK_BUILT = 4,
-    CHUNK_UPDATE = 5
+    CHUNK_LOADING,
+    CHUNK_LOADED,
+    CHUNK_BUILDING,
+    CHUNK_NEEDS_FILL,
+    CHUNK_BUILT,
+    CHUNK_UPDATE
 };
 
 struct Chunk
@@ -132,6 +132,9 @@ struct World
     // Specifies the area in float space that the player exists within.
     // This is the area within the center local chunk.
     Rectf pBounds;
+
+    // Path to the world saves folder.
+    char* savePath;
 
     int seed;
 };

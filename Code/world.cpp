@@ -23,29 +23,34 @@ static inline Chunk* DequeueChunk(ChunkQueue& queue)
     return front;
 }
 
-static inline RelPos ToLocalPos(int lwX, int lwY, int lwZ)
+static inline RelPos LWorldToRelPos(int lwX, int lwY, int lwZ)
 {
 	return ivec3(lwX & CHUNK_SIZE - 1, lwY & CHUNK_SIZE - 1, lwZ & CHUNK_SIZE - 1);
 }
 
-static inline RelPos ToLocalPos(LWorldPos wPos)
+static inline RelPos LWorldToRelPos(LWorldPos wPos)
 {
-	return ToLocalPos(wPos.x, wPos.y, wPos.z);
+	return LWorldToRelPos(wPos.x, wPos.y, wPos.z);
 }
 
-static inline LChunkPos ToChunkPos(int lwX, int lwY, int lwZ)
+static inline LChunkPos LWorldToLChunkPos(int lwX, int lwY, int lwZ)
 {
 	return ivec3(lwX >> CHUNK_SIZE_BITS, lwY >> CHUNK_SIZE_BITS, lwZ >> CHUNK_SIZE_BITS);
 }
 
-static inline LChunkPos ToChunkPos(LWorldPos pos)
+static inline LChunkPos LWorldToLChunkPos(LWorldPos pos)
 {
-	return ToChunkPos(pos.x, pos.y, pos.z);
+	return LWorldToLChunkPos(pos.x, pos.y, pos.z);
 }
 
-static inline ivec3 ToChunkPos(vec3 wPos)
+static inline LChunkPos LWorldToLChunkPos(vec3 wPos)
 {
-	return ToChunkPos((int)wPos.x, (int)wPos.y, (int)wPos.z);
+	return LWorldToLChunkPos((int)wPos.x, (int)wPos.y, (int)wPos.z);
+}
+
+static inline LChunkPos ChunkToLChunkPos(ChunkPos pos, ChunkPos ref)
+{
+    return pos - ref;
 }
 
 static inline int ChunkIndex(World* world, int lcX, int lcY, int lcZ)
@@ -240,11 +245,11 @@ static inline void SetBlockAndUpdatePadding(World* world, Chunk* chunk, int rX, 
 
 static inline void SetBlock(World* world, LWorldPos wPos, Block block)
 {
-	LChunkPos cPos = ToChunkPos(wPos);
+	LChunkPos cPos = LWorldToLChunkPos(wPos);
 	Chunk* chunk = GetChunk(world, cPos);
 	assert(chunk != nullptr);
 
-	RelPos local = ToLocalPos(wPos);
+	RelPos local = LWorldToRelPos(wPos);
 	SetBlockAndUpdatePadding(world, chunk, local.x, local.y, local.z, block);
 }
 
@@ -277,11 +282,11 @@ static inline Block GetBlock(Chunk* chunk, RelPos pos)
 
 static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
 {
-	LChunkPos lcPos = ToChunkPos(lwX, lwY, lwZ);
+	LChunkPos lcPos = LWorldToLChunkPos(lwX, lwY, lwZ);
 	Chunk* chunk = GetChunk(world, lcPos);
 	assert(chunk != nullptr);
 
-	RelPos rPos = ToLocalPos(lwX, lwY, lwZ);
+	RelPos rPos = LWorldToRelPos(lwX, lwY, lwZ);
 	return GetBlock(chunk, rPos);
 }
 
@@ -420,34 +425,27 @@ static void LoadChunk(World* world, Chunk* chunk)
     ChunkPos p = chunk->cPos;
 
     char path[MAX_PATH];
-    sprintf(path, "%s\\%i%i%i.txt", PathToExe("Saves"), p.x, p.y, p.z);
+    sprintf(path, "%s\\%i%i%i.txt", world->savePath, p.x, p.y, p.z);
 
     if (!PathFileExists(path))
         GenerateChunkTerrain(world, chunk);
     else
     {
-        BEGIN_TIMED_BLOCK(READ_CREATE);
-
         uint16_t data[CHUNK_SIZE_3];
 
-        END_TIMED_BLOCK(READ_CREATE);
-        BEGIN_TIMED_BLOCK(READ);
-
         HANDLE file = CreateFile(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-        assert(file != INVALID_HANDLE_VALUE);
-
-        BOOL error = ReadFile(file, data, sizeof(uint16_t) * CHUNK_SIZE_3, NULL, NULL);
-        CloseHandle(file);
-
-        END_TIMED_BLOCK(READ);
-
-        if (error)
+        
+        if (file == INVALID_HANDLE_VALUE)
         {
-            Print("Failed to load chunk.");
+            LChunkPos lP = chunk->lcPos;
+            Print("An error occurred while loading chunk %i, %i, %i: %s\n", lP.x, lP.y, lP.z, GetLastErrorText().c_str());
             return;
         }
 
-        BEGIN_TIMED_BLOCK(DECODE);
+        if (!ReadFile(file, data, sizeof(uint16_t) * CHUNK_SIZE_3, NULL, NULL))
+            Print("Failed to load chunk. Error: %s\n", GetLastErrorText().c_str());
+
+        CloseHandle(file);
 
         int i = 0; 
         int loc = 0;
@@ -460,11 +458,9 @@ static void LoadChunk(World* world, Chunk* chunk)
             for (int j = 0; j < count; j++)
                 chunk->blocks[i++] = block;
         }
-
-        END_TIMED_BLOCK(DECODE);
     }
 
-    chunk->state = CHUNK_GENERATED;
+    chunk->state = CHUNK_LOADED;
 }
 
 // Fill a chunk with a single block type.
@@ -531,20 +527,15 @@ static inline void DestroyChunkMeshes(Chunk* chunk)
     }
 }
 
-static void SaveChunk(Chunk* chunk)
+static void SaveChunk(World* world, Chunk* chunk)
 {
     ChunkPos p = chunk->cPos;
 
-    BEGIN_TIMED_BLOCK(BUFFER_CREATE);
-
     char path[MAX_PATH];
-    sprintf(path, "%s\\%i%i%i.txt", PathToExe("Saves"), p.x, p.y, p.z);
+    sprintf(path, "%s\\%i%i%i.txt", world->savePath, p.x, p.y, p.z);
 
     uint16_t data[CHUNK_SIZE_3];
     int loc = 0;
-
-    END_TIMED_BLOCK(BUFFER_CREATE);
-    BEGIN_TIMED_BLOCK(ENCODE);
 
     Block currentBlock = chunk->blocks[0];
     uint16_t count = 1;
@@ -569,32 +560,30 @@ static void SaveChunk(Chunk* chunk)
         }
     }
 
-    END_TIMED_BLOCK(ENCODE);
-    BEGIN_TIMED_BLOCK(WRITE);
-
     HANDLE file = CreateFile(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    assert(file != INVALID_HANDLE_VALUE);
+    
+    if (file == INVALID_HANDLE_VALUE)
+    {
+        LChunkPos lP = chunk->lcPos;
+        Print("An error occurred while saving chunk %i, %i, %i: %s\n", lP.x, lP.y, lP.z, GetLastErrorText().c_str());
+        return;
+    }
 
     DWORD bytesToWrite = sizeof(uint16_t) * loc;
     DWORD bytesWritten;
 
-    BOOL error = WriteFile(file, data, bytesToWrite, &bytesWritten, NULL);
+    if (!WriteFile(file, data, bytesToWrite, &bytesWritten, NULL))
+        Print("Failed to save chunk. Error: %s\n", GetLastErrorText().c_str());
+
     assert(bytesWritten == bytesToWrite);
 
     CloseHandle(file);
-
-    END_TIMED_BLOCK(WRITE);
-
-    if (error) Print("Failed to save chunk.");
 }
 
 static void SaveWorld(World* world)
 {
     char path[MAX_PATH];
-    char* dir = PathToExe("Saves");
-    CreateDirectory(dir, NULL);
-
-    sprintf(path, "%s\\WorldData.txt", dir);
+    sprintf(path, "%s\\WorldData.txt", world->savePath);
 
     WriteBinary(path, (char*)&world->seed, sizeof(int));
 
@@ -603,14 +592,14 @@ static void SaveWorld(World* world)
         Chunk* chunk = world->chunks[i];
 
         if (chunk->modified)
-            SaveChunk(chunk);
+            SaveChunk(world, chunk);
     }
 }
 
 static void DestroyChunk(World* world, Chunk* chunk)
 {
     if (chunk->modified)
-        SaveChunk(chunk);
+        SaveChunk(world, chunk);
 
     DestroyChunkMeshes(chunk);
 	AddChunkToPool(world, chunk);
@@ -776,7 +765,7 @@ static void TryBuildMeshes(World* world, Renderer* rend)
 
         switch (chunk->state)
         {
-            case CHUNK_GENERATED:
+            case CHUNK_LOADED:
             {
                 chunk->state = CHUNK_BUILDING;
                 QueueAsync(BuildChunk, world, chunk);
@@ -821,9 +810,7 @@ static void TryBuildMeshes(World* world, Renderer* rend)
 #define FRUSTUM_CULLING 1
 
 static void GetVisibleChunks(World* world, Camera* cam)
-{
-    BEGIN_TIMED_BLOCK(GET_VISIBLE_CHUNKS);
-    
+{    
     for (int i = 0; i < world->totalChunks; i++)
     {
         Chunk* chunk = world->chunks[i];
@@ -844,29 +831,35 @@ static void GetVisibleChunks(World* world, Camera* cam)
 
         #endif
     }
-
-    END_TIMED_BLOCK(GET_VISIBLE_CHUNKS);
 }
 
 static void UpdateWorld(World* world, Renderer* rend, Player* player)
 {
-    if (!player->spawned) return;
-    
-    CheckWorld(world, player);
-
-    world->visibleCount = 0;
-    GetCameraPlanes(rend->camera);
-    GetVisibleChunks(world, rend->camera);
-
-    TryBuildMeshes(world, rend);
-
-    while (world->destroyQueue.count > 0)
+    if (!player->spawned)
     {
-        Chunk* chunk = DequeueChunk(world->destroyQueue);
+        Chunk* spawnChunk = GetChunk(world, ChunkToLChunkPos(world->spawnChunk, world->ref));
 
-        if (chunk->state != CHUNK_GENERATING && chunk->state != CHUNK_BUILDING)
-            DestroyChunk(world, chunk);
-        else EnqueueChunk(world->destroyQueue, chunk);
+        if (spawnChunk->state >= CHUNK_LOADED)
+            SpawnPlayer(player, world->pBounds);
+    }
+    else
+    {
+        CheckWorld(world, player);
+
+        world->visibleCount = 0;
+        GetCameraPlanes(rend->camera);
+        GetVisibleChunks(world, rend->camera);
+
+        TryBuildMeshes(world, rend);
+
+        while (world->destroyQueue.count > 0)
+        {
+            Chunk* chunk = DequeueChunk(world->destroyQueue);
+
+            if (chunk->state != CHUNK_LOADING && chunk->state != CHUNK_BUILDING)
+                DestroyChunk(world, chunk);
+            else EnqueueChunk(world->destroyQueue, chunk);
+        }
     }
 }
 
@@ -1097,8 +1090,11 @@ static World* NewWorld(int loadRangeH, int loadRangeV)
 
     CreateBlockData();
 
+    world->savePath = PathToExe("Saves");
+    CreateDirectory(world->savePath, NULL);
+
     char path[MAX_PATH];
-    sprintf(path, "%s\\WorldData.txt", PathToExe("Saves"));
+    sprintf(path, "%s\\WorldData.txt", world->savePath);
 
     if (!PathFileExists(path))
     {

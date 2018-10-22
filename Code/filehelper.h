@@ -78,3 +78,20 @@ static inline void ReadBinary(char* path, char* ptr)
     file.read(ptr, length);
     file.close();
 }
+
+string GetLastErrorText()
+{
+    DWORD errorMessageID = GetLastError();
+    
+    if (errorMessageID == 0)
+        return string();
+
+    LPSTR messageBuffer = nullptr;
+    size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                                 NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+
+    string message(messageBuffer, size);
+    LocalFree(messageBuffer);
+
+    return message;
+}
