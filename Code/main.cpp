@@ -2,6 +2,8 @@
 // Jason Bricco
 //
 
+#pragma warning(push, 0)
+
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLEW_STATIC
 #define WIN32_LEAN_AND_MEAN
@@ -13,10 +15,6 @@
 #include "GLFW/glfw3.h"
 #include "GLFW/glfw3native.h"
 #include "FastNoiseSIMD.h"
-
-#define DEBUG_MEMORY 0
-#define PROFILING 0
-#define PROFILING_ONCE 0
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -48,6 +46,12 @@ using namespace std;
 #include <mutex>
 
 #endif
+
+#pragma warning(pop)
+
+#define DEBUG_MEMORY 0
+#define PROFILING 0
+#define PROFILING_ONCE 0
 
 #define Print(...) { \
     char buffer[256]; \

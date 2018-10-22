@@ -19,88 +19,106 @@ struct Ray
     vec3 dir;
 };
 
-inline int Clamp(int value, int min, int max)
+static const ivec3 DIRECTIONS[26] = 
+{ 
+    // Top 3x3 section.
+    ivec3(-1, 1, -1), ivec3(-1, 1, 0), ivec3(-1, 1, 1),
+    ivec3(0, 1, -1), ivec3(0, 1, 0), ivec3(0, 1, 1),
+    ivec3(1, 1, -1), ivec3(1, 1, 0), ivec3(1, 1, 1),
+
+    // Mid 3x3 section.
+    ivec3(-1, 0, -1), ivec3(-1, 0, 0), ivec3(-1, 0, 1),
+    ivec3(0, 0, -1), ivec3(0, 0, 1),
+    ivec3(1, 0, -1), ivec3(1, 0, 0), ivec3(1, 0, 1),
+
+    // Bottom 3x3 section.
+    ivec3(-1, -1, -1), ivec3(-1, -1, 0), ivec3(-1, -1, 1),
+    ivec3(0, -1, -1), ivec3(0, -1, 0), ivec3(0, -1, 1),
+    ivec3(1, -1, -1), ivec3(1, -1, 0), ivec3(1, -1, 1)
+};
+
+static inline int Clamp(int value, int min, int max)
 {
     return value <= min ? min : value >= max ? max : value;
 }
 
-inline float Clamp(float value, float min, float max)
+static inline float Clamp(float value, float min, float max)
 {
     return value <= min ? min : value >= max ? max : value;
 }
 
-inline int Square(int value)
+static inline int Square(int value)
 {
     return value * value;
 }
 
-inline float Square(float value)
+static inline float Square(float value)
 {
     return value * value;
 }
 
-inline float InverseSqrt(float v)
+static inline float InverseSqrt(float v)
 {
     return 1.0f / sqrt(v);
 }
 
-inline int CeilToInt(float value)
+static inline int CeilToInt(float value)
 {
     return (int)ceilf(value);
 }
 
-inline int RoundToInt(float value)
+static inline int RoundToInt(float value)
 {
     return (int)roundf(value);
 }
 
-inline int32_t FloorToInt(float value)
+static inline int32_t FloorToInt(float value)
 {
     return (int32_t)floorf(value);
 }
 
-inline bool Approx(float a, float b)
+static inline bool Approx(float a, float b)
 {
     return abs(a - b) < EPSILON;
 }
 
-inline bool InRange(float val, float min, float max) 
+static inline bool InRange(float val, float min, float max) 
 {
     return val >= min && val <= max;
 }
 
-inline int InRange(int val, int min, int max)
+static inline int InRange(int val, int min, int max)
 {
     return val >= min && val <= max;
 }
 
-inline vec3 MoveDirXZ(vec3 value)
+static inline vec3 MoveDirXZ(vec3 value)
 {
     vec3 zeroY = vec3(value.x, 0.0f, value.z);
     return normalize(zeroY);
 }
 
-inline ivec3 BlockPos(vec3 pos)
+static inline ivec3 BlockPos(vec3 pos)
 {
     return { RoundToInt(pos.x), RoundToInt(pos.y), RoundToInt(pos.z) };
 }
 
-inline vec3 GetV3(ivec3 v)
+static inline vec3 GetV3(ivec3 v)
 {
     return { v.x, v.y, v.z };
 }
 
-inline float Lerp(float a, float b, float t)
+static inline float Lerp(float a, float b, float t)
 {
     return a + t * (b - a);
 }
 
-inline float SCurve3(float a)
+static inline float SCurve3(float a)
 {
     return (a * a * (3.0f - 2.0f * a));
 }
 
-inline Color Average(Color first, Color second, Color third, Color fourth)
+static inline Color Average(Color first, Color second, Color third, Color fourth)
 {
     float r = (first.r + second.r + third.r + fourth.r) / 4.0f;
     float b = (first.b + second.b + third.b + fourth.b) / 4.0f;
@@ -110,7 +128,7 @@ inline Color Average(Color first, Color second, Color third, Color fourth)
     return vec4(r, b, g, a);
 }
 
-inline Color Average(Color first, Color second, Color third)
+static inline Color Average(Color first, Color second, Color third)
 {
     float r = (first.r + second.r + third.r) / 3.0f;
     float b = (first.b + second.b + third.b) / 3.0f;
@@ -126,7 +144,7 @@ struct Rectf
     vec3 max;
 };
 
-inline Rectf NewRect(vec3 min, vec3 max)
+static inline Rectf NewRect(vec3 min, vec3 max)
 {
     return { min, max };
 }

@@ -570,7 +570,6 @@ static void SaveChunk(Chunk* chunk)
     }
 
     END_TIMED_BLOCK(ENCODE);
-
     BEGIN_TIMED_BLOCK(WRITE);
 
     HANDLE file = CreateFile(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -592,7 +591,10 @@ static void SaveChunk(Chunk* chunk)
 static void SaveWorld(World* world)
 {
     char path[MAX_PATH];
-    sprintf(path, "%s\\WorldData.txt", PathToExe("Saves"));
+    char* dir = PathToExe("Saves");
+    CreateDirectory(dir, NULL);
+
+    sprintf(path, "%s\\WorldData.txt", dir);
 
     WriteBinary(path, (char*)&world->seed, sizeof(int));
 

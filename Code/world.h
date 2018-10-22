@@ -16,10 +16,23 @@
 
 typedef uint16_t Block;
 
+// Local chunk position is the position of the chunk in local space around the player.
+// All loaded chunks are in a local array. This indexes into it.
 typedef ivec3 LChunkPos;
+
+// The local world position is the world (block) position within the local space
+// around the player.
 typedef ivec3 LWorldPos;
+
+// The chunk position is the actual position of the chunk in the entire world space.
+// This allows the chunk to store its intended position irrespective of where it is
+// in the array of loaded chunks.
 typedef ivec3 ChunkPos;
+
+// The world position is the block position in actual world space.
 typedef ivec3 WorldPos;
+
+// The relative position is a position relative to a specific chunk.
 typedef ivec3 RelPos;
 
 typedef FastNoiseSIMD Noise;
