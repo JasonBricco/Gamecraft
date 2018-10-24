@@ -144,6 +144,10 @@ static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mod
 			g_input.lastNum = 9;
 			SetKey(KEY_9, action);
 			break;
+
+		case GLFW_KEY_F1:
+			SetKey(KEY_F1, action);
+			break;
 	}
 
 	if (mode == GLFW_MOD_SHIFT) 

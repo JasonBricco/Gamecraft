@@ -25,6 +25,8 @@
 #include <unordered_map>
 #include <fstream>
 #include <atomic>
+#include <string>
+#include <mutex>
 
 #define GLM_FORCE_INLINE
 #define GLM_FORCE_NO_CTOR_INIT
@@ -39,13 +41,6 @@
 
 using namespace glm;
 using namespace std;
-
-#if PROFILING || DEBUG_MEMORY
-
-#include <string>
-#include <mutex>
-
-#endif
 
 #pragma warning(pop)
 
@@ -155,6 +150,9 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 	Renderer* rend = (Renderer*)glfwGetWindowUserPointer(window);
 	UpdateWorld(world, rend, player);
+
+	if (KeyPressed(KEY_F1))
+		SaveWorld(world);
 
 	if (g_paused) return;
 

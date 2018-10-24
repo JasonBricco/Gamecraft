@@ -28,26 +28,25 @@ static bool LoadRegionFile(World* world, RegionPos p)
         return false;
     }
 
-    vector<uint16_t> data;
+    uint16_t position;
 
-    if (!ReadFile(file, data.data(), INT_MAX, NULL, NULL))
-    	Print("Failed to load region file. Error: %s\n", GetLastErrorText().c_str());
+    if (!ReadFile(file, &position, sizeof(uint16_t), NULL, NULL))
+        Print("Failed to read chunk position. Error: %s\n", GetLastErrorText().c_str());
 
-    bool first = true;
+    uint16_t items;
 
-    for (int i = 0; i < data.size(); i++)
-    {
-    	if (first)
-    	{
+    if (!ReadFile(file, &items, sizeof(uint16_t), NULL, NULL))
+        Print("Failed to read chunk items count. Error: %s\n", GetLastErrorText().c_str());
 
-    	}
-    }
+    Region region = Calloc<SerializedChunk>(REGION_SIZE_3);
+    SerializedChunk* chunk = region + position;
 
-    // TODO: Insert into region map. We'll need to create the serialized chunks too.
-    // world->regions.insert(make_pair(p, ))
+    if (!ReadFile(file, chunk->data.data(), items * sizeof(uint16_t), NULL, NULL))
+    	Print("Failed to load serialized chunk data. Error: %s\n", GetLastErrorText().c_str());
+
+    world->regions.insert(make_pair(p, chunk));
 
     CloseHandle(file);
-
     return true;
 }
 
@@ -116,7 +115,11 @@ static void LoadChunk(World* world, Chunk* chunk)
 
     if (it == world->regions.end())
     {
-    	if (LoadRegionFile(world, regionP))
+        world->regionMutex.lock();
+        bool regionLoaded = LoadRegionFile(world, regionP);
+        world->regionMutex.unlock();
+
+    	if (regionLoaded)
     	{
     		it = world->regions.find(regionP);
     		assert(it != world->regions.end());
@@ -181,6 +184,10 @@ static void SaveChunk(World* world, Chunk* chunk)
 
     data.push_back((uint16_t)offset);
 
+    // Holds the number of elements we will write. We won't know this value until 
+    // after the RLE compression, but should reserve its position in the data.
+    data.push_back(0);
+
     Block currentBlock = chunk->blocks[0];
     uint16_t count = 1;
 
@@ -204,7 +211,7 @@ static void SaveChunk(World* world, Chunk* chunk)
         }
     }
 
-    data.push_back(USHRT_MAX);
+    data[1] = (uint16_t)data.size() - 2;
     chunk->modified = false;
 }
 
@@ -222,4 +229,6 @@ static void SaveWorld(World* world)
         if (chunk->modified)
             SaveChunk(world, chunk);
     }
+
+    SaveRegions(world);
 }

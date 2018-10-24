@@ -157,6 +157,9 @@ struct World
     // Maps a region position with the grid of chunks that exist within it.
     RegionMap regions;
 
+    // Used to ensure blocking when loading a region file.
+    mutex regionMutex;
+
     int seed;
 };
 
