@@ -1,5 +1,6 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
 #define PI 3.141592653f
 #define EPSILON 0.001f
@@ -148,3 +149,19 @@ static inline Rectf NewRect(vec3 min, vec3 max)
 {
     return { min, max };
 }
+
+// Implements hashing and equality checking operations for the ivec3 type.
+// This allows it to be a key in a map.
+struct ivec3Key
+{
+    size_t operator()(const ivec3& k) const
+    {
+        return 31 * hash<int>()(k.x) + 17 * hash<int>()(k.y) + 13 * hash<int>()(k.z);
+    }
+
+    bool operator()(const ivec3& a, const ivec3& b) const
+    {
+        return a.x == b.x && a.y == b.y && a.z == b.z;
+    }
+};
+

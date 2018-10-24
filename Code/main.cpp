@@ -61,6 +61,7 @@ using namespace std;
 
 static bool g_paused;
 
+#include "memory.h"
 #include "profiling.h"
 #include "intrinsics.h"
 #include "filehelper.h"
@@ -71,7 +72,9 @@ static bool g_paused;
 #include "uniforms.h"
 #include "mesh.h"
 #include "world.h"
+#include "worldio.h"
 #include "renderer.h"
+#include "worldrender.h"
 #include "simulation.h"
 #include "async.h"
 
@@ -81,6 +84,9 @@ static bool g_paused;
 #include "mesh.cpp"
 #include "renderer.cpp"
 #include "world.cpp"
+#include "worldrender.cpp"
+#include "generation.cpp"
+#include "worldio.cpp"
 #include "simulation.cpp"
 
 // Window placement for fullscreen toggling.
@@ -94,11 +100,11 @@ static void ToggleFullscreen(HWND window)
 	{
 		MONITORINFO mi = { sizeof(mi) };
 
-		if (GetWindowPlacement(window, &g_windowPos) && 
-			GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &mi))
+		if (GetWindowPlacement(window, &g_windowPos) && GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &mi))
 		{
 			SetWindowLong(window, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
-			SetWindowPos(window, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+			SetWindowPos(window, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left, 
+				mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 		}
 	}
 	else

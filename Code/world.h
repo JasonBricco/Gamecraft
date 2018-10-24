@@ -1,5 +1,6 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
 // Chunk size in blocks.
 #define CHUNK_SIZE 32
@@ -14,26 +15,34 @@
 #define CHUNK_HASH_SIZE 4096
 #define SEA_LEVEL 12
 
+// Number of chunks on each dimensions in a region file.
+#define REGION_SIZE 8
+#define REGION_SIZE_3 512
+#define REGION_SHIFT 3
+#define REGION_MASK 7
+
 typedef uint16_t Block;
 
-// Local chunk position is the position of the chunk in local space around the player.
+// The position of the chunk in local space around the player.
 // All loaded chunks are in a local array. This indexes into it.
 typedef ivec3 LChunkPos;
 
-// The local world position is the world (block) position within the local space
-// around the player.
+// The world (block) position within the local space around the player.
 typedef ivec3 LWorldPos;
 
-// The chunk position is the actual position of the chunk in the entire world space.
+// The actual position of the chunk in the entire world space.
 // This allows the chunk to store its intended position irrespective of where it is
 // in the array of loaded chunks.
 typedef ivec3 ChunkPos;
 
-// The world position is the block position in actual world space.
+// The block position in actual world space.
 typedef ivec3 WorldPos;
 
-// The relative position is a position relative to a specific chunk.
+// A position relative to a specific chunk.
 typedef ivec3 RelPos;
+
+// The position in terms of chunk region files.
+typedef ivec3 RegionPos;
 
 typedef FastNoiseSIMD Noise;
 
@@ -101,6 +110,15 @@ struct ChunkQueue
     int count;
 };
 
+struct SerializedChunk
+{
+    bool modified;
+    vector<uint16_t> data;
+};
+
+typedef SerializedChunk* Region;
+typedef unordered_map<RegionPos, Region, ivec3Key, ivec3Key> RegionMap;
+
 struct World
 {
     // Size of the active world near the origin. 
@@ -135,6 +153,9 @@ struct World
 
     // Path to the world saves folder.
     char* savePath;
+
+    // Maps a region position with the grid of chunks that exist within it.
+    RegionMap regions;
 
     int seed;
 };
