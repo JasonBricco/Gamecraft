@@ -559,8 +559,7 @@ static void UpdateWorld(World* world, Renderer* rend, Player* player)
     }
 }
 
-static inline void SetBlockTextures(BlockData& data, float top, float bottom, float front, float back, 
-    float right, float left)
+static inline void SetBlockTextures(BlockData& data, float top, float bottom, float front, float back, float right, float left)
 {
     data.textures[FACE_TOP] = top;
     data.textures[FACE_BOTTOM] = bottom;

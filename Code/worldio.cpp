@@ -14,6 +14,8 @@ static inline int RegionIndex(ivec3 p)
 
 static bool LoadRegionFile(World* world, RegionPos p, RegionMap::iterator* it)
 {
+    Print("Loading region at %i, %i, %i\n", p.x, p.y, p.z);
+
 	char path[MAX_PATH];
     sprintf(path, "%s\\%i%i%i.txt", world->savePath, p.x, p.y, p.z);
 
@@ -54,9 +56,12 @@ static bool LoadRegionFile(World* world, RegionPos p, RegionMap::iterator* it)
         if (bytesRead == 0) break;
 
         SerializedChunk* chunk = region + position;
-        chunk->Reserve(items);
 
-        if (!ReadFile(file, chunk->data, items * sizeof(uint16_t), &bytesRead, NULL))
+        chunk->Reserve(items + 2);
+        chunk->Add(position);
+        chunk->Add(items);
+
+        if (!ReadFile(file, chunk->data + 2, items * sizeof(uint16_t), &bytesRead, NULL))
         {
         	Print("Failed to load serialized chunk data. Error: %s", GetLastErrorText().c_str());
             Print("Tried to read %i items\n", items);
@@ -139,19 +144,22 @@ static void LoadChunk(World* world, Chunk* chunk)
 	ChunkPos p = chunk->cPos;
     RegionPos regionP = ChunkToRegionPos(p);
 
+    world->regionMutex.lock();
+
     auto it = world->regions.find(regionP);
 
     if (it == world->regions.end())
     {
-        world->regionMutex.lock();
         bool regionLoaded = LoadRegionFile(world, regionP, &it);
-        world->regionMutex.unlock();
 
-    	if (!regionLoaded)
+        if (!regionLoaded)
             it = world->regions.insert(make_pair(regionP, Calloc<SerializedChunk>(REGION_SIZE_3))).first;
     }
 
+    world->regionMutex.unlock();
+
     Region region = it->second;
+    assert(RegionIsValid(region));
 
     ivec3 local = ivec3(p.x & REGION_MASK, p.y & REGION_MASK, p.z & REGION_MASK);
     int offset = RegionIndex(local);
@@ -163,7 +171,7 @@ static void LoadChunk(World* world, Chunk* chunk)
     if (chunkData->size > 0)
     {
         int i = 0; 
-        int loc = 0;
+        int loc = 2;
 
         while (i < CHUNK_SIZE_3)
         {
@@ -191,6 +199,7 @@ static void SaveChunk(World* world, Chunk* chunk)
     assert(it != world->regions.end());
 
     Region region = it->second;
+    assert(RegionIsValid(region));
 
 	ivec3 local = ivec3(p.x & REGION_MASK, p.y & REGION_MASK, p.z & REGION_MASK);
     int offset = RegionIndex(local);
@@ -230,7 +239,7 @@ static void SaveChunk(World* world, Chunk* chunk)
     }
 
     store->data[1] = (uint16_t)(store->size - 2);
-   chunk->modified = false;
+    chunk->modified = false;
 }
 
 static void SaveWorld(World* world)

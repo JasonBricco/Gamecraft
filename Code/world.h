@@ -83,7 +83,8 @@ enum ChunkState
     CHUNK_BUILDING,
     CHUNK_NEEDS_FILL,
     CHUNK_BUILT,
-    CHUNK_UPDATE
+    CHUNK_UPDATE,
+    CHUNK_STATE_COUNT
 };
 
 struct Chunk
