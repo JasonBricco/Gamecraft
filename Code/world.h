@@ -3,14 +3,15 @@
 //
 
 // Chunk size in blocks.
-#define CHUNK_SIZE 32
+#define CHUNK_SIZE_X 16
+#define CHUNK_SIZE_Y 256
 
 // Size with padding. Padding removes dependency on neighboring chunks.
 #define PADDED_CHUNK_SIZE 34
 #define CHUNK_SIZE_BITS 5
 
 // Full size with padding.
-#define CHUNK_SIZE_3 39304
+#define CHUNK_SIZE_3 81920
 
 #define CHUNK_HASH_SIZE 4096
 #define SEA_LEVEL 12
@@ -25,7 +26,7 @@ typedef uint16_t Block;
 
 // The position of the chunk in local space around the player.
 // All loaded chunks are in a local array. This indexes into it.
-typedef ivec3 LChunkPos;
+typedef ivec2 LChunkPos;
 
 // The world (block) position within the local space around the player.
 typedef ivec3 LWorldPos;
@@ -33,7 +34,7 @@ typedef ivec3 LWorldPos;
 // The actual position of the chunk in the entire world space.
 // This allows the chunk to store its intended position irrespective of where it is
 // in the array of loaded chunks.
-typedef ivec3 ChunkPos;
+typedef ivec2 ChunkPos;
 
 // The block position in actual world space.
 typedef ivec3 WorldPos;
@@ -42,7 +43,7 @@ typedef ivec3 WorldPos;
 typedef ivec3 RelPos;
 
 // The position in terms of chunk region files.
-typedef ivec3 RegionPos;
+typedef ivec2 RegionPos;
 
 typedef FastNoiseSIMD Noise;
 
@@ -148,7 +149,7 @@ struct World
 {
     // Size of the active world near the origin. 
     // The potential world is unlimited in size.
-    int sizeH, sizeV;
+    int size;
 
     // Chunk pool to avoid constant allocating/freeing.
     Chunk** pool;

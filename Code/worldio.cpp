@@ -43,6 +43,7 @@ static bool LoadRegionFile(World* world, RegionPos p, RegionMap::iterator* it)
             return false;
         }
 
+        assert(position >= 0 && position < REGION_SIZE_3);
         if (bytesRead == 0) break;
 
         uint16_t items;

@@ -25,7 +25,7 @@ static inline Chunk* DequeueChunk(ChunkQueue& queue)
 
 static inline RelPos LWorldToRelPos(int lwX, int lwY, int lwZ)
 {
-	return ivec3(lwX & CHUNK_SIZE - 1, lwY & CHUNK_SIZE - 1, lwZ & CHUNK_SIZE - 1);
+	return ivec3(lwX & CHUNK_SIZE_X - 1, lwY & CHUNK_SIZE_Y - 1, lwZ & CHUNK_SIZE_X - 1);
 }
 
 static inline RelPos LWorldToRelPos(LWorldPos wPos)
@@ -60,8 +60,8 @@ static inline ChunkPos LChunkToChunkPos(LChunkPos pos, ChunkPos ref)
 
 static inline RegionPos ChunkToRegionPos(ChunkPos pos)
 {
-    vec3 tmp = vec3(pos.x / (float)REGION_SIZE, pos.y / (float)REGION_SIZE, pos.z / (float)REGION_SIZE);
-    return ivec3(FloorToInt(tmp.x), FloorToInt(tmp.y), FloorToInt(tmp.z));
+    vec2 tmp = vec3(pos.x / (float)REGION_SIZE, pos.y / (float)REGION_SIZE);
+    return ivec2(FloorToInt(tmp.x), FloorToInt(tmp.y));
 }
 
 static inline RegionPos LWorldToRegionPos(vec3 wPos, ChunkPos ref)

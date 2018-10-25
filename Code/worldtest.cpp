@@ -8,9 +8,9 @@ static bool ChunkIsValid(World* world, Chunk* chunk)
 
     LChunkPos lP = chunk->lcPos;
 
-    int limX = world->sizeH, limY = world->sizeV;
+    int lim = world->size;
 
-    if (lP.x < 0 || lP.y < 0 || lP.z < 0 || lP.x >= limX || lP.y >= limY || lP.z >= limX)
+    if (lP.x < 0 || lP.y < 0 || lP.x >= lim || lP.y >= lim)
         return false;
 
     if (chunk->state < 0 || chunk->state >= CHUNK_STATE_COUNT)
