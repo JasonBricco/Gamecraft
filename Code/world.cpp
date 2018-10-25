@@ -53,10 +53,22 @@ static inline LChunkPos ChunkToLChunkPos(ChunkPos pos, ChunkPos ref)
     return pos - ref;
 }
 
+static inline ChunkPos LChunkToChunkPos(LChunkPos pos, ChunkPos ref)
+{
+    return ref + pos;
+}
+
 static inline RegionPos ChunkToRegionPos(ChunkPos pos)
 {
     vec3 tmp = vec3(pos.x / (float)REGION_SIZE, pos.y / (float)REGION_SIZE, pos.z / (float)REGION_SIZE);
     return ivec3(FloorToInt(tmp.x), FloorToInt(tmp.y), FloorToInt(tmp.z));
+}
+
+static inline RegionPos LWorldToRegionPos(vec3 wPos, ChunkPos ref)
+{
+    LChunkPos lP = LWorldToLChunkPos(wPos);
+    ChunkPos cP = LChunkToChunkPos(lP, ref);
+    return ChunkToRegionPos(cP);
 }
 
 static inline int ChunkIndex(World* world, int lcX, int lcY, int lcZ)
@@ -319,7 +331,7 @@ static inline void AddChunkToPool(World* world, Chunk* chunk)
     if (world->poolSize + 1 > world->maxPoolSize)
     {
         int newMax = world->maxPoolSize + (world->totalChunks / 2);
-        world->pool = (Chunk**)realloc(world->pool, newMax * sizeof(Chunk*));
+        world->pool = Realloc<Chunk*>(world->pool, newMax);
         world->maxPoolSize = newMax;
     }
 
@@ -526,6 +538,8 @@ static void UpdateWorld(World* world, Renderer* rend, Player* player)
     }
     else
     {
+        world->playerRegion = LWorldToRegionPos(player->pos, world->ref);
+
         CheckWorld(world, player);
 
         world->visibleCount = 0;

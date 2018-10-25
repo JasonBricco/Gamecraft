@@ -12,7 +12,7 @@ static inline int RegionIndex(ivec3 p)
 	return RegionIndex(p.x, p.y, p.z);
 }
 
-static bool LoadRegionFile(World* world, RegionPos p)
+static bool LoadRegionFile(World* world, RegionPos p, RegionMap::iterator* it)
 {
 	char path[MAX_PATH];
     sprintf(path, "%s\\%i%i%i.txt", world->savePath, p.x, p.y, p.z);
@@ -28,23 +28,47 @@ static bool LoadRegionFile(World* world, RegionPos p)
         return false;
     }
 
-    uint16_t position;
-
-    if (!ReadFile(file, &position, sizeof(uint16_t), NULL, NULL))
-        Print("Failed to read chunk position. Error: %s\n", GetLastErrorText().c_str());
-
-    uint16_t items;
-
-    if (!ReadFile(file, &items, sizeof(uint16_t), NULL, NULL))
-        Print("Failed to read chunk items count. Error: %s\n", GetLastErrorText().c_str());
-
     Region region = Calloc<SerializedChunk>(REGION_SIZE_3);
-    SerializedChunk* chunk = region + position;
 
-    if (!ReadFile(file, chunk->data.data(), items * sizeof(uint16_t), NULL, NULL))
-    	Print("Failed to load serialized chunk data. Error: %s\n", GetLastErrorText().c_str());
+    while (true)
+    {
+        DWORD bytesRead;
+        uint16_t position;
 
-    world->regions.insert(make_pair(p, chunk));
+        if (!ReadFile(file, &position, sizeof(uint16_t), &bytesRead, NULL))
+        {
+            Print("Failed to read chunk position. Error: %s\n", GetLastErrorText().c_str());
+            return false;
+        }
+
+        if (bytesRead == 0) break;
+
+        uint16_t items;
+
+        if (!ReadFile(file, &items, sizeof(uint16_t), &bytesRead, NULL))
+        {
+            Print("Failed to read chunk items count. Error: %s\n", GetLastErrorText().c_str());
+            return false;
+        }
+
+        if (bytesRead == 0) break;
+
+        SerializedChunk* chunk = region + position;
+        chunk->Reserve(items);
+
+        if (!ReadFile(file, chunk->data, items * sizeof(uint16_t), &bytesRead, NULL))
+        {
+        	Print("Failed to load serialized chunk data. Error: %s", GetLastErrorText().c_str());
+            Print("Tried to read %i items\n", items);
+            return false;
+        }
+
+        chunk->size = items;
+
+        if (bytesRead == 0) break;
+    }
+
+    *it = world->regions.insert(make_pair(p, region)).first;
 
     CloseHandle(file);
     return true;
@@ -54,7 +78,7 @@ static void SaveRegions(World* world)
 {
 	RegionMap& map = world->regions;
 
-	for (auto it = map.begin(); it != map.end(); it++)
+	for (auto it = map.begin(); it != map.end();)
 	{
 		RegionPos p = it->first;
 		Region start = it->second;
@@ -79,28 +103,33 @@ static void SaveRegions(World* world)
 					int index = RegionIndex(x, y, z);
 					SerializedChunk* chunk = start + index;
 
-					if (chunk->modified)
-					{
-						DWORD bytesToWrite = sizeof(uint16_t) * (DWORD)chunk->data.size();
-	    				DWORD bytesWritten;
+					DWORD bytesToWrite = sizeof(uint16_t) * (DWORD)chunk->size;
+    				DWORD bytesWritten;
 
-	    				if (!WriteFile(file, chunk->data.data(), bytesToWrite, &bytesWritten, NULL))
-			    		{
-			        		Print("Failed to save chunk. Error: %s\n", GetLastErrorText().c_str());
-			        		continue;
-			    		}
+    				if (!WriteFile(file, chunk->data, bytesToWrite, &bytesWritten, NULL))
+		    		{
+		        		Print("Failed to save chunk. Error: %s\n", GetLastErrorText().c_str());
+		        		continue;
+		    		}
 
-			    		assert(bytesWritten == bytesToWrite);
+		    		assert(bytesWritten == bytesToWrite);
 
-			    		if (SetFilePointer(file, 0l, nullptr, FILE_END) == INVALID_SET_FILE_POINTER)
-	    					Print("Failed to set the file pointer to the end of file.\n");
-
-	    				chunk->modified = false;
-					}
+		    		if (SetFilePointer(file, 0l, nullptr, FILE_END) == INVALID_SET_FILE_POINTER)
+    					Print("Failed to set the file pointer to the end of file.\n");
 				}
 			}
 		}
 
+        ivec3 diff = p - world->playerRegion;
+
+        if (abs(diff.x) > 1 || abs(diff.y) > 1 || abs(diff.z) > 1)
+        {
+            it = world->regions.erase(it);
+            Print("Region at %i, %i, %i is too far. Removing.\n", p.x, p.y, p.z);
+        }
+        else it++;
+
+        Print("Region at %i, %i, %i saved successfully!\n", p.x, p.y, p.z);
 		CloseHandle(file);
 	}
 }
@@ -111,33 +140,28 @@ static void LoadChunk(World* world, Chunk* chunk)
     RegionPos regionP = ChunkToRegionPos(p);
 
     auto it = world->regions.find(regionP);
-    bool found = true;
 
     if (it == world->regions.end())
     {
         world->regionMutex.lock();
-        bool regionLoaded = LoadRegionFile(world, regionP);
+        bool regionLoaded = LoadRegionFile(world, regionP, &it);
         world->regionMutex.unlock();
 
-    	if (regionLoaded)
-    	{
-    		it = world->regions.find(regionP);
-    		assert(it != world->regions.end());
-    	}
-    	else found = false;
+    	if (!regionLoaded)
+            it = world->regions.insert(make_pair(regionP, Calloc<SerializedChunk>(REGION_SIZE_3))).first;
     }
 
-    if (found)
+    Region region = it->second;
+
+    ivec3 local = ivec3(p.x & REGION_MASK, p.y & REGION_MASK, p.z & REGION_MASK);
+    int offset = RegionIndex(local);
+
+    assert(offset >= 0 && offset < REGION_SIZE_3);
+    
+    SerializedChunk* chunkData = region + offset;
+
+    if (chunkData->size > 0)
     {
-        Region region = it->second;
-
-        ivec3 local = ivec3(p.x & REGION_MASK, p.y & REGION_MASK, p.z & REGION_MASK);
-        int offset = RegionIndex(local);
-
-        assert(offset >= 0 && offset < REGION_SIZE_3);
-        
-        SerializedChunk* chunkData = region + offset;
-
         int i = 0; 
         int loc = 0;
 
@@ -150,11 +174,7 @@ static void LoadChunk(World* world, Chunk* chunk)
                 chunk->blocks[i++] = block;
         }
     }
-    else
-    {
-        world->regions.insert(make_pair(regionP, Calloc<SerializedChunk>(REGION_SIZE_3)));
-        GenerateChunkTerrain(world, chunk);
-    }
+    else GenerateChunkTerrain(world, chunk);
 
     chunk->state = CHUNK_LOADED;
 }
@@ -178,15 +198,13 @@ static void SaveChunk(World* world, Chunk* chunk)
     assert(offset >= 0 && offset < REGION_SIZE_3);
 
     SerializedChunk* store = region + offset;
-    store->data.clear();
-    store->modified = true;
-    auto& data = store->data;
+    store->Clear();
 
-    data.push_back((uint16_t)offset);
+    store->Add((uint16_t)offset);
 
     // Holds the number of elements we will write. We won't know this value until 
     // after the RLE compression, but should reserve its position in the data.
-    data.push_back(0);
+    store->Add(0);
 
     Block currentBlock = chunk->blocks[0];
     uint16_t count = 1;
@@ -197,8 +215,8 @@ static void SaveChunk(World* world, Chunk* chunk)
 
         if (block != currentBlock)
         {
-            data.push_back(count);
-            data.push_back(currentBlock);
+            store->Add(count);
+            store->Add(currentBlock);
             count = 1;
             currentBlock = block;
         }
@@ -206,13 +224,13 @@ static void SaveChunk(World* world, Chunk* chunk)
 
         if (i == CHUNK_SIZE_3 - 1)
         {
-            data.push_back(count);
-            data.push_back(currentBlock);
+            store->Add(count);
+            store->Add(currentBlock);
         }
     }
 
-    data[1] = (uint16_t)data.size() - 2;
-    chunk->modified = false;
+    store->data[1] = (uint16_t)(store->size - 2);
+   chunk->modified = false;
 }
 
 static void SaveWorld(World* world)

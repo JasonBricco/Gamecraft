@@ -112,8 +112,32 @@ struct ChunkQueue
 
 struct SerializedChunk
 {
-    bool modified;
-    vector<uint16_t> data;
+    int size, maxSize;
+    uint16_t* data;
+
+    inline void Add(uint16_t value)
+    {
+        if (size + 1 > maxSize)
+        {
+            maxSize = (maxSize + 1) * 2;
+            data = Realloc<uint16_t>(data, maxSize);
+            assert(data != nullptr);
+        }
+
+        data[size++] = value;
+    }
+
+    inline void Reserve(int count)
+    {
+        maxSize = count;
+        data = Realloc<uint16_t>(data, count);
+        assert(data != nullptr);
+    }
+
+    inline void Clear()
+    {
+        size = 0;
+    }
 };
 
 typedef SerializedChunk* Region;
@@ -159,6 +183,9 @@ struct World
 
     // Used to ensure blocking when loading a region file.
     mutex regionMutex;
+
+    // The region the player is in.
+    RegionPos playerRegion;
 
     int seed;
 };

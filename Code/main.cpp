@@ -2,7 +2,15 @@
 // Jason Bricco
 //
 
+#define DEBUG_MEMORY 0
+#define PROFILING 0
+#define PROFILING_ONCE 0
+
 #pragma warning(push, 0)
+
+#if DEBUG_MEMORY
+#define _CRTDBG_MAP_ALLOC
+#endif
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLEW_STATIC
@@ -28,6 +36,10 @@
 #include <string>
 #include <mutex>
 
+#if DEBUG_MEMORY
+#include <crtdbg.h>
+#endif
+
 #define GLM_FORCE_INLINE
 #define GLM_FORCE_NO_CTOR_INIT
 
@@ -44,15 +56,15 @@ using namespace std;
 
 #pragma warning(pop)
 
-#define DEBUG_MEMORY 0
-#define PROFILING 0
-#define PROFILING_ONCE 0
-
+#if _DEBUG
 #define Print(...) { \
     char buffer[256]; \
     snprintf(buffer, sizeof(buffer), __VA_ARGS__); \
     OutputDebugString(buffer); \
 }
+#else
+#define Print(...)
+#endif
 
 static bool g_paused;
 
@@ -218,12 +230,14 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 
-	#if ASSERTIONS
-
+#if ASSERTIONS
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback((GLDEBUGPROC)OnOpenGLMessage, 0);
+#endif
 
-	#endif
+#if DEBUG_MEMORY
+	_CrtSetDbgFlag(_CRTDBG_CHECK_ALWAYS_DF);
+#endif
 	
 	CreateThreads();
 
@@ -285,6 +299,10 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	SaveWorld(world);
 	glfwTerminate();
 	FLUSH_COUNTERS();
+
+	#if DEBUG_MEMORY
+	_CrtDumpMemoryLeaks();
+	#endif
 
 	return 0;
 }

@@ -151,7 +151,7 @@ static Shader LoadShader(char* path)
         abort();
     }
 
-    delete[] code;
+    free(code);
     glDeleteShader(vS);
     glDeleteShader(fS);
 

@@ -2,7 +2,7 @@
 
 pushd ..
 
-set cf=-nologo -fp:fast -Gm- -GR- -EHa- -W4 -wd4100 -wd4201 -wd4505 -FC -std:c++17 -arch:AVX2 -FeGamecraft.exe
+set cf=-nologo -fp:fast -Gm- -GR- -EHa- -W4 -wd4100 -wd4201 -wd4505 -wd4390 -FC -std:c++17 -arch:AVX2 -FeGamecraft.exe
 set clb=-incremental:no -opt:ref gdi32.lib user32.lib Shell32.lib Shlwapi.lib opengl32.lib
 
 IF "%~1" == "" GOTO end

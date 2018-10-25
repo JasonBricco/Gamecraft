@@ -29,7 +29,7 @@ static char* ReadFileData(char* fileName)
         uint32_t length = (uint32_t)file.tellg() + 1;
         file.seekg(0, file.beg);
 
-        char* inputBuffer = new char[length];
+        char* inputBuffer = (char*)malloc(length);
         memset(inputBuffer, 0, length);
         file.read(inputBuffer, length);
         inputBuffer[length - 1] = 0;
@@ -39,7 +39,7 @@ static char* ReadFileData(char* fileName)
         {
             OutputDebugString("Failed to read file!");
             file.close();
-            delete[] inputBuffer;
+            free(inputBuffer);
             return nullptr;
         }
 

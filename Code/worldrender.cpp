@@ -19,6 +19,7 @@ static void TryBuildMeshes(World* world, Renderer* rend)
     for (int i = 0; i < world->visibleCount; i++)
     {
         Chunk* chunk = world->visibleChunks[i];
+        assert(chunk->active);
 
         switch (chunk->state)
         {
@@ -75,18 +76,14 @@ static void GetVisibleChunks(World* world, Camera* cam)
         vec3 min = cP * CHUNK_SIZE;
         vec3 max = min + (CHUNK_SIZE - 1.0f);
 
-        #if FRUSTUM_CULLING 
-
+#if FRUSTUM_CULLING 
         FrustumVisibility visibility = TestFrustum(cam, min, max);
 
         if (visibility >= FRUSTUM_VISIBLE)
             world->visibleChunks[world->visibleCount++] = chunk;
-
-        #else
-
+#else
         world->visibleChunks[world->visibleCount++] = chunk;
-
-        #endif
+#endif
     }
 }
 
