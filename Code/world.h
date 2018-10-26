@@ -6,27 +6,27 @@
 #define CHUNK_SIZE_X 16
 #define CHUNK_SIZE_Y 256
 
-// Size with padding. Padding removes dependency on neighboring chunks.
-#define PADDED_CHUNK_SIZE 34
-#define CHUNK_SIZE_BITS 5
+#define CHUNK_SIZE_BITS 4
 
-// Full size with padding.
-#define CHUNK_SIZE_3 81920
+// The number of blocks in a chunk.
+#define CHUNK_SIZE_3 65536
 
 #define CHUNK_HASH_SIZE 4096
 #define SEA_LEVEL 12
 
 // Number of chunks on each dimensions in a region file.
-#define REGION_SIZE 8
-#define REGION_SIZE_3 512
-#define REGION_SHIFT 3
-#define REGION_MASK 7
+#define REGION_SIZE 16
+#define REGION_SIZE_3 256
+#define REGION_SHIFT 4
+#define REGION_MASK 15
+
+#define WORLD_HEIGHT 256
 
 typedef uint16_t Block;
 
 // The position of the chunk in local space around the player.
 // All loaded chunks are in a local array. This indexes into it.
-typedef ivec2 LChunkPos;
+typedef ivec3 LChunkPos;
 
 // The world (block) position within the local space around the player.
 typedef ivec3 LWorldPos;
@@ -34,7 +34,7 @@ typedef ivec3 LWorldPos;
 // The actual position of the chunk in the entire world space.
 // This allows the chunk to store its intended position irrespective of where it is
 // in the array of loaded chunks.
-typedef ivec2 ChunkPos;
+typedef ivec3 ChunkPos;
 
 // The block position in actual world space.
 typedef ivec3 WorldPos;
@@ -43,7 +43,7 @@ typedef ivec3 WorldPos;
 typedef ivec3 RelPos;
 
 // The position in terms of chunk region files.
-typedef ivec2 RegionPos;
+typedef ivec3 RegionPos;
 
 typedef FastNoiseSIMD Noise;
 
@@ -95,6 +95,9 @@ struct Chunk
     LWorldPos lwPos;
 
     Block blocks[CHUNK_SIZE_3];
+
+    // Stores the y value of the highest block in each x, z column of the chunk.
+    int surface[CHUNK_SIZE_X * CHUNK_SIZE_X];
 
     Mesh* meshes[CHUNK_MESH_COUNT];
 
@@ -151,6 +154,8 @@ struct World
     // The potential world is unlimited in size.
     int size;
 
+    int loadRange;
+
     // Chunk pool to avoid constant allocating/freeing.
     Chunk** pool;
     int poolSize, maxPoolSize;
@@ -162,6 +167,8 @@ struct World
     // Chunks to be rendered.
     Chunk** visibleChunks;
     int visibleCount;
+
+    vector<ivec4> chunksToCreate;
 
     // Chunk hash table to store chunks that need to transition.
     Chunk* chunkHash[CHUNK_HASH_SIZE];
@@ -192,7 +199,7 @@ struct World
     int seed;
 };
 
-using BuildBlockFunc = void(*)(Chunk*, Mesh*, int, int, int, Block);
+using BuildBlockFunc = void(*)(World*, Chunk*, Mesh*, int, int, int, Block);
 
 struct BlockData
 {

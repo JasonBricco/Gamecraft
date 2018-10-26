@@ -2,14 +2,14 @@
 // Jason Bricco
 //
 
-static inline int RegionIndex(int x, int y, int z)
+static inline int RegionIndex(int x, int z)
 {
-	return x + REGION_SIZE * (y + REGION_SIZE * z);
+	return z * REGION_SIZE + x;
 }
 
 static inline int RegionIndex(ivec3 p)
 {
-	return RegionIndex(p.x, p.y, p.z);
+	return RegionIndex(p.x, p.z);
 }
 
 static bool LoadRegionFile(World* world, RegionPos p, RegionMap::iterator* it)
@@ -90,52 +90,49 @@ static void SaveRegions(World* world)
 		Region start = it->second;
 
 		char path[MAX_PATH];
-    	sprintf(path, "%s\\%i%i%i.txt", world->savePath, p.x, p.y, p.z);
+    	sprintf(path, "%s\\%i%i.txt", world->savePath, p.x, p.z);
 
 		HANDLE file = CreateFile(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
 		if (file == INVALID_HANDLE_VALUE)
 		{
-		    Print("An error occurred while saving region %i, %i, %i: %s\n", p.x, p.y, p.z, GetLastErrorText().c_str());
+		    Print("An error occurred while saving region %i, %i: %s\n", p.x, p.z, GetLastErrorText().c_str());
 		    return;
 		}
 
 		for (int z = 0; z < REGION_SIZE; z++)
 		{
-			for (int y = 0; y < REGION_SIZE; y++)
+			for (int x = 0; x < REGION_SIZE; x++)
 			{
-				for (int x = 0; x < REGION_SIZE; x++)
-				{
-					int index = RegionIndex(x, y, z);
-					SerializedChunk* chunk = start + index;
+				int index = RegionIndex(x, z);
+				SerializedChunk* chunk = start + index;
 
-					DWORD bytesToWrite = sizeof(uint16_t) * (DWORD)chunk->size;
-    				DWORD bytesWritten;
+				DWORD bytesToWrite = sizeof(uint16_t) * (DWORD)chunk->size;
+				DWORD bytesWritten;
 
-    				if (!WriteFile(file, chunk->data, bytesToWrite, &bytesWritten, NULL))
-		    		{
-		        		Print("Failed to save chunk. Error: %s\n", GetLastErrorText().c_str());
-		        		continue;
-		    		}
+				if (!WriteFile(file, chunk->data, bytesToWrite, &bytesWritten, NULL))
+	    		{
+	        		Print("Failed to save chunk. Error: %s\n", GetLastErrorText().c_str());
+	        		continue;
+	    		}
 
-		    		assert(bytesWritten == bytesToWrite);
+	    		assert(bytesWritten == bytesToWrite);
 
-		    		if (SetFilePointer(file, 0l, nullptr, FILE_END) == INVALID_SET_FILE_POINTER)
-    					Print("Failed to set the file pointer to the end of file.\n");
-				}
+	    		if (SetFilePointer(file, 0l, nullptr, FILE_END) == INVALID_SET_FILE_POINTER)
+					Print("Failed to set the file pointer to the end of file.\n");
 			}
 		}
 
         ivec3 diff = p - world->playerRegion;
 
-        if (abs(diff.x) > 1 || abs(diff.y) > 1 || abs(diff.z) > 1)
+        if (abs(diff.x) > 1 || abs(diff.z) > 1)
         {
             it = world->regions.erase(it);
-            Print("Region at %i, %i, %i is too far. Removing.\n", p.x, p.y, p.z);
+            Print("Region at %i, %i is too far. Removing.\n", p.x, p.z);
         }
         else it++;
 
-        Print("Region at %i, %i, %i saved successfully!\n", p.x, p.y, p.z);
+        Print("Region at %i, %i saved successfully!\n", p.x, p.z);
 		CloseHandle(file);
 	}
 }
@@ -162,7 +159,7 @@ static void LoadChunk(World* world, Chunk* chunk)
     Region region = it->second;
     assert(RegionIsValid(region));
 
-    ivec3 local = ivec3(p.x & REGION_MASK, p.y & REGION_MASK, p.z & REGION_MASK);
+    ivec3 local = ivec3(p.x & REGION_MASK, 0, p.z & REGION_MASK);
     int offset = RegionIndex(local);
 
     assert(offset >= 0 && offset < REGION_SIZE_3);
@@ -202,7 +199,7 @@ static void SaveChunk(World* world, Chunk* chunk)
     Region region = it->second;
     assert(RegionIsValid(region));
 
-	ivec3 local = ivec3(p.x & REGION_MASK, p.y & REGION_MASK, p.z & REGION_MASK);
+	ivec3 local = ivec3(p.x & REGION_MASK, 0, p.z & REGION_MASK);
     int offset = RegionIndex(local);
 
     assert(offset >= 0 && offset < REGION_SIZE_3);

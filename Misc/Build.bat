@@ -11,7 +11,7 @@ IF "%~1" == "-d" GOTO build_debug
 
 :build_release
 
-set f=-MD -Oi -O2
+set f=-MD -Oi -O2 -Zi
 set def=-D_CRT_SECURE_NO_WARNINGS=1 -DNDEBUG -D_HAS_EXCEPTIONS=0
 set lb=glew32s.lib glfw3.lib noise.lib
 set link=/LIBPATH:W:\Common\Lib /LTCG /SUBSYSTEM:WINDOWS
@@ -30,7 +30,6 @@ GOTO compile_debug
 :compile_release
 
 cl -I Common\Include %cf% %f% %def% Code\main.cpp /link %clb% %lb% %link%
-del /Q *.pdb > nul 2> nul
 GOTO end
 
 :compile_debug

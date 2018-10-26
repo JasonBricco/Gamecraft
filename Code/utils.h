@@ -20,22 +20,15 @@ struct Ray
     vec3 dir;
 };
 
+#define LEFT 0
+#define RIGHT 1
+#define BACK 2
+#define FRONT 3
+
 static const ivec3 DIRECTIONS[26] = 
 { 
-    // Top 3x3 section.
-    ivec3(-1, 1, -1), ivec3(-1, 1, 0), ivec3(-1, 1, 1),
-    ivec3(0, 1, -1), ivec3(0, 1, 0), ivec3(0, 1, 1),
-    ivec3(1, 1, -1), ivec3(1, 1, 0), ivec3(1, 1, 1),
-
-    // Mid 3x3 section.
-    ivec3(-1, 0, -1), ivec3(-1, 0, 0), ivec3(-1, 0, 1),
-    ivec3(0, 0, -1), ivec3(0, 0, 1),
-    ivec3(1, 0, -1), ivec3(1, 0, 0), ivec3(1, 0, 1),
-
-    // Bottom 3x3 section.
-    ivec3(-1, -1, -1), ivec3(-1, -1, 0), ivec3(-1, -1, 1),
-    ivec3(0, -1, -1), ivec3(0, -1, 0), ivec3(0, -1, 1),
-    ivec3(1, -1, -1), ivec3(1, -1, 0), ivec3(1, -1, 1)
+    ivec3(-1, 0, 0), ivec3(1, 0, 0), ivec3(0, 0, -1), ivec3(0, 0, 1),
+    ivec3(-1, 0, -1), ivec3(-1, 0, 1), ivec3(1, 0, -1), ivec3(1, 0, 1)
 };
 
 static inline int Clamp(int value, int min, int max)

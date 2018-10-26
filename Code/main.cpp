@@ -35,6 +35,7 @@
 #include <atomic>
 #include <string>
 #include <mutex>
+#include <algorithm>
 
 #if DEBUG_MEMORY
 #include <crtdbg.h>
@@ -42,6 +43,7 @@
 
 #define GLM_FORCE_INLINE
 #define GLM_FORCE_NO_CTOR_INIT
+#define GLM_ENABLE_EXPERIMENTAL
 
 #include "glm/fwd.hpp"
 #include "glm/vec2.hpp"
@@ -50,6 +52,7 @@
 #include "glm/mat4x4.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/norm.hpp"
 
 using namespace glm;
 using namespace std;
@@ -261,7 +264,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPos(window, rend->windowWidth / 2.0f, rend->windowHeight / 2.0f);
 
-	World* world = NewWorld(6, 4);
+	World* world = NewWorld(13);
 
 	Player* player = NewPlayer(rend->camera);
 	rend->camera = player->camera;

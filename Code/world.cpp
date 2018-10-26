@@ -25,7 +25,7 @@ static inline Chunk* DequeueChunk(ChunkQueue& queue)
 
 static inline RelPos LWorldToRelPos(int lwX, int lwY, int lwZ)
 {
-	return ivec3(lwX & CHUNK_SIZE_X - 1, lwY & CHUNK_SIZE_Y - 1, lwZ & CHUNK_SIZE_X - 1);
+	return ivec3(lwX & CHUNK_SIZE_X - 1, lwY, lwZ & CHUNK_SIZE_X - 1);
 }
 
 static inline RelPos LWorldToRelPos(LWorldPos wPos)
@@ -35,7 +35,7 @@ static inline RelPos LWorldToRelPos(LWorldPos wPos)
 
 static inline LChunkPos LWorldToLChunkPos(int lwX, int lwY, int lwZ)
 {
-	return ivec3(lwX >> CHUNK_SIZE_BITS, lwY >> CHUNK_SIZE_BITS, lwZ >> CHUNK_SIZE_BITS);
+	return ivec3(lwX >> CHUNK_SIZE_BITS, 0, lwZ >> CHUNK_SIZE_BITS);
 }
 
 static inline LChunkPos LWorldToLChunkPos(LWorldPos pos)
@@ -45,7 +45,7 @@ static inline LChunkPos LWorldToLChunkPos(LWorldPos pos)
 
 static inline LChunkPos LWorldToLChunkPos(vec3 wPos)
 {
-	return LWorldToLChunkPos((int)wPos.x, (int)wPos.y, (int)wPos.z);
+	return LWorldToLChunkPos((int)wPos.x, 0, (int)wPos.z);
 }
 
 static inline LChunkPos ChunkToLChunkPos(ChunkPos pos, ChunkPos ref)
@@ -60,8 +60,8 @@ static inline ChunkPos LChunkToChunkPos(LChunkPos pos, ChunkPos ref)
 
 static inline RegionPos ChunkToRegionPos(ChunkPos pos)
 {
-    vec2 tmp = vec3(pos.x / (float)REGION_SIZE, pos.y / (float)REGION_SIZE);
-    return ivec2(FloorToInt(tmp.x), FloorToInt(tmp.y));
+    vec3 tmp = vec3(pos.x / (float)REGION_SIZE, 0.0f, pos.z / (float)REGION_SIZE);
+    return ivec3(FloorToInt(tmp.x), 0, FloorToInt(tmp.z));
 }
 
 static inline RegionPos LWorldToRegionPos(vec3 wPos, ChunkPos ref)
@@ -71,29 +71,43 @@ static inline RegionPos LWorldToRegionPos(vec3 wPos, ChunkPos ref)
     return ChunkToRegionPos(cP);
 }
 
-static inline int ChunkIndex(World* world, int lcX, int lcY, int lcZ)
+// Returns an index into the chunks array from the given chunk position.
+static inline int32_t ChunkIndex(World* world, int32_t lcX, int32_t lcZ)
 {
-	return lcX + world->sizeH * (lcY + world->sizeV * lcZ);
+    return lcZ * world->size + lcX;
 }
 
-static inline Chunk* GetChunk(World* world, int lcX, int lcY, int lcZ)
+static inline Chunk* GetChunk(World* world, int32_t lcX, int32_t lcZ)
 {
-	return world->chunks[ChunkIndex(world, lcX, lcY, lcZ)];
+	return world->chunks[ChunkIndex(world, lcX, lcZ)];
 }
 
 static inline Chunk* GetChunk(World* world, LChunkPos pos)
 {
-	return GetChunk(world, pos.x, pos.y, pos.z);
+	return GetChunk(world, pos.x, pos.z);
 }
 
-static inline uint32_t ChunkHashBucket(ivec3 wPos)
+static inline Chunk* GetChunkSafe(World* world, LChunkPos pos)
 {
-	uint32_t hashValue = 7919 * wPos.y + (31 + wPos.x) * 23 + wPos.z;
+    if (pos.x < 0 || pos.x >= world->size || pos.z < 0 || pos.z >= world->size)
+        return nullptr;
+
+    return GetChunk(world, pos);
+}
+
+static inline uint32_t ChunkHashBucket(int32_t x, int32_t z)
+{
+	uint32_t hashValue = (31 + x) * 23 + z;
 	return hashValue & (CHUNK_HASH_SIZE - 1);
 }
 
-// The chunk pool stores existing chunks during a world shift. Chunks will be
-// pulled out from the pool to fill the new world section if applicable.
+static inline uint32_t ChunkHashBucket(ChunkPos p)
+{
+    return ChunkHashBucket(p.x, p.z);
+}
+
+// The chunk hash stores existing chunks during a world shift. Chunks will be
+// pulled out from the table to fill the new world section if applicable.
 // Otherwise, new chunks will be created and the ones remaining in the pool
 // will be destroyed.
 static Chunk* ChunkFromHash(World* world, uint32_t bucket, ChunkPos cPos)
@@ -128,10 +142,14 @@ static Chunk* ChunkFromHash(World* world, uint32_t bucket, ChunkPos cPos)
     }
 }
 
-static inline Chunk* ChunkFromHash(World* world, int32_t wX, int32_t wY, int32_t wZ)
+static inline Chunk* ChunkFromHash(World* world, ChunkPos p)
 {
-	ivec3 wPos = ivec3(wX, wY, wZ);
-	return ChunkFromHash(world, ChunkHashBucket(wPos), wPos);
+	return ChunkFromHash(world, ChunkHashBucket(p.x, p.z), p);
+}
+
+static inline Chunk* ChunkFromHash(World* world, int32_t x, int32_t y)
+{
+    return ChunkFromHash(world, ivec3(x, 0, y));
 }
 
 static inline void AddChunkToHash(World* world, Chunk* chunk)
@@ -154,111 +172,16 @@ static inline void AddChunkToHash(World* world, Chunk* chunk)
     world->chunkHash[bucket] = chunk;
 }
 
-// Sets a block to the given chunk. Assumes the coordinates take into account the chunk
-// padding and doesn't offset them.
-static inline void SetBlockPadded(Chunk* chunk, int rX, int rY, int rZ, Block block)
+static inline void SetBlock(Chunk* chunk, int rX, int rY, int rZ, Block block)
 {
-    int index = rX + PADDED_CHUNK_SIZE * (rY + PADDED_CHUNK_SIZE * rZ);
+    int index = rX + CHUNK_SIZE_X * (rY + CHUNK_SIZE_Y * rZ);
     assert(index >= 0 && index < CHUNK_SIZE_3);
     chunk->blocks[index] = block;
 }
 
-static inline void SetBlockPadded(Chunk* chunk, RelPos pos, Block block)
-{
-    SetBlockPadded(chunk, pos.x, pos.y, pos.z, block);
-}
-
-// Sets a block to the given chunk. Assumes the coordinates are in the range 
-// 0 to CHUNK_SIZE and offsets them to account for padding.
-static inline void SetBlock(Chunk* chunk, int rX, int rY, int rZ, Block block)
-{
-    SetBlockPadded(chunk, rX + 1, rY + 1, rZ + 1, block);
-}
-
 static inline void SetBlock(Chunk* chunk, RelPos pos, Block block)
 {
-	SetBlock(chunk, pos.x, pos.y, pos.z, block);
-}
-
-#define SET_TO_NEIGHBOR(lcX, lcY, lcZ, rX, rY, rZ) {\
-    chunk = GetChunk(world, lcX, lcY, lcZ);\
-    SetBlock(chunk, rX, rY, rZ, block);\
-    chunk->state = CHUNK_UPDATE;\
-    chunk->modified = true;\
-}
-
-// Sets a block to the given chunk. If blocks are on the edge of the chunk,
-// the neighbor chunk's padding will be updated as well.
-static inline void SetBlockAndUpdatePadding(World* world, Chunk* chunk, int rX, int rY, int rZ, Block block)
-{
-    SetBlock(chunk, rX, rY, rZ, block);
-    chunk->state = CHUNK_UPDATE;
-    chunk->modified = true;
-
-    ivec3 dir = ivec3(0);
-    ivec3 bP = ivec3(0);
-
-    if (rX == 0)
-    {
-        dir.x = -1;
-        bP.x = CHUNK_SIZE;
-    }
-    else if (rX == CHUNK_SIZE - 1)
-    {
-        dir.x = 1;
-        bP.x = -1;
-    }
-
-    if (rY == 0)
-    {
-        dir.y = -1;
-        bP.y = CHUNK_SIZE;
-    }
-    else if (rY == CHUNK_SIZE - 1)
-    {
-        dir.y = 1;
-        bP.y = -1;
-    }
-
-    if (rZ == 0)
-    {
-        dir.z = -1;
-        bP.z = CHUNK_SIZE;
-    }
-    else if (rZ == CHUNK_SIZE - 1)
-    {
-        dir.z = 1;
-        bP.z = -1;
-    }
-
-    LChunkPos p = chunk->lcPos;
-
-    if (dir.x != 0)
-    {
-        SET_TO_NEIGHBOR(p.x + dir.x, p.y, p.z, bP.x, rY, rZ);
-
-        if (dir.y != 0) 
-        {
-            SET_TO_NEIGHBOR(p.x + dir.x, p.y + dir.y, p.x, bP.x, bP.y, rZ);
-
-            if (dir.z != 0)
-                SET_TO_NEIGHBOR(p.x + dir.x, p.y + dir.y, p.z + dir.z, bP.x, bP.y, bP.z);
-        }
-
-        if (dir.z != 0)
-            SET_TO_NEIGHBOR(p.x + dir.x, p.y, p.z + dir.z, bP.x, rY, bP.z);
-    }
-
-    if (dir.y != 0)
-        SET_TO_NEIGHBOR(p.x, p.y + dir.y, p.z, rX, bP.y, rZ);
-
-    if (dir.z != 0)
-    {
-        SET_TO_NEIGHBOR(p.x, p.y, p.z + dir.z, rX, rY, bP.z);
-
-        if (dir.y != 0)
-            SET_TO_NEIGHBOR(p.x, p.y + dir.y, p.z + dir.z, rX, bP.y, bP.z);
-    }
+    SetBlock(chunk, pos.x, pos.y, pos.z, block);
 }
 
 static inline void SetBlock(World* world, LWorldPos wPos, Block block)
@@ -268,7 +191,7 @@ static inline void SetBlock(World* world, LWorldPos wPos, Block block)
 	assert(chunk != nullptr);
 
 	RelPos local = LWorldToRelPos(wPos);
-	SetBlockAndUpdatePadding(world, chunk, local.x, local.y, local.z, block);
+	SetBlock(chunk, local.x, local.y, local.z, block);
 }
 
 static inline void SetBlock(World* world, int lwX, int lwY, int lwZ, Block block)
@@ -276,26 +199,41 @@ static inline void SetBlock(World* world, int lwX, int lwY, int lwZ, Block block
 	SetBlock(world, ivec3(lwX, lwY, lwZ), block);
 }
 
-static inline Block GetBlockPadded(Chunk* chunk, int rX, int rY, int rZ)
-{
-    int index = rX + PADDED_CHUNK_SIZE * (rY + PADDED_CHUNK_SIZE * rZ);
-    assert(index >= 0 && index < CHUNK_SIZE_3);
-    return chunk->blocks[index];;
-}
-
-static inline Block GetBlockPadded(Chunk* chunk, RelPos pos)
-{
-    return GetBlockPadded(chunk, pos.x, pos.y, pos.z);
-}
-
 static inline Block GetBlock(Chunk* chunk, int rX, int rY, int rZ)
 {
-    return GetBlockPadded(chunk, rX + 1, rY + 1, rZ + 1);
+    int index = rX + CHUNK_SIZE_X * (rY + CHUNK_SIZE_Y * rZ);
+    assert(index >= 0 && index < CHUNK_SIZE_3);
+    return chunk->blocks[index];
 }
 
 static inline Block GetBlock(Chunk* chunk, RelPos pos)
 {
-	return GetBlock(chunk, pos.x, pos.y, pos.z);
+    return GetBlock(chunk, pos.x, pos.y, pos.z);
+}
+
+static inline Block GetBlockSafe(World* world, Chunk* chunk, int rX, int rY, int rZ)
+{
+    if (rY < 0) return BLOCK_STONE;
+    if (rY >= WORLD_HEIGHT) return BLOCK_AIR;
+
+    if (rX < 0)
+        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[LEFT]), CHUNK_SIZE_X + rX, rY, rZ);
+
+    if (rX >= CHUNK_SIZE_X) 
+        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[RIGHT]), rX - CHUNK_SIZE_X, rY, rZ);
+
+    if (rZ < 0) 
+        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[BACK]), rX, rY, CHUNK_SIZE_X + rZ);
+    
+    if (rZ >= CHUNK_SIZE_X) 
+        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[FRONT]), rX, rY, rZ - CHUNK_SIZE_X);
+
+    return GetBlock(chunk, rX, rY, rZ);
+}
+
+static inline Block GetBlockSafe(World* world, Chunk* chunk, RelPos p)
+{
+    return GetBlockSafe(world, chunk, p.x, p.y, p.z);
 }
 
 static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
@@ -316,12 +254,12 @@ static inline Block GetBlock(World* world, LWorldPos pos)
 // Fill a chunk with a single block type.
 static void FillChunk(World* world, Chunk* chunk, Block block)
 {
-    for (int z = 0; z < CHUNK_SIZE; z++)
+    for (int z = 0; z < CHUNK_SIZE_X; z++)
     {
-        for (int y = 0; y < CHUNK_SIZE; y++)
+        for (int y = 0; y < CHUNK_SIZE_Y; y++)
         {
-            for (int x = 0; x < CHUNK_SIZE; x++)
-                SetBlockAndUpdatePadding(world, chunk, x, y, z, block);
+            for (int x = 0; x < CHUNK_SIZE_X; x++)
+                SetBlock(chunk, x, y, z, block);
         }
     }
 }
@@ -349,18 +287,18 @@ static inline Chunk* ChunkFromPool(World* world)
 	return chunk;
 }
 
-static Chunk* CreateChunk(World* world, int cX, int cY, int cZ, ChunkPos cPos)
+static Chunk* CreateChunk(World* world, int lcX, int lcZ, ChunkPos cPos)
 {
-    int index = ChunkIndex(world, cX, cY, cZ);
+    int index = ChunkIndex(world, lcX, lcZ);
 	Chunk* chunk = world->chunks[index];
 
 	if (chunk == nullptr)
 	{
 		chunk = ChunkFromPool(world);
         chunk->modified = true;
-		chunk->lcPos = ivec3(cX, cY, cZ);
+		chunk->lcPos = ivec3(lcX, 0, lcZ);
 		chunk->cPos = cPos;
-        chunk->lwPos = chunk->lcPos * CHUNK_SIZE;
+        chunk->lwPos = chunk->lcPos * CHUNK_SIZE_X;
         chunk->active = true;
         QueueAsync(LoadChunk, world, chunk);
 		world->chunks[index] = chunk;
@@ -378,44 +316,6 @@ static void DestroyChunk(World* world, Chunk* chunk)
 	AddChunkToPool(world, chunk);
 }
 
-// Builds mesh data for the chunk.
-static void BuildChunk(World* world, Chunk* chunk)
-{
-	for (int y = 0; y < CHUNK_SIZE; y++)
-	{
-		for (int z = 0; z < CHUNK_SIZE; z++)
-		{
-			for (int x = 0; x < CHUNK_SIZE; x++)
-			{
-				Block block = GetBlock(chunk, x, y, z);
-
-				if (block != BLOCK_AIR)
-                {
-                    BlockMeshType type = g_blockData[block].meshType;
-                    Mesh* mesh = chunk->meshes[type];
-
-                    if (mesh == nullptr)
-                    {
-                        mesh = CreateMesh();
-                        chunk->meshes[type] = mesh;
-                    }
-
-                    g_blockData[block].buildFunc(chunk, mesh, x, y, z, block);
-                }
-			}
-		}
-	}
-	
-    chunk->state = CHUNK_NEEDS_FILL;
-}
-
-static inline void BuildChunkNow(World* world, Chunk* chunk)
-{
-    BuildChunk(world, chunk);
-    FillMeshData(chunk->meshes);
-    chunk->state = CHUNK_BUILT;
-}
-
 // To allow "infinite" terrain, the world is always located near the origin.
 // This function fills the world near the origin based on the reference
 // world position within the world.
@@ -430,29 +330,46 @@ static void ShiftWorld(World* world)
 
     // Any existing chunks that still belong in the active area will be pulled in to their
     // new position. Any that don't exist in the hash table will be created.
-	for (int z = 0; z < world->sizeH; z++)
+	for (int z = 0; z < world->size; z++)
 	{
-		for (int y = 0; y < world->sizeV; y++)
+		for (int x = 0; x < world->size; x++)
 		{
-			for (int x = 0; x < world->sizeH; x++)
+			int wX = world->ref.x + x;
+			int wZ = world->ref.z + z;
+
+			Chunk* chunk = ChunkFromHash(world, wX, wZ);
+
+			if (chunk == nullptr)
+                world->chunksToCreate.push_back(ivec4(x, z, wX, wZ));
+			else 
 			{
- 				int wX = world->ref.x + x;
-				int wY = world->ref.y + y;
-				int wZ = world->ref.z + z;
-
-				Chunk* chunk = ChunkFromHash(world, wX, wY, wZ);
-
-				if (chunk == nullptr)
-					CreateChunk(world, x, y, z, ivec3(wX, wY, wZ));
-				else 
-				{
-					chunk->lcPos = ivec3(x, y, z);
-                    chunk->lwPos = chunk->lcPos * CHUNK_SIZE;
-					world->chunks[ChunkIndex(world, x, y, z)] = chunk;
-				}
+				chunk->lcPos = ivec3(x, 0, z);
+                chunk->lwPos = chunk->lcPos * CHUNK_SIZE_X;
+				world->chunks[ChunkIndex(world, x, z)] = chunk;
 			}
 		}
 	}
+
+    float pCoord = (float)(world->loadRange * CHUNK_SIZE_X);
+    vec2 playerChunk = vec2(pCoord, pCoord);
+
+    sort(world->chunksToCreate.begin(), world->chunksToCreate.end(), [playerChunk](auto a, auto b) 
+    { 
+        float distA = distance2(vec2(a.x, a.y), playerChunk);
+        float distB = distance2(vec2(b.x, b.y), playerChunk);
+        return distA < distB;
+    });
+
+    for (int i = 0; i < world->chunksToCreate.size(); i++)
+    {
+        // Encoded ivec4 values as x, y = local x, z and z, w = world x, z.
+        ivec4 p = world->chunksToCreate[i];
+        CreateChunk(world, p.x, p.y, ivec3(p.z, 0, p.w));
+    }
+
+    world->chunksToCreate.clear();
+
+    // CreateChunk(world, x, z, ivec3(wX, 0, wZ));
 
     // Any remaining chunks in the hash table are outside of the loaded area range
     // and should be returned to the pool.
@@ -474,7 +391,6 @@ static void CheckWorld(World* world, Player* player)
     bool shift = false;
 
     assert(player->pos.x >= 0.0f);
-    assert(player->pos.y >= 0.0f);
     assert(player->pos.z >= 0.0f);
 
     while (pos.x < bounds.min.x) 
@@ -488,20 +404,6 @@ static void CheckWorld(World* world, Player* player)
     {
         pos.x = bounds.min.x + (pos.x - bounds.max.x);
         world->ref.x++;
-        shift = true;
-    }
-
-    while (pos.y < bounds.min.y)
-    {
-        pos.y = bounds.max.y - (bounds.min.y - pos.y);
-        world->ref.y--;
-        shift = true;
-    }
-    
-    while (pos.y > bounds.max.y)
-    {
-        pos.y = bounds.min.y + (pos.y - bounds.max.y);
-        world->ref.y++;
         shift = true;
     }
 
@@ -605,24 +507,26 @@ static void CreateBlockData()
     stoneBrick.buildFunc = BuildBlock;
 }
 
-static World* NewWorld(int loadRangeH, int loadRangeV)
+static World* NewWorld(int loadRange)
 {
     World* world = Calloc<World>();
 
     // Load range worth of chunks on each side plus the middle chunk.
-    world->sizeH = (loadRangeH * 2) + 1;
-    world->sizeV = (loadRangeV * 2) + 1;
+    world->size = (loadRange * 2) + 1;
 
-    world->spawnChunk = ivec3(0, 1, 0);
+    world->spawnChunk = ivec3(0);
 
-    world->totalChunks = Square(world->sizeH) * world->sizeV;
+    world->totalChunks = Square(world->size);
     world->chunks = Calloc<Chunk*>(world->totalChunks);
     world->visibleChunks = Calloc<Chunk*>(world->totalChunks);
 
+    world->chunksToCreate.reserve(world->totalChunks);
+
+    world->loadRange = loadRange;
+
     ivec3 ref;
-    ref.x = world->spawnChunk.x - loadRangeH;
-    ref.y = world->spawnChunk.y - loadRangeV;
-    ref.z = world->spawnChunk.z - loadRangeH;
+    ref.x = world->spawnChunk.x - loadRange;
+    ref.z = world->spawnChunk.z - loadRange;
     world->ref = ref;
 
     // Allocate extra chunks for the pool for world shifting. We create new chunks
@@ -638,13 +542,10 @@ static World* NewWorld(int loadRangeH, int loadRangeV)
         AddChunkToPool(world, chunk);
     }
 
-    float minH = (float)(loadRangeH * CHUNK_SIZE);
-    float maxH = minH + CHUNK_SIZE;
+    float min = (float)(loadRange * CHUNK_SIZE_X);
+    float max = min + CHUNK_SIZE_X;
 
-    float minV = (float)(loadRangeV * CHUNK_SIZE);
-    float maxV = minV + CHUNK_SIZE;
-
-    world->pBounds = NewRect(vec3(minH, minV, minH), vec3(maxH, maxV, maxH));
+    world->pBounds = NewRect(vec3(min, 0.0f, min), vec3(max, 0.0f, max));
 
     CreateBlockData();
 

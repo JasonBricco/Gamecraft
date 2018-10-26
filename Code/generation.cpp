@@ -4,41 +4,40 @@
 
 static inline float GetNoiseValue2D(float* noiseSet, int x, int z)
 {
-	return (noiseSet[x * (PADDED_CHUNK_SIZE) + z] + 1.0f) / 2.0f;
+	return (noiseSet[x * (CHUNK_SIZE_X) + z] + 1.0f) / 2.0f;
 }
 
 static inline float GetRawNoiseValue2D(float* noiseSet, int x, int z)
 {
-    return noiseSet[x * (PADDED_CHUNK_SIZE) + z];
+    return noiseSet[x * (CHUNK_SIZE_X) + z];
 }
 
 static inline float GetNoiseValue3D(float* noiseSet, int x, int y, int z)
 {
-	return (noiseSet[z + PADDED_CHUNK_SIZE * (y + PADDED_CHUNK_SIZE * x)] + 1.0f) / 2.0f;
+	return (noiseSet[z + CHUNK_SIZE_X * (y + CHUNK_SIZE_Y * x)] + 1.0f) / 2.0f;
 }
 
 static inline float* GetNoise2D(Noise* noise, Noise::NoiseType type, int x, int y, int z, float scale = 1.0f)
 {
     noise->SetNoiseType(type);
-    int sizeX = PADDED_CHUNK_SIZE;
+    int sizeX = CHUNK_SIZE_X;
     int sizeY = 1;
-    int sizeZ = PADDED_CHUNK_SIZE;
+    int sizeZ = CHUNK_SIZE_X;
     return noise->GetNoiseSet(x, y, z, sizeX, sizeY, sizeZ, scale);
 }
 
 static inline float* GetNoise3D(Noise* noise, Noise::NoiseType type, int x, int y, int z, float scale = 1.0f)
 {
     noise->SetNoiseType(type);
-    int sizeX = PADDED_CHUNK_SIZE;
-    int sizeY = PADDED_CHUNK_SIZE;
-    int sizeZ = PADDED_CHUNK_SIZE;
+    int sizeX = CHUNK_SIZE_X;
+    int sizeY = CHUNK_SIZE_Y;
+    int sizeZ = CHUNK_SIZE_X;
     return noise->GetNoiseSet(x, y, z, sizeX, sizeY, sizeZ, scale);
 }
 
 static void GenerateChunkTerrain(World* world, Chunk* chunk)
 {
-    WorldPos start = chunk->cPos * CHUNK_SIZE;
-    start -= 1;
+    WorldPos start = chunk->cPos * CHUNK_SIZE_X;
 
     Noise* noise = Noise::NewFastNoiseSIMD();
     noise->SetSeed(world->seed);
@@ -60,9 +59,9 @@ static void GenerateChunkTerrain(World* world, Chunk* chunk)
 	noise->SetFractalType(Noise::FBM);
     float* comp = GetNoise3D(noise, Noise::SimplexFractal, start.x, start.y, start.z, 0.2f);
 
-	for (int x = 0; x < PADDED_CHUNK_SIZE; x++)
+	for (int x = 0; x < CHUNK_SIZE_X; x++)
     {
-        for (int z = 0; z < PADDED_CHUNK_SIZE; z++)
+        for (int z = 0; z < CHUNK_SIZE_X; z++)
         {
         	float terrainVal;
         	float biomeVal = GetRawNoiseValue2D(biome, x, z);
@@ -92,28 +91,28 @@ static void GenerateChunkTerrain(World* world, Chunk* chunk)
 
         	int height = (int)terrainVal;
 
-        	for (int y = 0; y < PADDED_CHUNK_SIZE; y++)
+            int limY = Max(height, SEA_LEVEL);
+        	for (int y = 0; y <= limY; y++)
         	{
-        		int wY = start.y + y;
         		float compVal = GetNoiseValue3D(comp, x, y, z);
 
-        		if (wY <= height - 10)
+        		if (y <= height - 10)
         		{
 	        		if (compVal <= 0.2f)
 	        		{
-	        			SetBlockPadded(chunk, x, y, z, BLOCK_STONE);
+	        			SetBlock(chunk, x, y, z, BLOCK_STONE);
 	        			continue;
 	        		}
 	        	}
 
-        		if (wY == height)
-        			SetBlockPadded(chunk, x, y, z, BLOCK_GRASS);
-        		else if (wY > height && wY <= SEA_LEVEL)
-        			SetBlockPadded(chunk, x, y, z, BLOCK_WATER);
+        		if (y == height)
+        			SetBlock(chunk, x, y, z, BLOCK_GRASS);
+        		else if (y > height && y <= SEA_LEVEL)
+        			SetBlock(chunk, x, y, z, BLOCK_WATER);
         		else 
                 {
-                    if (wY < height)
-                        SetBlockPadded(chunk, x, y, z, BLOCK_DIRT);
+                    if (y < height)
+                        SetBlock(chunk, x, y, z, BLOCK_DIRT);
                 }
         	}
         }

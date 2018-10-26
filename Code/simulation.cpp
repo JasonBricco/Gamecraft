@@ -615,7 +615,8 @@ static Player* NewPlayer(Camera* camera)
 
 static void SpawnPlayer(Player* player, Rectf spawnBounds)
 {
-	vec3 spawn = spawnBounds.min + (CHUNK_SIZE / 2.0f);
+	vec3 spawn = spawnBounds.min + (CHUNK_SIZE_X / 2.0f);
+	spawn.y = 100.0f;
 	player->pos = spawn;
 
 	CameraFollow(player);
