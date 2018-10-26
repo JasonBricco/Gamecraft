@@ -220,14 +220,22 @@ static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkPos lP, RelPos 
 
     for (int i = 0; i < 8; i++)
     {
-        Chunk* adj = GetRelChunk(world, lP, rP.x, rP.y);
+        Chunk* adj = GetRelChunk(world, lP, rP.x, rP.z);
+        assert(adj->lcPos.x > 0 && adj->lcPos.z > 0 && adj->lcPos.x < world->size - 1 && adj->lcPos.z < world->size - 1);
         adj->state = CHUNK_UPDATE;
     }
 }
 
 static inline void SetBlock(World* world, LWorldPos wPos, Block block)
 {
+    if (wPos.y < 0 || wPos.y >= WORLD_HEIGHT) return;
+    
 	LChunkPos lP = LWorldToLChunkPos(wPos);
+
+    // We cannot set a block to an edge chunk - the edges are buffer chunks and should
+    // not have their meshes built.
+    assert(lP.x > 0 && lP.z > 0 && lP.x < world->size - 1 && lP.z < world->size - 1);
+
 	Chunk* chunk = GetChunk(world, lP);
 	assert(chunk != nullptr);
 
@@ -244,6 +252,9 @@ static inline void SetBlock(World* world, int lwX, int lwY, int lwZ, Block block
 
 static inline Block GetBlock(Chunk* chunk, int rX, int rY, int rZ)
 {
+    if (rY < 0) return BLOCK_STONE;
+    if (rY >= WORLD_HEIGHT) return BLOCK_AIR;
+
     int index = rX + CHUNK_SIZE_X * (rY + CHUNK_SIZE_Y * rZ);
     assert(index >= 0 && index < CHUNK_SIZE_3);
     return chunk->blocks[index];
