@@ -565,6 +565,10 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 
 	Move(world, player, accel, deltaTime);
 
+	float min = 0.0f, max = (float)(world->size * CHUNK_SIZE_X);
+	player->pos.x = std::clamp(player->pos.x, min, max);
+	player->pos.z = std::clamp(player->pos.z, min, max);
+
 	if (KeyPressed(KEY_BACKSPACE))
 	{
 		ivec3 cPos = LWorldToLChunkPos(player->pos);

@@ -2,6 +2,8 @@
 // Jason Bricco
 //
 
+#if _DEBUG
+
 static bool ChunkIsValid(World* world, Chunk* chunk)
 {
     if (chunk == nullptr) return true;
@@ -42,3 +44,10 @@ static bool RegionIsValid(Region region)
 
 	return true;
 }
+
+#else
+
+#define ChunkIsValid(world, chunk)
+#define RegionIsValid(region)
+
+#endif

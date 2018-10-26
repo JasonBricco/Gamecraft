@@ -88,10 +88,7 @@ static bool g_paused;
 #include "simulation.h"
 #include "async.h"
 
-#if _DEBUG
 #include "worldtest.cpp"
-#endif
-
 #include "assets.cpp"
 #include "async.cpp"
 #include "input.cpp"

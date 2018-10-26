@@ -369,8 +369,6 @@ static void ShiftWorld(World* world)
 
     world->chunksToCreate.clear();
 
-    // CreateChunk(world, x, z, ivec3(wX, 0, wZ));
-
     // Any remaining chunks in the hash table are outside of the loaded area range
     // and should be returned to the pool.
 	for (int c = 0; c < CHUNK_HASH_SIZE; c++)
@@ -442,7 +440,8 @@ static void UpdateWorld(World* world, Renderer* rend, Player* player)
     {
         world->playerRegion = LWorldToRegionPos(player->pos, world->ref);
 
-        CheckWorld(world, player);
+        if (world->chunksBuilding == 0)
+            CheckWorld(world, player);
 
         world->visibleCount = 0;
         GetCameraPlanes(rend->camera);
@@ -454,7 +453,7 @@ static void UpdateWorld(World* world, Renderer* rend, Player* player)
         {
             Chunk* chunk = DequeueChunk(world->destroyQueue);
 
-            if (chunk->state != CHUNK_LOADING && chunk->state != CHUNK_BUILDING)
+            if (chunk->state != CHUNK_LOADING)
                 DestroyChunk(world, chunk);
             else EnqueueChunk(world->destroyQueue, chunk);
         }

@@ -168,6 +168,8 @@ struct World
     Chunk** visibleChunks;
     int visibleCount;
 
+    int chunksBuilding;
+
     vector<ivec4> chunksToCreate;
 
     // Chunk hash table to store chunks that need to transition.

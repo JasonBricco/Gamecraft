@@ -29,7 +29,7 @@ static void BuildChunk(World* world, Chunk* chunk)
             }
         }
     }
-    
+
     chunk->state = CHUNK_NEEDS_FILL;
 }
 
@@ -82,6 +82,7 @@ static void TryBuildMeshes(World* world, Renderer* rend)
                 if (CanBuildMesh(world, chunk))
                 {
                     chunk->state = CHUNK_BUILDING;
+                    world->chunksBuilding++;
                     QueueAsync(BuildChunk, world, chunk);
                 } break;
             }
@@ -90,6 +91,7 @@ static void TryBuildMeshes(World* world, Renderer* rend)
             {
                 FillMeshData(chunk->meshes);
                 chunk->state = CHUNK_BUILT;
+                world->chunksBuilding--;
             } break;
 
             case CHUNK_UPDATE:
