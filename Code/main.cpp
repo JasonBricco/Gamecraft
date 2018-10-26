@@ -100,6 +100,12 @@ static bool g_paused;
 #include "worldio.cpp"
 #include "simulation.cpp"
 
+#if _DEBUG
+static char* g_buildType = "DEBUG";
+#else
+static char* g_buildType = "RELEASE";
+#endif
+
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT g_windowPos = { sizeof(g_windowPos) };
 
@@ -140,7 +146,7 @@ static void ShowFPS(GLFWwindow* window)
 		double fps = (double)frameCount / elapsed;
 
 		char profile[64];
-		sprintf(profile, "Voxel Engine     FPS: %.01f\n", fps);
+		sprintf(profile, "Gamecraft - FPS: %.01f - %s\n", fps, g_buildType);
 
 		glfwSetWindowTitle(window, profile);
 		frameCount = 0;

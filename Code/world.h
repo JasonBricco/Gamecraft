@@ -141,7 +141,12 @@ struct SerializedChunk
     }
 };
 
-typedef SerializedChunk* Region;
+struct Region
+{
+    SerializedChunk* chunks;
+    bool hasData;
+};
+
 typedef unordered_map<RegionPos, Region, ivec3Key, ivec3Key> RegionMap;
 
 struct World

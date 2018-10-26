@@ -33,7 +33,7 @@ static bool RegionIsValid(Region region)
 {
 	for (int i = 0; i < REGION_SIZE_3; i++)
 	{
-		SerializedChunk* chunk = region + i;
+		SerializedChunk* chunk = region.chunks + i;
 
 		if (chunk->size > chunk->maxSize)
 			return false;
