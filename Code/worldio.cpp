@@ -14,10 +14,10 @@ static inline int RegionIndex(ivec3 p)
 
 static bool LoadRegionFile(World* world, RegionPos p, RegionMap::iterator* it)
 {
-    Print("Loading region at %i, %i, %i\n", p.x, p.y, p.z);
+    Print("Loading region at %i, %i\n", p.x, p.z);
 
 	char path[MAX_PATH];
-    sprintf(path, "%s\\%i%i%i.txt", world->savePath, p.x, p.y, p.z);
+    sprintf(path, "%s\\%i%i.txt", world->savePath, p.x, p.z);
 
 	if (!PathFileExists(path))
 		return false;
@@ -69,7 +69,7 @@ static bool LoadRegionFile(World* world, RegionPos p, RegionMap::iterator* it)
             return false;
         }
 
-        chunk->size = items;
+        chunk->size += items;
 
         if (bytesRead == 0) break;
     }
@@ -107,7 +107,7 @@ static void SaveRegions(World* world)
 				int index = RegionIndex(x, z);
 				SerializedChunk* chunk = start + index;
 
-				DWORD bytesToWrite = sizeof(uint16_t) * (DWORD)chunk->size;
+				DWORD bytesToWrite = sizeof(uint16_t) * chunk->size;
 				DWORD bytesWritten;
 
 				if (!WriteFile(file, chunk->data, bytesToWrite, &bytesWritten, NULL))

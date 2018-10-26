@@ -184,14 +184,57 @@ static inline void SetBlock(Chunk* chunk, RelPos pos, Block block)
     SetBlock(chunk, pos.x, pos.y, pos.z, block);
 }
 
+static inline Chunk* GetRelChunk(World* world, LChunkPos lP, int rX, int rZ)
+{
+    if (rX < 0)
+    {
+        lP += DIRECTIONS[LEFT];
+        return GetRelChunk(world, lP + DIRECTIONS[LEFT], CHUNK_SIZE_X + rX, rZ);
+    }
+
+    if (rX >= CHUNK_SIZE_X) 
+    {
+        lP += DIRECTIONS[RIGHT];
+        return GetRelChunk(world, lP + DIRECTIONS[RIGHT], rX - CHUNK_SIZE_X, rZ);
+    }
+
+    if (rZ < 0)
+    {
+        lP += DIRECTIONS[BACK];
+        return GetRelChunk(world, lP + DIRECTIONS[BACK], rX, CHUNK_SIZE_X + rZ);
+    }
+    
+    if (rZ >= CHUNK_SIZE_X)
+    {
+        lP += DIRECTIONS[FRONT];
+        return GetRelChunk(world, lP + DIRECTIONS[FRONT], rX, rZ - CHUNK_SIZE_X);
+    }
+
+    return GetChunk(world, lP);
+}
+
+static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkPos lP, RelPos rP)
+{
+    chunk->state = CHUNK_UPDATE;
+    chunk->modified = true;
+
+    for (int i = 0; i < 8; i++)
+    {
+        Chunk* adj = GetRelChunk(world, lP, rP.x, rP.y);
+        adj->state = CHUNK_UPDATE;
+    }
+}
+
 static inline void SetBlock(World* world, LWorldPos wPos, Block block)
 {
-	LChunkPos cPos = LWorldToLChunkPos(wPos);
-	Chunk* chunk = GetChunk(world, cPos);
+	LChunkPos lP = LWorldToLChunkPos(wPos);
+	Chunk* chunk = GetChunk(world, lP);
 	assert(chunk != nullptr);
 
-	RelPos local = LWorldToRelPos(wPos);
-	SetBlock(chunk, local.x, local.y, local.z, block);
+	RelPos rP = LWorldToRelPos(wPos);
+	SetBlock(chunk, rP.x, rP.y, rP.z, block);
+
+    FlagChunkForUpdate(world, chunk, lP, rP);
 }
 
 static inline void SetBlock(World* world, int lwX, int lwY, int lwZ, Block block)

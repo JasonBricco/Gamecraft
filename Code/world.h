@@ -96,9 +96,6 @@ struct Chunk
 
     Block blocks[CHUNK_SIZE_3];
 
-    // Stores the y value of the highest block in each x, z column of the chunk.
-    int surface[CHUNK_SIZE_X * CHUNK_SIZE_X];
-
     Mesh* meshes[CHUNK_MESH_COUNT];
 
     ChunkState state;
