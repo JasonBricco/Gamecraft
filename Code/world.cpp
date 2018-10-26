@@ -349,7 +349,6 @@ static Chunk* CreateChunk(World* world, int lcX, int lcZ, ChunkPos cPos)
 	if (chunk == nullptr)
 	{
 		chunk = ChunkFromPool(world);
-        chunk->modified = true;
 		chunk->lcPos = ivec3(lcX, 0, lcZ);
 		chunk->cPos = cPos;
         chunk->lwPos = chunk->lcPos * CHUNK_SIZE_X;

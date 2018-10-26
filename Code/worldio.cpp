@@ -43,8 +43,8 @@ static bool LoadRegionFile(World* world, RegionPos p, RegionMap::iterator* it)
             return false;
         }
 
-        assert(position >= 0 && position < REGION_SIZE_3);
         if (bytesRead == 0) break;
+        assert(position >= 0 && position < REGION_SIZE_3);
 
         uint16_t items;
 
@@ -105,21 +105,26 @@ static void SaveRegions(World* world)
 			for (int x = 0; x < REGION_SIZE; x++)
 			{
 				int index = RegionIndex(x, z);
+                assert(index >= 0 && index < REGION_SIZE_3);
+
 				SerializedChunk* chunk = start + index;
 
-				DWORD bytesToWrite = sizeof(uint16_t) * chunk->size;
-				DWORD bytesWritten;
+                if (chunk->size > 0)
+                {
+    				DWORD bytesToWrite = sizeof(uint16_t) * chunk->size;
+    				DWORD bytesWritten;
 
-				if (!WriteFile(file, chunk->data, bytesToWrite, &bytesWritten, NULL))
-	    		{
-	        		Print("Failed to save chunk. Error: %s\n", GetLastErrorText().c_str());
-	        		continue;
-	    		}
+    				if (!WriteFile(file, chunk->data, bytesToWrite, &bytesWritten, NULL))
+    	    		{
+    	        		Print("Failed to save chunk. Error: %s\n", GetLastErrorText().c_str());
+    	        		continue;
+    	    		}
 
-	    		assert(bytesWritten == bytesToWrite);
+    	    		assert(bytesWritten == bytesToWrite);
 
-	    		if (SetFilePointer(file, 0l, nullptr, FILE_END) == INVALID_SET_FILE_POINTER)
-					Print("Failed to set the file pointer to the end of file.\n");
+    	    		if (SetFilePointer(file, 0l, nullptr, FILE_END) == INVALID_SET_FILE_POINTER)
+    					Print("Failed to set the file pointer to the end of file.\n");
+                }
 			}
 		}
 

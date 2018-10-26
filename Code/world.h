@@ -95,7 +95,6 @@ struct Chunk
     LWorldPos lwPos;
 
     Block blocks[CHUNK_SIZE_3];
-
     Mesh* meshes[CHUNK_MESH_COUNT];
 
     ChunkState state;

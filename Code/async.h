@@ -1,7 +1,6 @@
 // Voxel Engine
 // Jason Bricco
 
-#define THREAD_COUNT 7
 using AsyncFunc = void(*)(World*, Chunk*);
 
 struct AsyncItem

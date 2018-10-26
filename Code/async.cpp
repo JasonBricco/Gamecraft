@@ -66,10 +66,16 @@ static void CreateThreads()
 {
 	g_semaphore = CreateSemaphore(NULL, 0, MAXLONG, NULL);
 
+	SYSTEM_INFO info;
+	GetSystemInfo(&info);
+
+	int threadCount = info.dwNumberOfProcessors - 1;
+	Print("Creating %i threads.\n", threadCount)
+
 	g_workQueue.size = 4096;
 	g_workQueue.items = Calloc<AsyncItem>(g_workQueue.size);
 
-	for (int i = 0; i < THREAD_COUNT; i++)
+	for (int i = 0; i < threadCount; i++)
 	{
 		DWORD threadID; 
 		HANDLE handle = CreateThread(NULL, NULL, ThreadProc, NULL, NULL, &threadID);

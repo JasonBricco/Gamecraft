@@ -117,25 +117,29 @@ static void TryBuildMeshes(World* world, Renderer* rend)
     }
 }
 
-#define FRUSTUM_CULLING 1
-
 static void GetVisibleChunks(World* world, Camera* cam)
 {    
     for (int i = 0; i < world->totalChunks; i++)
     {
         Chunk* chunk = world->chunks[i];
+
+        // Ensure chunks that need to be filled are considered visible so that
+        // their meshes will be filled. This prevents blocking the world generation
+        // when the building chunks can't decrement.
+        if (chunk->state == CHUNK_NEEDS_FILL)
+        {
+            world->visibleChunks[world->visibleCount++] = chunk;
+            continue;
+        }
+        
         ivec3 cP = chunk->lcPos * CHUNK_SIZE_X;
         vec3 min = vec3(cP.x, 0.0f, cP.z);
         vec3 max = min + (vec3(CHUNK_SIZE_X, WORLD_HEIGHT, CHUNK_SIZE_X) - 1.0f);
 
-#if FRUSTUM_CULLING 
         FrustumVisibility visibility = TestFrustum(cam, min, max);
 
         if (visibility >= FRUSTUM_VISIBLE)
             world->visibleChunks[world->visibleCount++] = chunk;
-#else
-        world->visibleChunks[world->visibleCount++] = chunk;
-#endif
     }
 }
 
