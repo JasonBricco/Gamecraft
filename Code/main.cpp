@@ -159,6 +159,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 {
 	if (KeyPressed(KEY_ESCAPE))
 	{
+		SaveWorld(world);
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		g_paused = true;
 	}
@@ -172,9 +173,6 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 	Renderer* rend = (Renderer*)glfwGetWindowUserPointer(window);
 	UpdateWorld(world, rend, player);
-
-	if (KeyPressed(KEY_F1))
-		SaveWorld(world);
 
 	if (g_paused) return;
 

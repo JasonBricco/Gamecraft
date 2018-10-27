@@ -71,6 +71,10 @@ struct Player
     bool flying, speedMode;
     bool spawned;
 
+    // Stores a list of collisions the player must test against, 
+    // sorted by distance from the player.
+    vector<AABB> possibleCollides;
+
     Player() {}
 };
 
