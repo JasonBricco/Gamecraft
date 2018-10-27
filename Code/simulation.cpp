@@ -515,22 +515,33 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	    { 
 	        float distA = distance2(vec3(a.pos.x + 0.5f, a.pos.y + 0.5f, a.pos.z + 0.5f), player->pos);
 	        float distB = distance2(vec3(b.pos.x + 0.5f, b.pos.y + 0.5f, b.pos.z + 0.5f), player->pos);
-	        return distA < distB;
+			return distA < distB;
 	    });
 
 		CollisionInfo info;
 
 	    for (int i = 0; i < player->possibleCollides.size(); i++)
 	    {
-	    	if (Intersect(&col, &player->possibleCollides[i], &info))
-	    	{
-	    		player->pos += info.mtv;
-	    		col.pos = player->pos;
+	    	AABB bb = player->possibleCollides[i];
 
-				if (info.normal.y > 0.25f)
-				{
-					player->colFlags |= HIT_DOWN;
-					player->velocity.y = 0.0f;
+	    	if (Intersect(&col, &bb, &info))
+	    	{
+	    		if (length2(info.mtv) >  0.04f)
+	    		{
+	    			// Break the block if the player has gone too far inside of it.
+	    			ivec3 bPos = BlockPos(bb.pos + vec3(0.5f));
+	    			SetBlock(world, bPos, BLOCK_AIR);
+	    		}
+	    		else
+	    		{
+		    		player->pos += info.mtv;
+		    		col.pos = player->pos;
+
+					if (info.normal.y > 0.25f)
+					{
+						player->colFlags |= HIT_DOWN;
+						player->velocity.y = 0.0f;
+					}
 				}
 	    	}
 	    }
