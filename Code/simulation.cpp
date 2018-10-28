@@ -622,7 +622,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 	{
 		ivec3 cPos = LWorldToLChunkPos(player->pos);
 		Chunk* chunk = GetChunk(world, cPos);
-		FillChunk(world, chunk, BLOCK_AIR);
+		FillChunk(chunk, BLOCK_AIR);
 	}
 
 	int op = MousePressed(0) ? 0 : MousePressed(1) ? 1 : -1;

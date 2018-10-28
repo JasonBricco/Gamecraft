@@ -47,7 +47,7 @@ inline void ResetInput()
 	memset(&g_input.mousePressed, 0, sizeof(g_input.mousePressed));
 }
 
-static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mode)
+static void OnKey(GLFWwindow*, int key, int, int action, int mode)
 {
 	switch (key)
 	{
@@ -155,7 +155,7 @@ static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mod
 	else SetKey(KEY_SHIFT, GLFW_RELEASE);
 }
 
-static void OnMouseButton(GLFWwindow* window, int button, int action, int mods)
+static void OnMouseButton(GLFWwindow*, int button, int action, int)
 {
 	int i = -1;
 

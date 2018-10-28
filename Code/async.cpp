@@ -41,7 +41,7 @@ static inline bool DoNextAsync()
     return sleep;
 }
 
-static DWORD WINAPI ThreadProc(LPVOID param)
+static DWORD WINAPI ThreadProc(LPVOID)
 {
 	while (true)
 	{

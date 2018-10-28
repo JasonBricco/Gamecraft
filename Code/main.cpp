@@ -196,7 +196,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	Simulate(rend, world, player, deltaTime);
 }
 
-int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdShow)
+int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
 	if (!glfwInit())
 	{

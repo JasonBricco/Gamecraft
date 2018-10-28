@@ -33,19 +33,19 @@ static inline RelPos LWorldToRelPos(LWorldPos wPos)
 	return LWorldToRelPos(wPos.x, wPos.y, wPos.z);
 }
 
-static inline LChunkPos LWorldToLChunkPos(int lwX, int lwY, int lwZ)
+static inline LChunkPos LWorldToLChunkPos(int lwX, int lwZ)
 {
 	return ivec3(lwX >> CHUNK_SIZE_BITS, 0, lwZ >> CHUNK_SIZE_BITS);
 }
 
 static inline LChunkPos LWorldToLChunkPos(LWorldPos pos)
 {
-	return LWorldToLChunkPos(pos.x, pos.y, pos.z);
+	return LWorldToLChunkPos(pos.x, pos.z);
 }
 
 static inline LChunkPos LWorldToLChunkPos(vec3 wPos)
 {
-	return LWorldToLChunkPos((int)wPos.x, 0, (int)wPos.z);
+	return LWorldToLChunkPos((int)wPos.x, (int)wPos.z);
 }
 
 static inline LChunkPos ChunkToLChunkPos(ChunkPos pos, ChunkPos ref)
@@ -284,7 +284,7 @@ static inline Block GetBlockSafe(World* world, Chunk* chunk, RelPos p)
 
 static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
 {
-	LChunkPos lcPos = LWorldToLChunkPos(lwX, lwY, lwZ);
+	LChunkPos lcPos = LWorldToLChunkPos(lwX, lwZ);
 	Chunk* chunk = GetChunk(world, lcPos);
 	assert(chunk != nullptr);
 
@@ -298,7 +298,7 @@ static inline Block GetBlock(World* world, LWorldPos pos)
 }
 
 // Fill a chunk with a single block type.
-static void FillChunk(World* world, Chunk* chunk, Block block)
+static void FillChunk(Chunk* chunk, Block block)
 {
     for (int z = 0; z < CHUNK_SIZE_X; z++)
     {

@@ -7,7 +7,7 @@ static inline void UseShader(Shader shader)
     glUseProgram(shader.handle);
 }
 
-static Graphic* CreateGraphic(Renderer* rend, Shader shader, Texture texture)
+static Graphic* CreateGraphic(Shader shader, Texture texture)
 {
 	Graphic* graphic = Calloc<Graphic>();
 	CreateMesh2D(&graphic->mesh, 16, 6);
@@ -113,8 +113,7 @@ static inline void UpdateViewMatrix(Renderer* rend)
 	rend->view = lookAt(cam->pos, cam->target, cam->up);
 }
 
-static void OnOpenGLMessage(GLenum src, GLenum type, GLuint id, GLenum severity,
-	GLsizei length, const GLchar* msg, const void* param)
+static void OnOpenGLMessage(GLenum, GLenum type, GLuint, GLenum severity, GLsizei, GLchar* msg, void*)
 {
 	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
 		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, msg);
@@ -124,7 +123,7 @@ static void InitRenderer(Renderer* rend, Assets* assets, int screenWidth, int sc
 {
 	rend->camera = NewCamera();
 
-	Graphic* graphic = CreateGraphic(rend, assets->crosshair, assets->crosshairTex);
+	Graphic* graphic = CreateGraphic(assets->crosshair, assets->crosshairTex);
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
 	
 	rend->crosshair = graphic;
