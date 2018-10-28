@@ -554,7 +554,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	    		player->pos += info.mtv;
 	    		col.pos = player->pos;
 
-				if (info.normal.y > 0.25f)
+				if (info.normal.y > 0.4f && player->velocity.y < 0.0f)
 				{
 					player->colFlags |= HIT_DOWN;
 					player->velocity.y = 0.0f;
@@ -609,7 +609,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 		player->speed = 50.0f;
 
 		if ((player->colFlags & HIT_DOWN) && KeyHeld(KEY_SPACE))
-			player->velocity.y = 15.0f;
+			player->velocity.y = 10.0f;
 	}
 
 	Move(world, player, accel, deltaTime);
