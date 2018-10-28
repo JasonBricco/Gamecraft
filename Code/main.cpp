@@ -88,7 +88,7 @@ static bool g_paused;
 #include "simulation.h"
 #include "async.h"
 
-#include "worldtest.cpp"
+#include "test.cpp"
 #include "assets.cpp"
 #include "async.cpp"
 #include "input.cpp"
@@ -269,6 +269,9 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdSh
 
 	Player* player = NewPlayer(rend->camera);
 	rend->camera = player->camera;
+	world->player = player;
+
+	TestColumnCollision(world, player);
 	
 	double lastTime = glfwGetTime();
 

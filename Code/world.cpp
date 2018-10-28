@@ -218,6 +218,9 @@ static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkPos lP, RelPos 
 static inline void SetBlock(World* world, LWorldPos wPos, Block block)
 {
     if (wPos.y < 0 || wPos.y >= WORLD_HEIGHT) return;
+
+    if (OverlapsBlock(world->player, wPos.x, wPos.y, wPos.z))
+        return;
     
 	LChunkPos lP = LWorldToLChunkPos(wPos);
 

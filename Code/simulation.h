@@ -42,7 +42,9 @@ struct AABB : Collider
     vec3 min;
     vec3 max;
 
+    AABB() {}
     AABB(vec3 pos, vec3 min, vec3 max);
+
     inline vec3 Support(vec3 dir);
 };
 
@@ -94,3 +96,4 @@ Capsule::Capsule(float radius, float h)
 }
 
 static void SpawnPlayer(Player* player, Rectf spawnBounds);
+static bool OverlapsBlock(Player* player, int bX, int bY, int bZ);

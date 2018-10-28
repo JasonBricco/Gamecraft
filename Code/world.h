@@ -148,6 +148,7 @@ struct Region
 };
 
 typedef unordered_map<RegionPos, Region, ivec3Key, ivec3Key> RegionMap;
+struct Player;
 
 struct World
 {
@@ -195,6 +196,8 @@ struct World
 
     // Used to ensure blocking when loading a region file.
     mutex regionMutex;
+
+    Player* player;
 
     // The region the player is in.
     RegionPos playerRegion;

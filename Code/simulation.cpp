@@ -427,6 +427,44 @@ static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
 	return false;
 }
 
+static inline void AddColumnCollision(World* world, Player* player, int x, int z, int minY, int maxY)
+{
+	int startY = INT_MIN;
+	int size = 0;
+
+	for (int y = minY; y <= maxY; y++)
+	{
+		if (GetBlock(world, x, y, z) != BLOCK_AIR)
+		{
+			if (startY == INT_MIN)
+				startY = y;
+
+			size++;
+		}
+		else
+		{
+			if (size > 0)
+			{
+				if (GetBlock(world, x, y + 1, z) != BLOCK_AIR)
+					size++;
+				else
+				{
+					AABB bb = AABB(vec3(x - 0.5f, startY - 0.5f, z - 0.5f), vec3(0.0f), vec3(1.0f, (float)size, 1.0f));
+					player->possibleCollides.push_back(bb);
+					size = 0;
+					startY = INT_MIN;
+				}
+			}
+		}
+	}
+
+	if (size > 0)
+	{
+		AABB bb = AABB(vec3(x - 0.5f, startY - 0.5f, z - 0.5f), vec3(0.0f), vec3(1.0f, (float)size, 1.0f));
+		player->possibleCollides.push_back(bb);
+	}
+}
+
 static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 {
 	accel = accel * player->speed;
@@ -456,7 +494,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	else
 	{
 		player->colFlags = HIT_NONE;
-		Capsule col = player->collider;
+		Capsule& col = player->collider;
 
 		// Player size in blocks.
 		int blockR = CeilToInt(col.r);
@@ -474,7 +512,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 			vec3 result;
 			if (VoxelRaycast(world, ray, deltaLen, &result))
 			{
-				player->pos = vec3(result.x, result.y + 0.35f, result.z);
+				player->pos = vec3(result.x, result.y + 0.3f, result.z);
 				player->velocity.y = 0.0f;
 			}
 			else player->pos = player->pos + delta;
@@ -496,19 +534,8 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 
 		for (int z = minZ; z <= maxZ; z++)
 		{
-			for (int y = minY; y <= maxY; y++)
-			{
-				for (int x = minX; x <= maxX; x++)
-				{
-					Block block = GetBlock(world, x, y, z);
-
-					if (block != BLOCK_AIR)
-					{
-						AABB bb = AABB(vec3(x - 0.5f, y - 0.5f, z - 0.5f), vec3(0.0f), vec3(1.0f));
-						player->possibleCollides.push_back(bb);
-					}
-				}
-			}
+			for (int x = minX; x <= maxX; x++)
+				AddColumnCollision(world, player, x, z, minY, maxY);
 		}
 
 		sort(player->possibleCollides.begin(), player->possibleCollides.end(), [player](auto a, auto b) 
@@ -522,26 +549,15 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 
 	    for (int i = 0; i < player->possibleCollides.size(); i++)
 	    {
-	    	AABB bb = player->possibleCollides[i];
-
-	    	if (Intersect(&col, &bb, &info))
+	    	if (Intersect(&col, &player->possibleCollides[i], &info))
 	    	{
-	    		if (length2(info.mtv) >  0.04f)
-	    		{
-	    			// Break the block if the player has gone too far inside of it.
-	    			ivec3 bPos = BlockPos(bb.pos + vec3(0.5f));
-	    			SetBlock(world, bPos, BLOCK_AIR);
-	    		}
-	    		else
-	    		{
-		    		player->pos += info.mtv;
-		    		col.pos = player->pos;
+	    		player->pos += info.mtv;
+	    		col.pos = player->pos;
 
-					if (info.normal.y > 0.25f)
-					{
-						player->colFlags |= HIT_DOWN;
-						player->velocity.y = 0.0f;
-					}
+				if (info.normal.y > 0.25f)
+				{
+					player->colFlags |= HIT_DOWN;
+					player->velocity.y = 0.0f;
 				}
 	    	}
 	    }
@@ -550,6 +566,14 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	}
 
 	CameraFollow(player);
+}
+
+static bool OverlapsBlock(Player* player, int bX, int bY, int bZ)
+{
+	Capsule col = player->collider;
+	AABB bb = AABB(vec3(bX - 0.5f, bY - 0.5f, bZ - 0.5f), vec3(0.0f), vec3(1.0f));
+
+	return Intersect(&col, &bb, nullptr);
 }
 
 static void Simulate(Renderer* rend, World* world, Player* player, float deltaTime)
