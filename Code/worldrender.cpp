@@ -15,7 +15,7 @@ static void BuildChunk(World* world, Chunk* chunk)
 
                 if (block != BLOCK_AIR)
                 {
-                    BlockMeshType type = g_blockData[block].meshType;
+                    BlockMeshType type = GetMeshType(block);
                     Mesh* mesh = chunk->meshes[type];
 
                     if (mesh == nullptr)
@@ -212,12 +212,12 @@ static inline Color VertexLight(World* world, Chunk* chunk, Axis axis, RelPos po
 // chunk in local world space.
 static void BuildBlock(World* world, Chunk* chunk, Mesh* mesh, int xi, int yi, int zi, Block block)
 {
-    float* textures = g_blockData[block].textures;
+    float* textures = GetTextures(block);
 
     RelPos rP = ivec3(xi, yi, zi);
     float x = (float)xi, y = (float)yi, z = (float)zi;
 
-    CullType cull = g_blockData[block].cull;
+    CullType cull = GetCullType(block);
 
     if (CanDrawFace(cull, GetBlockSafe(world, chunk, xi, yi + 1, zi)))
     {

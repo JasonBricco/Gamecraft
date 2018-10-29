@@ -22,8 +22,6 @@
 
 #define WORLD_HEIGHT 256
 
-typedef uint16_t Block;
-
 // The position of the chunk in local space around the player.
 // All loaded chunks are in a local array. This indexes into it.
 typedef ivec3 LChunkPos;
@@ -203,14 +201,4 @@ struct World
     RegionPos playerRegion;
 
     int seed;
-};
-
-using BuildBlockFunc = void(*)(World*, Chunk*, Mesh*, int, int, int, Block);
-
-struct BlockData
-{
-    float textures[6];
-    BlockMeshType meshType;
-    CullType cull;
-    BuildBlockFunc buildFunc;
 };

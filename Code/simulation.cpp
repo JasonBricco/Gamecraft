@@ -559,6 +559,12 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 					player->colFlags |= HIT_DOWN;
 					player->velocity.y = 0.0f;
 				}
+
+				if (info.normal.y < -0.6f && player->velocity.y > 0.0f)
+				{
+					player->colFlags |= HIT_UP;
+					player->velocity.y = 0.0f;
+				}
 	    	}
 	    }
 
