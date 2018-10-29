@@ -434,7 +434,7 @@ static inline void AddColumnCollision(World* world, Player* player, int x, int z
 
 	for (int y = minY; y <= maxY; y++)
 	{
-		if (GetBlock(world, x, y, z) != BLOCK_AIR)
+		if (!IsPassable(GetBlock(world, x, y, z)))
 		{
 			if (startY == INT_MIN)
 				startY = y;
@@ -445,7 +445,7 @@ static inline void AddColumnCollision(World* world, Player* player, int x, int z
 		{
 			if (size > 0)
 			{
-				if (GetBlock(world, x, y + 1, z) != BLOCK_AIR)
+				if (!IsPassable(GetBlock(world, x, y + 1, z)))
 					size++;
 				else
 				{

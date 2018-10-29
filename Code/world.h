@@ -45,36 +45,6 @@ typedef ivec3 RegionPos;
 
 typedef FastNoiseSIMD Noise;
 
-enum BlockType : Block
-{
-    BLOCK_AIR,
-    BLOCK_GRASS,
-    BLOCK_DIRT,
-    BLOCK_STONE,
-    BLOCK_WATER,
-    BLOCK_CRATE,
-    BLOCK_SAND,
-    BLOCK_STONEBRICK,
-    BLOCK_COUNT
-};
-
-enum BlockFace
-{
-    FACE_TOP,
-    FACE_BOTTOM,
-    FACE_FRONT,
-    FACE_BACK,
-    FACE_RIGHT,
-    FACE_LEFT
-};
-
-enum CullType
-{
-    CULL_OPAQUE,
-    CULL_TRANSPARENT,
-    CULL_ALL
-};
-
 enum ChunkState
 {
     CHUNK_LOADING,

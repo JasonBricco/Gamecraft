@@ -6,7 +6,7 @@ static BlockData g_blockData[BLOCK_COUNT];
 
 static inline float* GetTextures(Block block)
 {
-    return g_blockData.textures[block];
+    return g_blockData[block].textures;
 }
 
 static inline CullType GetCullType(Block block)
