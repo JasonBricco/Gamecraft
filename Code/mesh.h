@@ -18,17 +18,16 @@ struct Mesh
 
     int vertMax, indexMax;
     int vertCount, indexCount;
-
-    vec3 lwPos;
 };
 
-struct Mesh2D
+struct VertexSpec
 {
-    GLuint vb, ib, va;
+    bool position;
+    int numPositions;
 
-    float* vertices;
-    int* indices;
+    bool texture;
+    int numUvs;
 
-    int vertMax, indexMax;
-    int vertCount, indexCount;
+    bool color;
+    int numColors;
 };

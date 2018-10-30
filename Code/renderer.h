@@ -2,7 +2,6 @@
 // Jason Bricco
 //
 
-#define MESH_PARAMS 10
 #define CAMERA_FOV 45.0f
 #define WORLD_UP vec3(0.0f, 1.0f, 0.0f)
 
@@ -15,8 +14,8 @@ enum ShaderType
 
 struct Graphic
 {
-    vec2 pos;
-    Mesh2D mesh;
+    vec3 pos;
+    Mesh* mesh;
     Texture texture;
     Shader shader;
 };
@@ -54,6 +53,12 @@ struct Camera
     Plane planes[6];
 };
 
+struct ChunkMesh
+{
+    Mesh* mesh;
+    vec3 pos;
+};
+
 struct Renderer
 {
     Camera* camera;
@@ -66,7 +71,10 @@ struct Renderer
 
     mat4 perspective, ortho, view;
 
-    vector<Mesh*> meshLists[CHUNK_MESH_COUNT];
+    vector<ChunkMesh> meshLists[CHUNK_MESH_COUNT];
+
+    // Screen fading.
+    Color fadeColor;
 
     Graphic* crosshair;
 

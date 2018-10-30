@@ -15,29 +15,115 @@ static Mesh* CreateMesh(int vertMax = 131072, int indexMax = 65536)
 	return mesh;
 }
 
-static void CreateMesh2D(Mesh2D* mesh, int vertMax = 131072, int indexMax = 65536)
+static inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex, Color c)
 {
-	mesh->vertMax = vertMax;
-	mesh->indexMax = indexMax;
+	if (mesh->vertCount + 10 > mesh->vertMax)
+	{
+		mesh->vertices = Realloc<float>(mesh->vertices, mesh->vertMax * 2);
+		mesh->vertMax *= 2;
+	}
 
-	mesh->vertices = Malloc<float>(mesh->vertMax);
-	mesh->indices = Malloc<int>(mesh->indexMax);
+	int count = mesh->vertCount;
 
+	mesh->vertices[count++] = x;
+	mesh->vertices[count++] = y;
+	mesh->vertices[count++] = z;
+
+	mesh->vertices[count++] = u;
+	mesh->vertices[count++] = v;
+	mesh->vertices[count++] = tex;
+
+	mesh->vertices[count++] = c.r;
+	mesh->vertices[count++] = c.g;
+	mesh->vertices[count++] = c.b;
+	mesh->vertices[count++] = c.a;
+
+	mesh->vertCount = count;
+}
+
+static inline void SetMeshVertex(Mesh* mesh, float x, float y, float u, float v)
+{
+	if (mesh->vertCount + 4 > mesh->vertMax)
+	{
+		mesh->vertices = Realloc<float>(mesh->vertices, mesh->vertMax * 2);
+		mesh->vertMax *= 2;
+	}
+
+	int count = mesh->vertCount;
+
+	mesh->vertices[count++] = x;
+	mesh->vertices[count++] = y;
+	mesh->vertices[count++] = u;
+	mesh->vertices[count++] = v;
+	
+	mesh->vertCount = count;
+}
+
+static inline void SetMeshIndices(Mesh* mesh, int params)
+{
+	if (mesh->indexCount + 6 > mesh->indexMax)
+	{
+		mesh->indices = Realloc<int>(mesh->indices, mesh->indexMax * 2);
+		mesh->indexMax *= 2;
+	}
+
+	int offset = mesh->vertCount / params;
+	int count = mesh->indexCount;
+
+	mesh->indices[count++] = offset + 2;
+	mesh->indices[count++] = offset + 1;
+	mesh->indices[count++] = offset;
+
+	mesh->indices[count++] = offset + 3;
+	mesh->indices[count++] = offset + 2;
+	mesh->indices[count++] = offset;
+
+	mesh->indexCount = count;
+}
+
+static inline void FillMeshData(Mesh* mesh, GLenum type, VertexSpec spec)
+{
 	glGenVertexArrays(1, &mesh->va);
 	glBindVertexArray(mesh->va);
 
+	// Vertex buffer.
 	glGenBuffers(1, &mesh->vb);
 	glBindBuffer(GL_ARRAY_BUFFER, mesh->vb);
-
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), NULL);
-	glEnableVertexAttribArray(0);
-
-	// Texture coordinates (UVs).
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(1);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * mesh->vertCount, mesh->vertices, type);
 
 	// Index buffer.
 	glGenBuffers(1, &mesh->ib);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, type);
+
+	int params = spec.numPositions + spec.numUvs + spec.numColors;
+	int id = 0, offset = 0;
+
+	if (spec.position)
+	{
+		glVertexAttribPointer(id, spec.numPositions, GL_FLOAT, GL_FALSE, params * sizeof(GLfloat), NULL);
+		glEnableVertexAttribArray(id++);
+		offset += spec.numPositions;
+	}
+
+	if (spec.texture)
+	{
+		glVertexAttribPointer(id, spec.numUvs, GL_FLOAT, GL_FALSE, params * sizeof(GLfloat), (GLvoid*)(offset * sizeof(GLfloat))); 
+		glEnableVertexAttribArray(id++);
+		offset += spec.numUvs;
+	}
+
+	if (spec.color)
+	{
+		glVertexAttribPointer(id, 4, GL_FLOAT, GL_FALSE, params * sizeof(GLfloat), (GLvoid*)(offset * sizeof(GLfloat)));
+		glEnableVertexAttribArray(id);
+	}
+
+	Free<float>(mesh->vertices);
+	Free<int>(mesh->indices);
+
+	mesh->vertices = nullptr;
+	mesh->indices = nullptr;
 }
 
 static void DestroyMesh(Mesh* mesh)
@@ -60,150 +146,11 @@ static void DestroyMesh(Mesh* mesh)
 	Free<Mesh>(mesh);
 }
 
-static inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex, Color c)
+static inline void DrawMesh(Mesh* mesh, Shader shader, vec3 pos)
 {
-	if (mesh->vertCount + MESH_PARAMS > mesh->vertMax)
-	{
-		mesh->vertices = (float*)realloc(mesh->vertices, mesh->vertMax * 2 * sizeof(float));
-		mesh->vertMax *= 2;
-	}
-
-	int count = mesh->vertCount;
-
-	mesh->vertices[count++] = x;
-	mesh->vertices[count++] = y;
-	mesh->vertices[count++] = z;
-
-	mesh->vertices[count++] = u;
-	mesh->vertices[count++] = v;
-	mesh->vertices[count++] = tex;
-
-	mesh->vertices[count++] = c.r;
-	mesh->vertices[count++] = c.g;
-	mesh->vertices[count++] = c.b;
-	mesh->vertices[count++] = c.a;
-
-	mesh->vertCount = count;
-}
-
-static inline void SetMeshVertex2D(Mesh2D* mesh, float x, float y, float u, float v)
-{
-	int count = mesh->vertCount;
-
-	mesh->vertices[count++] = x;
-	mesh->vertices[count++] = y;
-	mesh->vertices[count++] = u;
-	mesh->vertices[count++] = v;
-	
-	mesh->vertCount = count;
-}
-
-static inline void SetMeshIndices(Mesh* mesh)
-{
-	if (mesh->indexCount + 6 > mesh->indexMax)
-	{
-		mesh->indices = (int*)realloc(mesh->indices, mesh->indexMax * 2 * sizeof(float));
-		mesh->indexMax *= 2;
-	}
-
-	int offset = mesh->vertCount / MESH_PARAMS;
-	int count = mesh->indexCount;
-
-	mesh->indices[count++] = offset + 2;
-	mesh->indices[count++] = offset + 1;
-	mesh->indices[count++] = offset;
-
-	mesh->indices[count++] = offset + 3;
-	mesh->indices[count++] = offset + 2;
-	mesh->indices[count++] = offset;
-
-	mesh->indexCount = count;
-}
-
-static inline void SetMeshIndices2D(Mesh2D* mesh)
-{
-	int offset = mesh->vertCount / MESH_PARAMS;
-	int count = mesh->indexCount;
-
-	mesh->indices[count++] = offset + 2;
-	mesh->indices[count++] = offset + 1;
-	mesh->indices[count++] = offset;
-
-	mesh->indices[count++] = offset + 3;
-	mesh->indices[count++] = offset + 2;
-	mesh->indices[count++] = offset;
-
-	mesh->indexCount = count;
-}
-
-static void FillMeshData(Mesh** meshes)
-{
-	BEGIN_TIMED_BLOCK(FILL_MESH);
-
-	for (int i = 0; i < CHUNK_MESH_COUNT; i++)
-	{
-		Mesh* mesh = meshes[i];
-
-		if (mesh == nullptr) continue;
-		
-		if (mesh->vertCount > 0)
-		{
-			glGenVertexArrays(1, &mesh->va);
-			glBindVertexArray(mesh->va);
-
-			// Vertex position attribute buffer.
-			glGenBuffers(1, &mesh->vb);
-			glBindBuffer(GL_ARRAY_BUFFER, mesh->vb);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * mesh->vertCount, mesh->vertices, GL_DYNAMIC_DRAW);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat), NULL);
-			glEnableVertexAttribArray(0);
-
-			// Texture coordinates (UVs).
-			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-			glEnableVertexAttribArray(1);
-
-			// Vertex color attribute buffer.
-			glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, MESH_PARAMS * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
-			glEnableVertexAttribArray(2);
-
-			// Index buffer.
-			glGenBuffers(1, &mesh->ib);
-	 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_DYNAMIC_DRAW);
-		}
-
-		Free<float>(mesh->vertices);
-		Free<int>(mesh->indices);
-
-		mesh->vertices = nullptr;
-		mesh->indices = nullptr;
-	}
-
-	END_TIMED_BLOCK(FILL_MESH);
-}
-
-static void FillMeshData2D(Mesh2D* mesh)
-{
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * mesh->vertCount, mesh->vertices, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_STATIC_DRAW);
-}
-
-static inline void DrawMesh(Mesh* mesh, Shader shader)
-{
-	mat4 model = translate(mat4(1.0f), mesh->lwPos);
+	mat4 model = translate(mat4(1.0f), pos);
 	SetUniform(shader.model, model);
 
 	glBindVertexArray(mesh->va);
 	glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
-}
-
-static void DrawMesh2D(Mesh2D* mesh, Shader shader, vec2 pos)
-{
-	mat4 model = translate(mat4(1.0f), vec3(pos, 0.0f));
-	SetUniform(shader.model, model);
-
-	glBindVertexArray(mesh->va);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }

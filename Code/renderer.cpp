@@ -10,16 +10,18 @@ static inline void UseShader(Shader shader)
 static Graphic* CreateGraphic(Shader shader, Texture texture)
 {
 	Graphic* graphic = Calloc<Graphic>();
-	CreateMesh2D(&graphic->mesh, 16, 6);
+	graphic->mesh = CreateMesh(16, 6);
 
-	SetMeshIndices2D(&graphic->mesh);
+	VertexSpec spec = { true, 2, true, 2, false, 0 };
 
-	SetMeshVertex2D(&graphic->mesh, 32.0f, 0.0f, 0.0f, 1.0f);
-	SetMeshVertex2D(&graphic->mesh, 32.0f, 32.0f, 0.0f, 0.0f);
-	SetMeshVertex2D(&graphic->mesh, 0.0f, 32.0f, 1.0f, 0.0f);
-	SetMeshVertex2D(&graphic->mesh, 0.0f, 0.0f, 1.0f, 1.0f);
+	SetMeshIndices(graphic->mesh, 4);
+
+	SetMeshVertex(graphic->mesh, 32.0f, 0.0f, 0.0f, 1.0f);
+	SetMeshVertex(graphic->mesh, 32.0f, 32.0f, 0.0f, 0.0f);
+	SetMeshVertex(graphic->mesh, 0.0f, 32.0f, 1.0f, 0.0f);
+	SetMeshVertex(graphic->mesh, 0.0f, 0.0f, 1.0f, 1.0f);
 	
-	FillMeshData2D(&graphic->mesh);
+	FillMeshData(graphic->mesh, GL_STATIC_DRAW, spec);
 
 	graphic->shader = shader;
 	graphic->texture = texture;
@@ -34,12 +36,12 @@ static void DrawGraphic(Renderer* rend, Graphic* graphic)
 	SetUniform(shader.proj, rend->ortho);
 
 	glBindTexture(GL_TEXTURE_2D, graphic->texture);
-	DrawMesh2D(&graphic->mesh, shader, graphic->pos);
+	DrawMesh(graphic->mesh, shader, graphic->pos);
 }
 
 static inline void SetCrosshairPos(Graphic* crosshair, int width, int height)
 {
-	crosshair->pos = vec2((width / 2.0f) - 16.0f, (height / 2.0f) - 16.0f);
+	crosshair->pos = vec3((width / 2.0f) - 16.0f, (height / 2.0f) - 16.0f, 0.0f);
 }
 
 static void SetWindowSize(GLFWwindow* window, int width, int height)
@@ -261,7 +263,10 @@ static void RenderScene(Renderer* rend, Assets* assets)
 	int count = (int)rend->meshLists[MESH_TYPE_OPAQUE].size();
 
 	for (int i = 0; i < count; i++)
-		DrawMesh(rend->meshLists[MESH_TYPE_OPAQUE][i], shader);
+	{
+		ChunkMesh cM = rend->meshLists[MESH_TYPE_OPAQUE][i];
+		DrawMesh(cM.mesh, shader, cM.pos);
+	}
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -277,7 +282,10 @@ static void RenderScene(Renderer* rend, Assets* assets)
 	count = (int)rend->meshLists[MESH_TYPE_FLUID].size();
 
 	for (int i = 0; i < count; i++)
-		DrawMesh(rend->meshLists[MESH_TYPE_FLUID][i], shader);
+	{
+		ChunkMesh cM = rend->meshLists[MESH_TYPE_FLUID][i];
+		DrawMesh(cM.mesh, shader, cM.pos);
+	}
 
 	if (!g_paused)
 	{
@@ -286,6 +294,9 @@ static void RenderScene(Renderer* rend, Assets* assets)
 	}
 
 	glDisable(GL_BLEND);
+
+
+
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	END_TIMED_BLOCK(RENDER_SCENE);
