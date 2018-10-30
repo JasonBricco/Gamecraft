@@ -15,14 +15,21 @@ static Mesh* CreateMesh(int vertMax = 131072, int indexMax = 65536)
 	return mesh;
 }
 
-static inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex, Color c)
+template <typename T>
+static inline T* ExpandIfNeeded(T* data, int adding, int count, int& max)
 {
-	if (mesh->vertCount + 10 > mesh->vertMax)
+	if (count + adding > max)
 	{
-		mesh->vertices = Realloc<float>(mesh->vertices, mesh->vertMax * 2);
-		mesh->vertMax *= 2;
+		data = Realloc<T>(data, max * 2);
+		max *= 2;
 	}
 
+	return data;
+}
+
+static inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex, Color c)
+{
+	mesh->vertices = ExpandIfNeeded(mesh->vertices, 10, mesh->vertCount, mesh->vertMax);
 	int count = mesh->vertCount;
 
 	mesh->vertices[count++] = x;
@@ -43,12 +50,7 @@ static inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u,
 
 static inline void SetMeshVertex(Mesh* mesh, float x, float y, float u, float v)
 {
-	if (mesh->vertCount + 4 > mesh->vertMax)
-	{
-		mesh->vertices = Realloc<float>(mesh->vertices, mesh->vertMax * 2);
-		mesh->vertMax *= 2;
-	}
-
+	mesh->vertices = ExpandIfNeeded(mesh->vertices, 4, mesh->vertCount, mesh->vertMax);
 	int count = mesh->vertCount;
 
 	mesh->vertices[count++] = x;
@@ -59,14 +61,20 @@ static inline void SetMeshVertex(Mesh* mesh, float x, float y, float u, float v)
 	mesh->vertCount = count;
 }
 
+static inline void SetMeshVertex(Mesh* mesh, float x, float y)
+{
+	mesh->vertices = ExpandIfNeeded(mesh->vertices, 2, mesh->vertCount, mesh->vertMax);
+	int count = mesh->vertCount;
+
+	mesh->vertices[count++] = x;
+	mesh->vertices[count++] = y;
+
+	mesh->vertCount = count;
+}
+
 static inline void SetMeshIndices(Mesh* mesh, int params)
 {
-	if (mesh->indexCount + 6 > mesh->indexMax)
-	{
-		mesh->indices = Realloc<int>(mesh->indices, mesh->indexMax * 2);
-		mesh->indexMax *= 2;
-	}
-
+	mesh->indices = ExpandIfNeeded(mesh->indices, 6, mesh->indexCount, mesh->indexMax);
 	int offset = mesh->vertCount / params;
 	int count = mesh->indexCount;
 
@@ -146,11 +154,15 @@ static void DestroyMesh(Mesh* mesh)
 	Free<Mesh>(mesh);
 }
 
+static inline void DrawMesh(Mesh* mesh)
+{
+	glBindVertexArray(mesh->va);
+	glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+}
+
 static inline void DrawMesh(Mesh* mesh, Shader shader, vec3 pos)
 {
 	mat4 model = translate(mat4(1.0f), pos);
 	SetUniform(shader.model, model);
-
-	glBindVertexArray(mesh->va);
-	glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+	DrawMesh(mesh);
 }

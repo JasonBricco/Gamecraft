@@ -132,6 +132,21 @@ static void InitRenderer(Renderer* rend, Assets* assets, int screenWidth, int sc
 
 	for (int i = 0; i < CHUNK_MESH_COUNT; i++)
 		rend->meshLists[i].reserve(512);
+
+	rend->fadeMesh = CreateMesh(16, 4);
+	VertexSpec fadeSpec = { true, 2, false, 0, false, 0 };
+
+	SetMeshIndices(rend->fadeMesh, 4);
+
+	SetMeshVertex(rend->fadeMesh, -1.0f, 1.0f);
+	SetMeshVertex(rend->fadeMesh, 1.0f, 1.0f);
+	SetMeshVertex(rend->fadeMesh, 1.0f, -1.0f);
+	SetMeshVertex(rend->fadeMesh, -1.0f, -1.0f);
+	
+	FillMeshData(rend->fadeMesh, GL_STATIC_DRAW, fadeSpec);
+
+	rend->fadeShader = assets->fade;
+	rend->fadeColor = vec4(0.0f, 0.0f, 1.0f, 0.5f);
 }
 
 static Ray ScreenCenterToRay(Renderer* rend)
@@ -249,6 +264,7 @@ static void RenderScene(Renderer* rend, Assets* assets)
 	BEGIN_TIMED_BLOCK(RENDER_SCENE);
 
 	glClear(GL_COLOR_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
 
 	UpdateViewMatrix(rend);
 
@@ -287,6 +303,13 @@ static void RenderScene(Renderer* rend, Assets* assets)
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
+	glDisable(GL_DEPTH_TEST);
+	shader = rend->fadeShader;
+
+	UseShader(shader);
+	SetUniform(shader.color, rend->fadeColor);
+	DrawMesh(rend->fadeMesh);
+
 	if (!g_paused)
 	{
 		glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
@@ -294,8 +317,6 @@ static void RenderScene(Renderer* rend, Assets* assets)
 	}
 
 	glDisable(GL_BLEND);
-
-
 
 	glClear(GL_DEPTH_BUFFER_BIT);
 

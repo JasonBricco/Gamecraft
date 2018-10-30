@@ -73,10 +73,12 @@ struct Renderer
 
     vector<ChunkMesh> meshLists[CHUNK_MESH_COUNT];
 
+    Graphic* crosshair;
+
     // Screen fading.
     Color fadeColor;
-
-    Graphic* crosshair;
+    Shader fadeShader;
+    Mesh* fadeMesh;
 
     // Time for shader animation.
     float animTime;

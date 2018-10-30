@@ -173,10 +173,14 @@ static void LoadAssets(Assets* assets)
     fluidArray.time = glGetUniformLocation(fluidArray.handle, "time");
     assets->fluidArray = fluidArray;
 
-    Shader crosshair = LoadShader("Shaders\\Crosshair.shader");
+    Shader crosshair = LoadShader("Shaders\\crosshair.shader");
     crosshair.model = glGetUniformLocation(crosshair.handle, "model");
     crosshair.proj = glGetUniformLocation(crosshair.handle, "projection");
     assets->crosshair = crosshair;
+
+    Shader fade = LoadShader("Shaders\\fade.shader");
+    fade.color = glGetUniformLocation(fade.handle, "inColor");
+    assets->fade = fade;
 
     TextureArray blockTextures;
 

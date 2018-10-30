@@ -7,7 +7,7 @@ typedef GLuint Texture;
 struct Shader
 {
     GLuint handle;
-    GLint view, model, proj, time;
+    GLint view, model, proj, time, color;
 };
 
 struct Assets
@@ -18,4 +18,5 @@ struct Assets
     Shader diffuseArray;
     Shader fluidArray;
     Shader crosshair;
+    Shader fade;
 };

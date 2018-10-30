@@ -237,7 +237,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	glClearColor(0.53f, 0.80f, 0.92f, 1.0f);
 	glPolygonMode(GL_FRONT, GL_FILL);
-	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 
 #if ASSERTIONS

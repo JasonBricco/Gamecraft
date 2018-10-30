@@ -12,6 +12,13 @@
 
 typedef vec4 Color;
 
+#define RED_COLOR vec4(1.0f, 0.0f, 0.0f, 1.0f)
+#define GREEN_COLOR vec4(0.0f, 1.0f, 0.0f, 1.0f)
+#define BLUE_COLOR vec4(0.0f, 0.0f, 1.0f, 1.0f)
+#define CLEAR_COLOR vec4(0.0f, 0.0f, 0.0f, 0.0f)
+#define BLACK_COLOR vec4(0.0f, 0.0f, 0.0f, 1.0f)
+#define WHITE_COLOR vec4(1.0f, 1.0f, 1.0f, 1.0f)
+
 enum Axis { AXIS_X, AXIS_Y, AXIS_Z };
 
 struct Ray
