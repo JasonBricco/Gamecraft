@@ -188,13 +188,21 @@ static void LoadChunk(World* world, Chunk* chunk)
         int i = 0; 
         int loc = 2;
 
-        while (i < CHUNK_SIZE_3)
+        // If every block in the chunk is the same, the saved count will be 65536 
+        // but wrap to 0 as uint16_t's max is 65535. If we read in a 0, 
+        // interpret it to be that every block in this chunk is the same.
+        if (chunkData->data[loc] == 0)
+            FillChunk(chunk, chunkData->data[loc + 1]);
+        else
         {
-            uint16_t count = chunkData->data[loc++];
-            Block block = chunkData->data[loc++];
+            while (i < CHUNK_SIZE_3)
+            {
+                int count = chunkData->data[loc++];
+                Block block = chunkData->data[loc++];
 
-            for (int j = 0; j < count; j++)
-                chunk->blocks[i++] = block;
+                for (int j = 0; j < count; j++)
+                    chunk->blocks[i++] = block;
+            }
         }
     }
     else GenerateChunkTerrain(world, chunk);

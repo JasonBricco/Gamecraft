@@ -301,14 +301,8 @@ static inline Block GetBlock(World* world, LWorldPos pos)
 
 static void FillChunk(Chunk* chunk, Block block)
 {
-    for (int z = 0; z < CHUNK_SIZE_X; z++)
-    {
-        for (int y = 0; y < CHUNK_SIZE_Y; y++)
-        {
-            for (int x = 0; x < CHUNK_SIZE_X; x++)
-                SetBlock(chunk, x, y, z, block);
-        }
-    }
+    for (int i = 0; i < CHUNK_SIZE_3; i++)
+        chunk->blocks[i] = block;
 }
 
 // Fill a chunk with a single block type.
