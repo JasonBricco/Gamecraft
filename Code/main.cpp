@@ -271,8 +271,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	Player* player = NewPlayer(rend->camera);
 	rend->camera = player->camera;
 	world->player = player;
-
-	TestColumnCollision(world, player);
 	
 	double lastTime = glfwGetTime();
 

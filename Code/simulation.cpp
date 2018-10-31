@@ -97,7 +97,7 @@ static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result)
 			{
 				Block block = GetBlock(world, x, y, z);
 
-				if (block == 0) continue;
+				if (IsPassable(block)) continue;
 
 				float newDist = BlockRayIntersection(vec3((float)x, (float)y, (float)z), ray);
 				minDistance = Min(minDistance, newDist);
@@ -570,8 +570,6 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 
 	    player->possibleCollides.clear();
 	}
-
-	MoveCamera(player->camera, player->pos);
 }
 
 static bool OverlapsBlock(Player* player, int bX, int bY, int bZ)
@@ -585,15 +583,18 @@ static bool OverlapsBlock(Player* player, int bX, int bY, int bZ)
 static void Simulate(Renderer* rend, World* world, Player* player, float deltaTime)
 {
 	if (!player->spawned) return;
-	
+
 	Camera* cam = player->camera;
 
 	vec3 accel = vec3(0.0f);
 
-	if (KeyHeld(KEY_UP)) accel += MoveDirXZ(cam->forward);
-	if (KeyHeld(KEY_DOWN)) accel += MoveDirXZ(-cam->forward);
-	if (KeyHeld(KEY_LEFT)) accel += MoveDirXZ(-cam->right);
-	if (KeyHeld(KEY_RIGHT)) accel += MoveDirXZ(cam->right);
+	if (KeyHeld(KEY_UP)) accel += GetXZ(cam->forward);
+	if (KeyHeld(KEY_DOWN)) accel += GetXZ(-cam->forward);
+	if (KeyHeld(KEY_LEFT)) accel += GetXZ(-cam->right);
+	if (KeyHeld(KEY_RIGHT)) accel += GetXZ(cam->right);
+
+	if (accel != vec3(0.0f))
+		accel = normalize(accel);
 
 	if (KeyPressed(KEY_TAB))
 		player->flying = !player->flying;
@@ -624,12 +625,16 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 	player->pos.x = std::clamp(player->pos.x, min, max);
 	player->pos.z = std::clamp(player->pos.z, min, max);
 
-	// Tint the screen if the camera is in water.
-	Block eyeBlock = GetBlock(world, BlockPos(cam->pos));
+	MoveCamera(player->camera, player->pos);
+
+	// Tint the screen if the camera is in water. Subtract 0.1 to account
+	// for the near clip plane of the camera.
+	vec3 eyePos = vec3(cam->pos.x, cam->pos.y - 0.1f, cam->pos.z);
+	Block eyeBlock = GetBlock(world, BlockPos(eyePos));
 
 	if (eyeBlock == BLOCK_WATER)
 	{
-		rend->fadeColor = vec4(0.0f, 0.0f, 1.0f, 0.5f);
+		rend->fadeColor = vec4(0.17f, 0.45f, 0.69f, 0.75f);
 		rend->disableFluidCull = true;
 	}
 	else
@@ -643,6 +648,12 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 		ivec3 cPos = LWorldToLChunkPos(player->pos);
 		Chunk* chunk = GetChunk(world, cPos);
 		FillChunk(chunk, BLOCK_AIR);
+
+		// Rebuild meshes for this chunk and all neighbor chunks.
+		chunk->state = CHUNK_UPDATE;
+
+		for (int i = 0; i < 8; i++)
+			GetChunk(world, chunk->lcPos + DIRECTIONS[i])->state = CHUNK_UPDATE;
 	}
 
 	int op = MousePressed(0) ? 0 : MousePressed(1) ? 1 : -1;

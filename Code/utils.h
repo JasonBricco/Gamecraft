@@ -93,10 +93,9 @@ static inline int InRange(int val, int min, int max)
     return val >= min && val <= max;
 }
 
-static inline vec3 MoveDirXZ(vec3 value)
+static inline vec3 GetXZ(vec3 value)
 {
-    vec3 zeroY = vec3(value.x, 0.0f, value.z);
-    return normalize(zeroY);
+    return vec3(value.x, 0.0f, value.z);
 }
 
 static inline ivec3 BlockPos(vec3 pos)

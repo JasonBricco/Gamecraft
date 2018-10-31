@@ -3,27 +3,27 @@
 
 static GameInput g_input;
 
-inline bool KeyHeld(KeyType type)
+static inline bool KeyHeld(KeyType type)
 {
 	return g_input.keys[type];
 }
 
-inline bool KeyPressed(KeyType type)
+static inline bool KeyPressed(KeyType type)
 {
 	return g_input.single[type];
 }
 
-inline int LastNumKey()
+static inline int LastNumKey()
 {
 	return g_input.lastNum;
 }
 
-inline bool MousePressed(int button)
+static inline bool MousePressed(int button)
 {
 	return g_input.mousePressed[button];
 }
 
-inline bool MouseHeld(int button)
+static inline bool MouseHeld(int button)
 {
 	return g_input.mouseHeld[button];
 }
@@ -176,3 +176,5 @@ static void OnMouseButton(GLFWwindow*, int button, int action, int)
 		}
 	}
 }
+
+#define g_input
