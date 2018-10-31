@@ -571,7 +571,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	    player->possibleCollides.clear();
 	}
 
-	CameraFollow(player);
+	MoveCamera(player->camera, player->pos);
 }
 
 static bool OverlapsBlock(Player* player, int bX, int bY, int bZ)
@@ -623,6 +623,20 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 	float min = 0.0f, max = (float)(world->size * CHUNK_SIZE_X);
 	player->pos.x = std::clamp(player->pos.x, min, max);
 	player->pos.z = std::clamp(player->pos.z, min, max);
+
+	// Tint the screen if the camera is in water.
+	Block eyeBlock = GetBlock(world, BlockPos(cam->pos));
+
+	if (eyeBlock == BLOCK_WATER)
+	{
+		rend->fadeColor = vec4(0.0f, 0.0f, 1.0f, 0.5f);
+		rend->disableFluidCull = true;
+	}
+	else
+	{
+		rend->fadeColor = CLEAR_COLOR;
+		rend->disableFluidCull = true;
+	}
 
 	if (KeyPressed(KEY_BACKSPACE))
 	{
@@ -678,6 +692,6 @@ static void SpawnPlayer(Player* player, Rectf spawnBounds)
 	spawn.y = 100.0f;
 	player->pos = spawn;
 
-	CameraFollow(player);
+	MoveCamera(player->camera, player->pos);
 	player->spawned = true;
 }

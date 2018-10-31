@@ -80,6 +80,9 @@ struct Renderer
     Shader fadeShader;
     Mesh* fadeMesh;
 
+    // Backface culling will be enabled if this is true.
+    bool disableFluidCull;
+
     // Time for shader animation.
     float animTime;
 };

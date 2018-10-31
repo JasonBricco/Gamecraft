@@ -465,7 +465,7 @@ static void CheckWorld(World* world, Player* player)
     if (shift) 
     {
         player->pos = pos;
-        CameraFollow(player);
+        MoveCamera(player->camera, player->pos);
         ShiftWorld(world);
     }
 }

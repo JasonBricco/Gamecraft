@@ -102,11 +102,10 @@ static void RotateCamera(Camera* cam, float yaw, float pitch)
 	UpdateCameraVectors(cam);
 }
 
-static inline void CameraFollow(Player* player)
+static inline void MoveCamera(Camera* cam, vec3 pos)
 {	
-	vec3 pos = player->pos;
-	player->camera->pos = vec3(pos.x, pos.y + 1.15f, pos.z);
-	UpdateCameraVectors(player->camera);
+	cam->pos = vec3(pos.x, pos.y + 1.15f, pos.z);
+	UpdateCameraVectors(cam);
 }
 
 static inline void UpdateViewMatrix(Renderer* rend)
@@ -146,7 +145,7 @@ static void InitRenderer(Renderer* rend, Assets* assets, int screenWidth, int sc
 	FillMeshData(rend->fadeMesh, GL_STATIC_DRAW, fadeSpec);
 
 	rend->fadeShader = assets->fade;
-	rend->fadeColor = vec4(0.0f, 0.0f, 1.0f, 0.5f);
+	rend->fadeColor = CLEAR_COLOR;
 }
 
 static Ray ScreenCenterToRay(Renderer* rend)
@@ -295,6 +294,9 @@ static void RenderScene(Renderer* rend, Assets* assets)
 	SetUniform(shader.proj, rend->perspective);
 	SetUniform(shader.time, rend->animTime);
 
+	if (rend->disableFluidCull) 
+		glDisable(GL_CULL_FACE);
+
 	count = (int)rend->meshLists[MESH_TYPE_FLUID].size();
 
 	for (int i = 0; i < count; i++)
@@ -303,12 +305,19 @@ static void RenderScene(Renderer* rend, Assets* assets)
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
-	glDisable(GL_DEPTH_TEST);
-	shader = rend->fadeShader;
+	if (rend->disableFluidCull) 
+		glEnable(GL_CULL_FACE);
 
-	UseShader(shader);
-	SetUniform(shader.color, rend->fadeColor);
-	DrawMesh(rend->fadeMesh);
+	glDisable(GL_DEPTH_TEST);
+
+	if (rend->fadeColor != CLEAR_COLOR)
+	{
+		shader = rend->fadeShader;
+
+		UseShader(shader);
+		SetUniform(shader.color, rend->fadeColor);
+		DrawMesh(rend->fadeMesh);
+	}
 
 	if (!g_paused)
 	{
