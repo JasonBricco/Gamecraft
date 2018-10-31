@@ -257,6 +257,8 @@ static inline Block GetBlock(Chunk* chunk, RelPos pos)
 
 static inline Block GetBlockSafe(World* world, Chunk* chunk, int rX, int rY, int rZ)
 {
+    assert(chunk->state >= CHUNK_LOADED);
+
     if (rY < 0) return BLOCK_STONE;
     if (rY >= WORLD_HEIGHT) return BLOCK_AIR;
 
@@ -272,7 +274,9 @@ static inline Block GetBlockSafe(World* world, Chunk* chunk, int rX, int rY, int
     if (rZ >= CHUNK_SIZE_X) 
         return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[FRONT]), rX, rY, rZ - CHUNK_SIZE_X);
 
-    return GetBlock(chunk, rX, rY, rZ);
+    Block block = GetBlock(chunk, rX, rY, rZ);
+    assert(block >= 0 && block < BLOCK_COUNT);
+    return block;
 }
 
 static inline Block GetBlockSafe(World* world, Chunk* chunk, RelPos p)
@@ -284,7 +288,7 @@ static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
 {
 	LChunkPos lcPos = LWorldToLChunkPos(lwX, lwZ);
 	Chunk* chunk = GetChunk(world, lcPos);
-	assert(chunk != nullptr);
+	assert(chunk != nullptr && chunk->state >= CHUNK_LOADED);
 
 	RelPos rPos = LWorldToRelPos(lwX, lwY, lwZ);
 	return GetBlock(chunk, rPos);
@@ -295,7 +299,6 @@ static inline Block GetBlock(World* world, LWorldPos pos)
 	return GetBlock(world, pos.x, pos.y, pos.z);
 }
 
-// Fill a chunk with a single block type.
 static void FillChunk(Chunk* chunk, Block block)
 {
     for (int z = 0; z < CHUNK_SIZE_X; z++)
@@ -306,6 +309,20 @@ static void FillChunk(Chunk* chunk, Block block)
                 SetBlock(chunk, x, y, z, block);
         }
     }
+}
+
+// Fill a chunk with a single block type.
+static void FillChunk(World* world, Chunk* chunk, Block block)
+{
+    chunk->modified = true;
+
+    FillChunk(chunk, block);
+
+    // Rebuild meshes for this chunk and all neighbor chunks.
+    chunk->state = CHUNK_UPDATE;
+
+    for (int i = 0; i < 8; i++)
+        GetChunk(world, chunk->lcPos + DIRECTIONS[i])->state = CHUNK_UPDATE;
 }
 
 static inline void AddChunkToPool(World* world, Chunk* chunk)

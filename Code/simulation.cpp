@@ -647,13 +647,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 	{
 		ivec3 cPos = LWorldToLChunkPos(player->pos);
 		Chunk* chunk = GetChunk(world, cPos);
-		FillChunk(chunk, BLOCK_AIR);
-
-		// Rebuild meshes for this chunk and all neighbor chunks.
-		chunk->state = CHUNK_UPDATE;
-
-		for (int i = 0; i < 8; i++)
-			GetChunk(world, chunk->lcPos + DIRECTIONS[i])->state = CHUNK_UPDATE;
+		FillChunk(world, chunk, BLOCK_AIR);
 	}
 
 	int op = MousePressed(0) ? 0 : MousePressed(1) ? 1 : -1;
