@@ -162,7 +162,7 @@ static void GetVisibleChunks(World* world, Camera* cam)
 // next to the adjacent block.
 static inline bool CanDrawFace(CullType cur, Block adjBlock)
 {
-    CullType adj = g_blockData[adjBlock].cull;
+    CullType adj = GetCullType(adjBlock);
 
     if (cur == CULL_OPAQUE)
         return adj >= CULL_TRANSPARENT;

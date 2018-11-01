@@ -640,7 +640,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 	else
 	{
 		rend->fadeColor = CLEAR_COLOR;
-		rend->disableFluidCull = true;
+		rend->disableFluidCull = false;
 	}
 
 	if (KeyPressed(KEY_BACKSPACE))
