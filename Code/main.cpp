@@ -17,7 +17,8 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
-#include <Shlwapi.h>
+#include <shlwapi.h>
+#include <xaudio2.h>
 #include <time.h>
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
@@ -76,6 +77,7 @@ static bool g_paused;
 #include "intrinsics.h"
 #include "filehelper.h"
 #include "assets.h"
+#include "audio.h"
 #include "random.h"
 #include "utils.h"
 #include "input.h"
@@ -91,6 +93,7 @@ static bool g_paused;
 
 #include "test.cpp"
 #include "assets.cpp"
+#include "audio.cpp"
 #include "async.cpp"
 #include "input.cpp"
 #include "mesh.cpp"
