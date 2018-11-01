@@ -158,6 +158,11 @@ static Shader LoadShader(char* path)
     return { program };
 }
 
+static void LoadSound(char* fileName)
+{
+    
+}
+
 static void LoadAssets(Assets* assets)
 {
     Shader diffuseArray = LoadShader("Shaders\\diffuse_array.shader");
