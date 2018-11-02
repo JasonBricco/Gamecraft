@@ -18,7 +18,6 @@
 
 #include <windows.h>
 #include <shlwapi.h>
-#include <xaudio2.h>
 #include <time.h>
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
@@ -55,8 +54,11 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/norm.hpp"
 
+#include <SFML/Audio.hpp>
+
 using namespace glm;
 using namespace std;
+using namespace sf;
 
 #pragma warning(pop)
 
@@ -77,7 +79,6 @@ static bool g_paused;
 #include "intrinsics.h"
 #include "filehelper.h"
 #include "assets.h"
-#include "audio.h"
 #include "random.h"
 #include "utils.h"
 #include "input.h"
@@ -93,7 +94,6 @@ static bool g_paused;
 
 #include "test.cpp"
 #include "assets.cpp"
-#include "audio.cpp"
 #include "async.cpp"
 #include "input.cpp"
 #include "mesh.cpp"

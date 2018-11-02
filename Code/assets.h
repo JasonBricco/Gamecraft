@@ -19,4 +19,6 @@ struct Assets
     Shader fluidArray;
     Shader crosshair;
     Shader fade;
+
+    Music music;
 };

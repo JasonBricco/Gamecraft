@@ -158,11 +158,6 @@ static Shader LoadShader(char* path)
     return { program };
 }
 
-static void LoadSound(char* fileName)
-{
-    
-}
-
 static void LoadAssets(Assets* assets)
 {
     Shader diffuseArray = LoadShader("Shaders\\diffuse_array.shader");
@@ -208,4 +203,10 @@ static void LoadAssets(Assets* assets)
     Texture crosshairTex;
     LoadTexture(&crosshairTex, "Assets/Crosshair.png");
     assets->crosshairTex = crosshairTex;
+
+    if (!assets->music.openFromFile(PathToExe("Assets/LittleTown.ogg")))
+        Print("Failed to load music file.\n");
+
+    assets->music.play();
+    assets->music.setLoop(true);
 }
