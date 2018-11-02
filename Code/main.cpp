@@ -214,6 +214,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	glfwWindowHint(GLFW_SAMPLES, 4);
 
 	int screenWidth = 1024, screenHeight = 768;
 
@@ -241,6 +242,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glClearColor(0.53f, 0.80f, 0.92f, 1.0f);
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_CULL_FACE);
+	glEnable(GL_MULTISAMPLE);
 
 #if ASSERTIONS
 	glEnable(GL_DEBUG_OUTPUT);
