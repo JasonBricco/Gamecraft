@@ -81,3 +81,5 @@ inline void EndTimedBlock(int ID, char* label, uint64_t start)
 #define FLUSH_COUNTERS()
 
 #endif
+
+#define g_counters Error_Invalid_Use

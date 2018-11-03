@@ -4,7 +4,6 @@
 
 // Holds work to be added by the main thread and performed by background threads.
 static WorkQueue g_workQueue;
-
 static HANDLE g_semaphore;
 
 static inline void SemaphoreWait()
@@ -82,3 +81,6 @@ static void CreateThreads()
         CloseHandle(handle);
 	}
 }
+
+#define g_workQueue Error_Invalid_Use
+#define g_semaphore Error_Invalid_Use

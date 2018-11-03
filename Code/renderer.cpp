@@ -2,12 +2,12 @@
 // Jason Bricco
 //
 
-static inline void UseShader(Shader shader)
+static inline void UseShader(Shader* shader)
 {
-    glUseProgram(shader.handle);
+    glUseProgram(shader->handle);
 }
 
-static Graphic* CreateGraphic(Shader shader, Texture texture)
+static Graphic* CreateGraphic(Shader* shader, Texture* texture)
 {
 	Graphic* graphic = Calloc<Graphic>();
 	graphic->mesh = CreateMesh(16, 6);
@@ -31,11 +31,11 @@ static Graphic* CreateGraphic(Shader shader, Texture texture)
 
 static void DrawGraphic(Renderer* rend, Graphic* graphic)
 {
-	Shader shader = graphic->shader;
+	Shader* shader = graphic->shader;
 	UseShader(shader);
-	SetUniform(shader.proj, rend->ortho);
+	SetUniform(shader->proj, rend->ortho);
 
-	glBindTexture(GL_TEXTURE_2D, graphic->texture);
+	glBindTexture(GL_TEXTURE_2D, graphic->texture->id);
 	DrawMesh(graphic->mesh, shader, graphic->pos);
 }
 
@@ -120,11 +120,11 @@ static void OnOpenGLMessage(GLenum, GLenum type, GLuint, GLenum severity, GLsize
 		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, msg);
 }
 
-static void InitRenderer(Renderer* rend, Assets* assets, int screenWidth, int screenHeight)
+static void InitRenderer(Renderer* rend, int screenWidth, int screenHeight)
 {
 	rend->camera = NewCamera();
 
-	Graphic* graphic = CreateGraphic(assets->crosshair, assets->crosshairTex);
+	Graphic* graphic = CreateGraphic(GetAsset<Shader>(ASSET_CROSSHAIR_SHADER), GetAsset<Texture>(ASSET_CROSSHAIR));
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
 	
 	rend->crosshair = graphic;
@@ -144,7 +144,7 @@ static void InitRenderer(Renderer* rend, Assets* assets, int screenWidth, int sc
 	
 	FillMeshData(rend->fadeMesh, GL_STATIC_DRAW, fadeSpec);
 
-	rend->fadeShader = assets->fade;
+	rend->fadeShader = GetAsset<Shader>(ASSET_FADE_SHADER);
 	rend->fadeColor = CLEAR_COLOR;
 }
 
@@ -258,7 +258,7 @@ static inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 	return FRUSTUM_VISIBLE;
 }
 
-static void RenderScene(Renderer* rend, Assets* assets)
+static void RenderScene(Renderer* rend)
 {
 	BEGIN_TIMED_BLOCK(RENDER_SCENE);
 
@@ -268,13 +268,13 @@ static void RenderScene(Renderer* rend, Assets* assets)
 	UpdateViewMatrix(rend);
 
 	// Opaque pass.
-	Shader shader = assets->diffuseArray;
+	Shader* shader = GetAsset<Shader>(ASSET_DIFFUSE_SHADER);
 
 	UseShader(shader);
-	SetUniform(shader.view, rend->view);
-	SetUniform(shader.proj, rend->perspective);
+	SetUniform(shader->view, rend->view);
+	SetUniform(shader->proj, rend->perspective);
 
-	glBindTexture(GL_TEXTURE_2D_ARRAY, assets->blockTextures);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, GetAsset<Texture>(ASSET_DIFFUSE_ARRAY)->id);
 	int count = (int)rend->meshLists[MESH_TYPE_OPAQUE].size();
 
 	for (int i = 0; i < count; i++)
@@ -287,12 +287,12 @@ static void RenderScene(Renderer* rend, Assets* assets)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Fluid pass.
-	shader = assets->fluidArray;
+	shader = GetAsset<Shader>(ASSET_FLUID_SHADER);
 
 	UseShader(shader);
-	SetUniform(shader.view, rend->view);
-	SetUniform(shader.proj, rend->perspective);
-	SetUniform(shader.time, rend->animTime);
+	SetUniform(shader->view, rend->view);
+	SetUniform(shader->proj, rend->perspective);
+	SetUniform(shader->time, rend->animTime);
 
 	if (rend->disableFluidCull) 
 		glDisable(GL_CULL_FACE);
@@ -315,7 +315,7 @@ static void RenderScene(Renderer* rend, Assets* assets)
 		shader = rend->fadeShader;
 
 		UseShader(shader);
-		SetUniform(shader.color, rend->fadeColor);
+		SetUniform(shader->color, rend->fadeColor);
 		DrawMesh(rend->fadeMesh);
 	}
 

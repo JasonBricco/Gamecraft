@@ -255,11 +255,10 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	
 	CreateThreads();
 
-	Assets assets;
-	LoadAssets(&assets);
+	LoadAssets();
 
 	Renderer* rend = Calloc<Renderer>();
-	InitRenderer(rend, &assets, screenWidth, screenHeight);
+	InitRenderer(rend, screenWidth, screenHeight);
 
 	glfwSetWindowUserPointer(window, rend);
 	SetWindowSize(window, screenWidth, screenHeight);
@@ -289,7 +288,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		glfwPollEvents();
 
 		Update(window, player, world, deltaTime);
-		RenderScene(rend, &assets);
+		RenderScene(rend);
 
 		END_TIMED_BLOCK(GAME_LOOP);
 		FLUSH_COUNTERS();

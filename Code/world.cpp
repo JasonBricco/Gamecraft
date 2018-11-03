@@ -170,6 +170,65 @@ static inline void AddChunkToHash(World* world, Chunk* chunk)
     world->chunkHash[bucket] = chunk;
 }
 
+static inline Block GetBlock(Chunk* chunk, int rX, int rY, int rZ)
+{
+    if (rY < 0) return BLOCK_STONE;
+    if (rY >= WORLD_HEIGHT) return BLOCK_AIR;
+
+    int index = rX + CHUNK_SIZE_X * (rY + CHUNK_SIZE_Y * rZ);
+    assert(index >= 0 && index < CHUNK_SIZE_3);
+    return chunk->blocks[index];
+}
+
+static inline Block GetBlock(Chunk* chunk, RelPos pos)
+{
+    return GetBlock(chunk, pos.x, pos.y, pos.z);
+}
+
+static inline Block GetBlockSafe(World* world, Chunk* chunk, int rX, int rY, int rZ)
+{
+    assert(chunk->state >= CHUNK_LOADED);
+
+    if (rY < 0) return BLOCK_STONE;
+    if (rY >= WORLD_HEIGHT) return BLOCK_AIR;
+
+    if (rX < 0)
+        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[LEFT]), CHUNK_SIZE_X + rX, rY, rZ);
+
+    if (rX >= CHUNK_SIZE_X) 
+        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[RIGHT]), rX - CHUNK_SIZE_X, rY, rZ);
+
+    if (rZ < 0) 
+        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[BACK]), rX, rY, CHUNK_SIZE_X + rZ);
+    
+    if (rZ >= CHUNK_SIZE_X) 
+        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[FRONT]), rX, rY, rZ - CHUNK_SIZE_X);
+
+    Block block = GetBlock(chunk, rX, rY, rZ);
+    assert(block >= 0 && block < BLOCK_COUNT);
+    return block;
+}
+
+static inline Block GetBlockSafe(World* world, Chunk* chunk, RelPos p)
+{
+    return GetBlockSafe(world, chunk, p.x, p.y, p.z);
+}
+
+static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
+{
+    LChunkPos lcPos = LWorldToLChunkPos(lwX, lwZ);
+    Chunk* chunk = GetChunk(world, lcPos);
+    assert(chunk != nullptr && chunk->state >= CHUNK_LOADED);
+
+    RelPos rPos = LWorldToRelPos(lwX, lwY, lwZ);
+    return GetBlock(chunk, rPos);
+}
+
+static inline Block GetBlock(World* world, LWorldPos pos)
+{
+    return GetBlock(world, pos.x, pos.y, pos.z);
+}
+
 static inline void SetBlock(Chunk* chunk, int rX, int rY, int rZ, Block block)
 {
     int index = rX + CHUNK_SIZE_X * (rY + CHUNK_SIZE_Y * rZ);
@@ -230,73 +289,18 @@ static inline void SetBlock(World* world, LWorldPos wPos, Block block)
 	assert(chunk != nullptr);
 
 	RelPos rP = LWorldToRelPos(wPos);
-	SetBlock(chunk, rP.x, rP.y, rP.z, block);
 
-    FlagChunkForUpdate(world, chunk, lP, rP);
+    if (GetBlock(chunk, rP.x, rP.y, rP.z) != block)
+    {
+        SetBlock(chunk, rP.x, rP.y, rP.z, block);
+        GetBlockSetSound(block)->Play();
+        FlagChunkForUpdate(world, chunk, lP, rP);
+    }
 }
 
 static inline void SetBlock(World* world, int lwX, int lwY, int lwZ, Block block)
 {
 	SetBlock(world, ivec3(lwX, lwY, lwZ), block);
-}
-
-static inline Block GetBlock(Chunk* chunk, int rX, int rY, int rZ)
-{
-    if (rY < 0) return BLOCK_STONE;
-    if (rY >= WORLD_HEIGHT) return BLOCK_AIR;
-
-    int index = rX + CHUNK_SIZE_X * (rY + CHUNK_SIZE_Y * rZ);
-    assert(index >= 0 && index < CHUNK_SIZE_3);
-    return chunk->blocks[index];
-}
-
-static inline Block GetBlock(Chunk* chunk, RelPos pos)
-{
-    return GetBlock(chunk, pos.x, pos.y, pos.z);
-}
-
-static inline Block GetBlockSafe(World* world, Chunk* chunk, int rX, int rY, int rZ)
-{
-    assert(chunk->state >= CHUNK_LOADED);
-
-    if (rY < 0) return BLOCK_STONE;
-    if (rY >= WORLD_HEIGHT) return BLOCK_AIR;
-
-    if (rX < 0)
-        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[LEFT]), CHUNK_SIZE_X + rX, rY, rZ);
-
-    if (rX >= CHUNK_SIZE_X) 
-        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[RIGHT]), rX - CHUNK_SIZE_X, rY, rZ);
-
-    if (rZ < 0) 
-        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[BACK]), rX, rY, CHUNK_SIZE_X + rZ);
-    
-    if (rZ >= CHUNK_SIZE_X) 
-        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[FRONT]), rX, rY, rZ - CHUNK_SIZE_X);
-
-    Block block = GetBlock(chunk, rX, rY, rZ);
-    assert(block >= 0 && block < BLOCK_COUNT);
-    return block;
-}
-
-static inline Block GetBlockSafe(World* world, Chunk* chunk, RelPos p)
-{
-    return GetBlockSafe(world, chunk, p.x, p.y, p.z);
-}
-
-static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
-{
-	LChunkPos lcPos = LWorldToLChunkPos(lwX, lwZ);
-	Chunk* chunk = GetChunk(world, lcPos);
-	assert(chunk != nullptr && chunk->state >= CHUNK_LOADED);
-
-	RelPos rPos = LWorldToRelPos(lwX, lwY, lwZ);
-	return GetBlock(chunk, rPos);
-}
-
-static inline Block GetBlock(World* world, LWorldPos pos)
-{
-	return GetBlock(world, pos.x, pos.y, pos.z);
 }
 
 static void FillChunk(Chunk* chunk, Block block)

@@ -24,7 +24,7 @@ static void BuildChunk(World* world, Chunk* chunk)
                         chunk->meshes[type] = mesh;
                     }
 
-                    g_blockData[block].buildFunc(world, chunk, mesh, x, y, z, block);
+                    BuildFunc(block)(world, chunk, mesh, x, y, z, block);
                 }
             }
         }
@@ -169,7 +169,7 @@ static inline bool CanDrawFace(CullType cur, Block adjBlock)
     else return adj == CULL_ALL;
 }
 
-#define BLOCK_TRANSPARENT(pos) g_blockData[GetBlockSafe(world, chunk, pos)].cull >= CULL_TRANSPARENT
+#define BLOCK_TRANSPARENT(pos) GetCullType(GetBlockSafe(world, chunk, pos)) >= CULL_TRANSPARENT
 
 static inline Color VertexLight(World* world, Chunk* chunk, Axis axis, RelPos pos, int dx, int dy, int dz)
 {

@@ -2,6 +2,20 @@
 // Jason Bricco
 //
 
+static Asset* g_assets[ASSET_COUNT];
+
+template <typename T>
+static inline T* GetAsset(AssetID id)
+{
+    static_assert(is_base_of<Asset, T>::value);
+    return (T*)g_assets[id];
+}
+
+static inline void SetAsset(AssetID id, Asset* asset)
+{
+    g_assets[id] = asset;
+}
+
 static void LoadTexture(Texture* tex, char* asset)
 {
     int width, height, components;
@@ -11,8 +25,8 @@ static void LoadTexture(Texture* tex, char* asset)
     Free<char>(path);
     assert(data != nullptr);
 
-    glGenTextures(1, tex);
-    glBindTexture(GL_TEXTURE_2D, *tex);
+    glGenTextures(1, &tex->id);
+    glBindTexture(GL_TEXTURE_2D, tex->id);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -25,7 +39,7 @@ static void LoadTexture(Texture* tex, char* asset)
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-static void LoadTextureArray(TextureArray* tex, char** paths, bool mipMaps)
+static void LoadTextureArray(Texture* tex, char** paths, bool mipMaps)
 {
     int count = sb_count(paths);
     uint8_t** dataList = Malloc<uint8_t*>(count);
@@ -40,8 +54,8 @@ static void LoadTextureArray(TextureArray* tex, char** paths, bool mipMaps)
         assert(dataList[i] != nullptr);
     }
 
-    glGenTextures(1, tex);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, *tex);
+    glGenTextures(1, &tex->id);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, tex->id);
 
     glTexStorage3D(GL_TEXTURE_2D_ARRAY, 6, GL_RGBA8, width, height, count);
 
@@ -106,7 +120,7 @@ static bool ShaderHasErrors(GLuint shader, ShaderType type)
     return false;
 }
 
-static Shader LoadShader(char* path)
+static Shader* LoadShader(char* path)
 {
     char* code = ReadFileData(path);
 
@@ -155,34 +169,35 @@ static Shader LoadShader(char* path)
     glDeleteShader(vS);
     glDeleteShader(fS);
 
-    return { program };
+    Shader* shader = Calloc<Shader>();
+    shader->handle = program;
+
+    return shader;
 }
 
-static void LoadAssets(Assets* assets)
+static void LoadAssets()
 {
-    Shader diffuseArray = LoadShader("Shaders\\diffuse_array.shader");
-    diffuseArray.view = glGetUniformLocation(diffuseArray.handle, "view");
-    diffuseArray.model = glGetUniformLocation(diffuseArray.handle, "model");
-    diffuseArray.proj = glGetUniformLocation(diffuseArray.handle, "projection");
-    assets->diffuseArray = diffuseArray;
+    Shader* diffuseShader = LoadShader("Shaders\\diffuse_array.shader");
+    diffuseShader->view = glGetUniformLocation(diffuseShader->handle, "view");
+    diffuseShader->model = glGetUniformLocation(diffuseShader->handle, "model");
+    diffuseShader->proj = glGetUniformLocation(diffuseShader->handle, "projection");
+    SetAsset(ASSET_DIFFUSE_SHADER, diffuseShader);
 
-    Shader fluidArray = LoadShader("Shaders\\fluid_array.shader");
-    fluidArray.view = glGetUniformLocation(fluidArray.handle, "view");
-    fluidArray.model = glGetUniformLocation(fluidArray.handle, "model");
-    fluidArray.proj = glGetUniformLocation(fluidArray.handle, "projection");
-    fluidArray.time = glGetUniformLocation(fluidArray.handle, "time");
-    assets->fluidArray = fluidArray;
+    Shader* fluidShader = LoadShader("Shaders\\fluid_array.shader");
+    fluidShader->view = glGetUniformLocation(fluidShader->handle, "view");
+    fluidShader->model = glGetUniformLocation(fluidShader->handle, "model");
+    fluidShader->proj = glGetUniformLocation(fluidShader->handle, "projection");
+    fluidShader->time = glGetUniformLocation(fluidShader->handle, "time");
+    SetAsset(ASSET_FLUID_SHADER, fluidShader);
 
-    Shader crosshair = LoadShader("Shaders\\crosshair.shader");
-    crosshair.model = glGetUniformLocation(crosshair.handle, "model");
-    crosshair.proj = glGetUniformLocation(crosshair.handle, "projection");
-    assets->crosshair = crosshair;
+    Shader* crosshair = LoadShader("Shaders\\crosshair.shader");
+    crosshair->model = glGetUniformLocation(crosshair->handle, "model");
+    crosshair->proj = glGetUniformLocation(crosshair->handle, "projection");
+    SetAsset(ASSET_CROSSHAIR_SHADER, crosshair);
 
-    Shader fade = LoadShader("Shaders\\fade.shader");
-    fade.color = glGetUniformLocation(fade.handle, "inColor");
-    assets->fade = fade;
-
-    TextureArray blockTextures;
+    Shader* fade = LoadShader("Shaders\\fade.shader");
+    fade->color = glGetUniformLocation(fade->handle, "inColor");
+    SetAsset(ASSET_FADE_SHADER, fade);
 
     char** paths = NULL;
 
@@ -195,18 +210,28 @@ static void LoadAssets(Assets* assets)
     sb_push(paths, "Assets/Crate.png");
     sb_push(paths, "Assets/StoneBrick.png");
 
-    LoadTextureArray(&blockTextures, paths, true);
+    Texture* diffuseArray = Malloc<Texture>();
+    LoadTextureArray(diffuseArray, paths, true);
+    SetAsset(ASSET_DIFFUSE_ARRAY, diffuseArray);
+
     sb_free(paths);
 
-    assets->blockTextures = blockTextures;
+    Texture* crosshairTex = Malloc<Texture>();
+    LoadTexture(crosshairTex, "Assets/Crosshair.png");
+    SetAsset(ASSET_CROSSHAIR, crosshairTex);
 
-    Texture crosshairTex;
-    LoadTexture(&crosshairTex, "Assets/Crosshair.png");
-    assets->crosshairTex = crosshairTex;
+    SoundAsset* stoneSound = Calloc<SoundAsset>();
+    SetAsset(ASSET_STONE_SOUND, stoneSound);
+    stoneSound->Load("Assets/Stone.ogg");
 
-    if (!assets->music.openFromFile(PathToExe("Assets/LittleTown.ogg")))
-        Print("Failed to load music file.\n");
+    SoundAsset* leavesSound = Calloc<SoundAsset>();
+    SetAsset(ASSET_LEAVES_SOUND, leavesSound);
+    leavesSound->Load("Assets/Leaves.ogg");
 
-    assets->music.play();
-    assets->music.setLoop(true);
+    MusicAsset* music = Calloc<MusicAsset>();
+    SetAsset(ASSET_MUSIC, music);
+    music->Load("Assets/LittleTown.ogg");
+    music->Play();
 }
+
+#define g_assets Error_Invalid_Use

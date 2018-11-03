@@ -1,24 +1,69 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
-typedef GLuint TextureArray;
-typedef GLuint Texture;
+enum AssetID
+{
+	ASSET_EMPTY,
+	ASSET_DIFFUSE_ARRAY,
+	ASSET_CROSSHAIR,
+	ASSET_DIFFUSE_SHADER,
+	ASSET_FLUID_SHADER,
+	ASSET_CROSSHAIR_SHADER,
+	ASSET_FADE_SHADER,
+	ASSET_STONE_SOUND,
+	ASSET_LEAVES_SOUND,
+	ASSET_MUSIC,
+	ASSET_COUNT
+};
 
-struct Shader
+struct Asset {};
+
+struct Shader : public Asset
 {
     GLuint handle;
     GLint view, model, proj, time, color;
 };
 
-struct Assets
+struct Texture : public Asset
 {
-    TextureArray blockTextures;
-    Texture crosshairTex;
+	GLuint id;
+};
 
-    Shader diffuseArray;
-    Shader fluidArray;
-    Shader crosshair;
-    Shader fade;
+struct SoundAsset : public Asset
+{
+	SoundBuffer soundBuffer;
+	Sound sound;
 
-    Music music;
+	void Load(char* path)
+	{
+		if (!soundBuffer.loadFromFile(PathToExe(path)))
+        	Print("Failed to load sound at %s\n", path);
+
+        sound.setBuffer(soundBuffer);
+	}
+
+	void Play()
+	{
+		sound.play();
+	}
+};
+
+struct MusicAsset : public Asset
+{
+	Music music;
+
+	void Load(char* path)
+	{
+		if (!music.openFromFile(PathToExe(path)))
+        	Print("Failed to load music at %s\n", path);
+
+        music.setVolume(75.0f);
+        music.setLoop(true);
+	}
+
+	void Play()
+	{
+		music.play();
+	}
 };

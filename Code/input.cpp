@@ -177,4 +177,4 @@ static void OnMouseButton(GLFWwindow*, int button, int action, int)
 	}
 }
 
-#define g_input
+#define g_input Error_Invalid_Use

@@ -16,8 +16,8 @@ struct Graphic
 {
     vec3 pos;
     Mesh* mesh;
-    Texture texture;
-    Shader shader;
+    Texture* texture;
+    Shader* shader;
 };
 
 enum FrustumVisibility
@@ -77,7 +77,7 @@ struct Renderer
 
     // Screen fading.
     Color fadeColor;
-    Shader fadeShader;
+    Shader* fadeShader;
     Mesh* fadeMesh;
 
     // Backface culling will be enabled if this is true.
