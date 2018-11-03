@@ -218,7 +218,10 @@ static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
 {
     LChunkPos lcPos = LWorldToLChunkPos(lwX, lwZ);
     Chunk* chunk = GetChunk(world, lcPos);
-    assert(chunk != nullptr && chunk->state >= CHUNK_LOADED);
+    assert(chunk != nullptr);
+
+    if (chunk->state < CHUNK_LOADED)
+        return BLOCK_AIR;
 
     RelPos rPos = LWorldToRelPos(lwX, lwY, lwZ);
     return GetBlock(chunk, rPos);
@@ -260,7 +263,7 @@ static inline Chunk* GetRelChunk(World* world, LChunkPos lP, int rX, int rZ)
 
 static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkPos lP, RelPos rP)
 {
-    chunk->state = CHUNK_UPDATE;
+    chunk->pendingUpdate = true;
     chunk->modified = true;
 
     for (int i = 0; i < 8; i++)
@@ -268,7 +271,7 @@ static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkPos lP, RelPos 
         RelPos nextRel = rP + DIRECTIONS[i];
         Chunk* adj = GetRelChunk(world, lP, nextRel.x, nextRel.z);
         assert(adj->lcPos.x > 0 && adj->lcPos.z > 0 && adj->lcPos.x < world->size - 1 && adj->lcPos.z < world->size - 1);
-        adj->state = CHUNK_UPDATE;
+        adj->pendingUpdate = true;
     }
 }
 
@@ -317,10 +320,10 @@ static void FillChunk(World* world, Chunk* chunk, Block block)
     FillChunk(chunk, block);
 
     // Rebuild meshes for this chunk and all neighbor chunks.
-    chunk->state = CHUNK_UPDATE;
+    chunk->pendingUpdate = true;
 
     for (int i = 0; i < 8; i++)
-        GetChunk(world, chunk->lcPos + DIRECTIONS[i])->state = CHUNK_UPDATE;
+        GetChunk(world, chunk->lcPos + DIRECTIONS[i])->pendingUpdate = true;
 }
 
 static inline void AddChunkToPool(World* world, Chunk* chunk)

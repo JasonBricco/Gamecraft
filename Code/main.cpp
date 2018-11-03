@@ -111,6 +111,8 @@ static char* g_buildType = "DEBUG";
 static char* g_buildType = "RELEASE";
 #endif
 
+static char* g_buildID = "99";
+
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT g_windowPos = { sizeof(g_windowPos) };
 
@@ -151,7 +153,7 @@ static void ShowFPS(GLFWwindow* window)
 		double fps = (double)frameCount / elapsed;
 
 		char profile[64];
-		sprintf(profile, "Gamecraft - FPS: %.01f - %s\n", fps, g_buildType);
+		sprintf(profile, "Gamecraft - FPS: %.01f - %s - Build: %s\n", fps, g_buildType, g_buildID);
 
 		glfwSetWindowTitle(window, profile);
 		frameCount = 0;

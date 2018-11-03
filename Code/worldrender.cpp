@@ -109,14 +109,15 @@ static void TryBuildMeshes(World* world, Renderer* rend)
                 world->chunksBuilding--;
             } break;
 
-            case CHUNK_UPDATE:
-            {
-                DestroyChunkMeshes(chunk);
-                BuildChunkNow(world, chunk);
-            }
-
             case CHUNK_BUILT:
             {
+                if (chunk->pendingUpdate)
+                {
+                    DestroyChunkMeshes(chunk);
+                    BuildChunkNow(world, chunk);
+                    chunk->pendingUpdate = false;
+                }
+
                 for (int m = 0; m < CHUNK_MESH_COUNT; m++)
                 {
                     Mesh* mesh = chunk->meshes[m];

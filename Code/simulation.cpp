@@ -604,7 +604,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 
 	if (player->flying)
 	{
-		player->speed = player->speedMode ? 5000.0f : 200.0f;
+		player->speed = player->speedMode ? 1000.0f : 200.0f;
 
 		if (KeyHeld(KEY_SPACE))
 			accel.y = 1.0f;
@@ -621,7 +621,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 
 	Move(world, player, accel, deltaTime);
 
-	float min = 0.0f, max = (float)(world->size * CHUNK_SIZE_X);
+	float min = 0.0f, max = (float)(world->size * CHUNK_SIZE_X - 1);
 	player->pos.x = std::clamp(player->pos.x, min, max);
 	player->pos.z = std::clamp(player->pos.z, min, max);
 

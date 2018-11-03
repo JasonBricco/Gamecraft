@@ -10,6 +10,7 @@
 
 // The number of blocks in a chunk.
 #define CHUNK_SIZE_3 65536
+#define CHUNK_SIZE_2 256
 
 #define CHUNK_HASH_SIZE 4096
 #define SEA_LEVEL 12
@@ -52,7 +53,6 @@ enum ChunkState
     CHUNK_BUILDING,
     CHUNK_NEEDS_FILL,
     CHUNK_BUILT,
-    CHUNK_UPDATE,
     CHUNK_STATE_COUNT
 };
 
@@ -64,6 +64,8 @@ struct Chunk
 
     Block blocks[CHUNK_SIZE_3];
     Mesh* meshes[CHUNK_MESH_COUNT];
+
+    bool pendingUpdate;
 
     ChunkState state;
 
