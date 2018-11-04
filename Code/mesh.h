@@ -1,5 +1,6 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
 #define CHUNK_MESH_COUNT 2
 

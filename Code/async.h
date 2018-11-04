@@ -1,5 +1,6 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
 using AsyncFunc = void(*)(World*, Chunk*);
 

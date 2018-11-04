@@ -111,7 +111,7 @@ static char* g_buildType = "DEBUG";
 static char* g_buildType = "RELEASE";
 #endif
 
-static char* g_buildID = "99";
+static char* g_buildID = "100";
 
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT g_windowPos = { sizeof(g_windowPos) };

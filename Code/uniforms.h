@@ -1,5 +1,6 @@
-// Voxel Engine
+//
 // Jason Bricco
+//
 
 inline void SetUniform(GLint loc, GLfloat f)
 {

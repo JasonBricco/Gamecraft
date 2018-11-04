@@ -488,88 +488,83 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	vec3 delta = accel * 0.5f * Square(deltaTime) + player->velocity * deltaTime;
 	player->velocity = accel * deltaTime + player->velocity;
 
-	// Skip collision detection if flying.
-	if (player->flying)
-		player->pos = player->pos + delta;
-	else
+	player->colFlags = HIT_NONE;
+	Capsule& col = player->collider;
+
+	// Player size in blocks.
+	int blockR = CeilToInt(col.r);
+	int blockH = CeilToInt(col.yTop - col.yBase);
+	ivec3 bSize = ivec3(blockR, blockH, blockR);
+
+	float deltaLen = length(delta);
+
+	// If our move is too big, try to prevent skipping through terrain.
+	if (deltaLen >= 0.75f)
 	{
-		player->colFlags = HIT_NONE;
-		Capsule& col = player->collider;
+		vec3 dir = normalize(delta);
+		Ray ray = { player->pos, dir };
 
-		// Player size in blocks.
-		int blockR = CeilToInt(col.r);
-		int blockH = CeilToInt(col.yTop - col.yBase);
-		ivec3 bSize = ivec3(blockR, blockH, blockR);
-
-		float deltaLen = length(delta);
-
-		// If our move is too big, try to prevent skipping through terrain.
-		if (deltaLen > 1.0f)
+		// Move the player to the terrain if the ray hits it. If not, move the full distance.
+		vec3 result;
+		if (VoxelRaycast(world, ray, deltaLen, &result))
 		{
-			Ray ray = { player->pos, normalize(delta) };
-
-			// Move the player to the terrain if the ray hits it. If not, move the full distance.
-			vec3 result;
-			if (VoxelRaycast(world, ray, deltaLen, &result))
-			{
-				player->pos = vec3(result.x, result.y + 0.3f, result.z);
-				player->velocity.y = 0.0f;
-			}
-			else player->pos = player->pos + delta;
+			player->pos = result - dir * 0.5f;
+			player->velocity.y = 0.0f;
 		}
 		else player->pos = player->pos + delta;
-
-		col.pos = player->pos;
-		LWorldPos newBlock = BlockPos(player->pos);
-
-		// Compute the range of blocks we could touch with our movement. We'll test for collisions
-		// with the blocks in this range.
-		int minX = newBlock.x - bSize.x;
-		int minY = newBlock.y - bSize.y;
-		int minZ = newBlock.z - bSize.z;
-
-		int maxX = newBlock.x + bSize.x;
-		int maxY = newBlock.y + bSize.y;
-		int maxZ = newBlock.z + bSize.z;
-
-		for (int z = minZ; z <= maxZ; z++)
-		{
-			for (int x = minX; x <= maxX; x++)
-				AddColumnCollision(world, player, x, z, minY, maxY);
-		}
-
-		sort(player->possibleCollides.begin(), player->possibleCollides.end(), [player](auto a, auto b) 
-	    { 
-	        float distA = distance2(vec3(a.pos.x + 0.5f, a.pos.y + 0.5f, a.pos.z + 0.5f), player->pos);
-	        float distB = distance2(vec3(b.pos.x + 0.5f, b.pos.y + 0.5f, b.pos.z + 0.5f), player->pos);
-			return distA < distB;
-	    });
-
-		CollisionInfo info;
-
-	    for (int i = 0; i < player->possibleCollides.size(); i++)
-	    {
-	    	if (Intersect(&col, &player->possibleCollides[i], &info))
-	    	{
-	    		player->pos += info.mtv;
-	    		col.pos = player->pos;
-
-				if (info.normal.y > 0.4f && player->velocity.y < 0.0f)
-				{
-					player->colFlags |= HIT_DOWN;
-					player->velocity.y = 0.0f;
-				}
-
-				if (info.normal.y < -0.6f && player->velocity.y > 0.0f)
-				{
-					player->colFlags |= HIT_UP;
-					player->velocity.y = 0.0f;
-				}
-	    	}
-	    }
-
-	    player->possibleCollides.clear();
 	}
+	else player->pos = player->pos + delta;
+
+	col.pos = player->pos;
+	LWorldPos newBlock = BlockPos(player->pos);
+
+	// Compute the range of blocks we could touch with our movement. We'll test for collisions
+	// with the blocks in this range.
+	int minX = newBlock.x - bSize.x;
+	int minY = newBlock.y - bSize.y;
+	int minZ = newBlock.z - bSize.z;
+
+	int maxX = newBlock.x + bSize.x;
+	int maxY = newBlock.y + bSize.y;
+	int maxZ = newBlock.z + bSize.z;
+
+	for (int z = minZ; z <= maxZ; z++)
+	{
+		for (int x = minX; x <= maxX; x++)
+			AddColumnCollision(world, player, x, z, minY, maxY);
+	}
+
+	sort(player->possibleCollides.begin(), player->possibleCollides.end(), [player](auto a, auto b) 
+    { 
+        float distA = distance2(vec3(a.pos.x + 0.5f, a.pos.y + 0.5f, a.pos.z + 0.5f), player->pos);
+        float distB = distance2(vec3(b.pos.x + 0.5f, b.pos.y + 0.5f, b.pos.z + 0.5f), player->pos);
+		return distA < distB;
+    });
+
+	CollisionInfo info;
+
+    for (int i = 0; i < player->possibleCollides.size(); i++)
+    {
+    	if (Intersect(&col, &player->possibleCollides[i], &info))
+    	{
+    		player->pos += info.mtv;
+    		col.pos = player->pos;
+
+			if (info.normal.y > 0.4f && player->velocity.y < 0.0f)
+			{
+				player->colFlags |= HIT_DOWN;
+				player->velocity.y = 0.0f;
+			}
+
+			if (info.normal.y < -0.6f && player->velocity.y > 0.0f)
+			{
+				player->colFlags |= HIT_UP;
+				player->velocity.y = 0.0f;
+			}
+    	}
+    }
+
+    player->possibleCollides.clear();
 }
 
 static bool OverlapsBlock(Player* player, int bX, int bY, int bZ)
@@ -592,6 +587,9 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 	if (KeyHeld(KEY_DOWN)) accel += GetXZ(-cam->forward);
 	if (KeyHeld(KEY_LEFT)) accel += GetXZ(-cam->right);
 	if (KeyHeld(KEY_RIGHT)) accel += GetXZ(cam->right);
+
+	if (KeyPressed(KEY_F1))
+		player->pos.y = 75.0f;
 
 	if (accel != vec3(0.0f))
 		accel = normalize(accel);
