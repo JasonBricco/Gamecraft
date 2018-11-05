@@ -251,7 +251,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_MULTISAMPLE);
 
-#if ASSERTIONS
+#if _DEBUG
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback((GLDEBUGPROC)OnOpenGLMessage, 0);
 #endif
