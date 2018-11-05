@@ -33,6 +33,12 @@ struct Plane
     vec3 p, n;
 };
 
+struct ChunkMesh
+{
+    Mesh* mesh;
+    vec3 pos;
+};
+
 struct Camera
 {
     vec3 pos, target, up;
@@ -51,19 +57,6 @@ struct Camera
     float sensitivity;
 
     Plane planes[6];
-};
-
-struct ChunkMesh
-{
-    Mesh* mesh;
-    vec3 pos;
-};
-
-struct Renderer
-{
-    Camera* camera;
-
-    int windowWidth, windowHeight;
 
     // Shader uniforms.
     GLint view_0, model_0, proj_0;
@@ -86,3 +79,7 @@ struct Renderer
     // Time for shader animation.
     float animTime;
 };
+
+static Shader* LoadShader(char* path);
+static void LoadTexture(Texture* tex, char* asset);
+static void LoadTextureArray(Texture* tex, char** paths, bool mipMaps);

@@ -15,7 +15,7 @@ static void BuildChunk(World* world, Chunk* chunk)
 
                 if (block != BLOCK_AIR)
                 {
-                    BlockMeshType type = GetMeshType(block);
+                    BlockMeshType type = GetMeshType(world, block);
                     Mesh* mesh = chunk->meshes[type];
 
                     if (mesh == nullptr)
@@ -24,7 +24,7 @@ static void BuildChunk(World* world, Chunk* chunk)
                         chunk->meshes[type] = mesh;
                     }
 
-                    BuildFunc(block)(world, chunk, mesh, x, y, z, block);
+                    BuildFunc(world, block)(world, chunk, mesh, x, y, z, block);
                 }
             }
         }
@@ -80,10 +80,10 @@ static bool CanBuildMesh(World* world, Chunk* chunk)
     return true;
 }
 
-static void TryBuildMeshes(World* world, Renderer* rend)
+static void TryBuildMeshes(GameState* state, World* world, Camera* cam)
 {
     for (int i = 0; i < CHUNK_MESH_COUNT; i++)
-        rend->meshLists[i].clear();
+        cam->meshLists[i].clear();
 
     for (int i = 0; i < world->visibleCount; i++)
     {
@@ -98,7 +98,7 @@ static void TryBuildMeshes(World* world, Renderer* rend)
                 {
                     chunk->state = CHUNK_BUILDING;
                     world->chunksBuilding++;
-                    QueueAsync(BuildChunk, world, chunk);
+                    QueueAsync(state, BuildChunk, world, chunk);
                 } break;
             }
 
@@ -125,7 +125,7 @@ static void TryBuildMeshes(World* world, Renderer* rend)
                     if (mesh != nullptr && mesh->vertCount > 0)
                     {
                         ChunkMesh cM = { mesh, (vec3)chunk->lwPos };
-                        rend->meshLists[m].push_back(cM);
+                        cam->meshLists[m].push_back(cM);
                     }
                 }
             } break;
@@ -161,16 +161,16 @@ static void GetVisibleChunks(World* world, Camera* cam)
 
 // Returns true if the current block should draw its face when placed
 // next to the adjacent block.
-static inline bool CanDrawFace(CullType cur, Block adjBlock)
+static inline bool CanDrawFace(World* world, CullType cur, Block adjBlock)
 {
-    CullType adj = GetCullType(adjBlock);
+    CullType adj = GetCullType(world, adjBlock);
 
     if (cur == CULL_OPAQUE)
         return adj >= CULL_TRANSPARENT;
     else return adj == CULL_ALL;
 }
 
-#define BLOCK_TRANSPARENT(pos) GetCullType(GetBlockSafe(world, chunk, pos)) >= CULL_TRANSPARENT
+#define BLOCK_TRANSPARENT(pos) GetCullType(world, GetBlockSafe(world, chunk, pos)) >= CULL_TRANSPARENT
 
 static inline Color VertexLight(World* world, Chunk* chunk, Axis axis, RelPos pos, int dx, int dy, int dz)
 {
@@ -228,14 +228,14 @@ static inline Color VertexLight(World* world, Chunk* chunk, Axis axis, RelPos po
 // chunk in local world space.
 static void BuildBlock(World* world, Chunk* chunk, Mesh* mesh, int xi, int yi, int zi, Block block)
 {
-    float* textures = GetTextures(block);
+    float* textures = GetTextures(world, block);
 
     RelPos rP = ivec3(xi, yi, zi);
     float x = (float)xi, y = (float)yi, z = (float)zi;
 
-    CullType cull = GetCullType(block);
+    CullType cull = GetCullType(world, block);
 
-    if (CanDrawFace(cull, GetBlockSafe(world, chunk, xi, yi + 1, zi)))
+    if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi, yi + 1, zi)))
     {
         float tex = textures[FACE_TOP];
         SetMeshIndices(mesh, 10);
@@ -245,7 +245,7 @@ static void BuildBlock(World* world, Chunk* chunk, Mesh* mesh, int xi, int yi, i
         SetMeshVertex(mesh, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Y, -1, 1, -1));
     }
 
-    if (CanDrawFace(cull, GetBlockSafe(world, chunk, xi, yi - 1, zi)))
+    if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi, yi - 1, zi)))
     {
         float tex = textures[FACE_BOTTOM];
         SetMeshIndices(mesh, 10);
@@ -255,7 +255,7 @@ static void BuildBlock(World* world, Chunk* chunk, Mesh* mesh, int xi, int yi, i
         SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Y, 1, -1, -1));
     }
 
-    if (CanDrawFace(cull, GetBlockSafe(world, chunk, xi, yi, zi + 1)))
+    if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi, yi, zi + 1)))
     {
         float tex = textures[FACE_FRONT];
         SetMeshIndices(mesh, 10);
@@ -265,7 +265,7 @@ static void BuildBlock(World* world, Chunk* chunk, Mesh* mesh, int xi, int yi, i
         SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Z, 1, -1, 1));
     }
 
-    if (CanDrawFace(cull, GetBlockSafe(world, chunk, xi, yi, zi - 1)))
+    if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi, yi, zi - 1)))
     {
         float tex = textures[FACE_BACK];
         SetMeshIndices(mesh, 10);
@@ -275,7 +275,7 @@ static void BuildBlock(World* world, Chunk* chunk, Mesh* mesh, int xi, int yi, i
         SetMeshVertex(mesh, x - 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(Z, -1, -1, -1)); 
     }
 
-    if (CanDrawFace(cull, GetBlockSafe(world, chunk, xi + 1, yi, zi)))
+    if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi + 1, yi, zi)))
     {
         float tex = textures[FACE_RIGHT];
         SetMeshIndices(mesh, 10);
@@ -285,7 +285,7 @@ static void BuildBlock(World* world, Chunk* chunk, Mesh* mesh, int xi, int yi, i
         SetMeshVertex(mesh, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, VERTEX_LIGHT(X, 1, -1, -1));
     }
 
-    if (CanDrawFace(cull, GetBlockSafe(world, chunk, xi - 1, yi, zi)))
+    if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi - 1, yi, zi)))
     {
         float tex = textures[FACE_LEFT];
         SetMeshIndices(mesh, 10);

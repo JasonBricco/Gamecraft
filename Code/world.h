@@ -173,4 +173,6 @@ struct World
     RegionPos playerRegion;
 
     int seed;
+
+    BlockData blockData[BLOCK_COUNT];
 };

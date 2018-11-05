@@ -32,38 +32,11 @@ struct Texture : public Asset
 
 struct SoundAsset : public Asset
 {
-	SoundBuffer soundBuffer;
+	SoundBuffer buffer;
 	Sound sound;
-
-	void Load(char* path)
-	{
-		if (!soundBuffer.loadFromFile(PathToExe(path)))
-        	Print("Failed to load sound at %s\n", path);
-
-        sound.setBuffer(soundBuffer);
-	}
-
-	void Play()
-	{
-		sound.play();
-	}
 };
 
 struct MusicAsset : public Asset
 {
 	Music music;
-
-	void Load(char* path)
-	{
-		if (!music.openFromFile(PathToExe(path)))
-        	Print("Failed to load music at %s\n", path);
-
-        music.setVolume(75.0f);
-        music.setLoop(true);
-	}
-
-	void Play()
-	{
-		music.play();
-	}
 };

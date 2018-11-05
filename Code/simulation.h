@@ -63,7 +63,6 @@ struct Capsule : Collider
 
 struct Player
 {
-    Camera* camera;
     Capsule collider;
     vec3 pos;
     vec3 velocity;
@@ -95,5 +94,5 @@ Capsule::Capsule(float radius, float h)
     yTop = h;
 }
 
-static void SpawnPlayer(Player* player, Rectf spawnBounds);
+static void SpawnPlayer(GameState* state, Player* player, Rectf spawnBounds);
 static bool OverlapsBlock(Player* player, int bX, int bY, int bZ);

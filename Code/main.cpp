@@ -91,8 +91,10 @@ static bool g_paused;
 #include "worldrender.h"
 #include "simulation.h"
 #include "async.h"
+#include "gamestate.h"
 
 #include "test.cpp"
+#include "audio.cpp"
 #include "assets.cpp"
 #include "async.cpp"
 #include "input.cpp"
@@ -106,15 +108,17 @@ static bool g_paused;
 #include "simulation.cpp"
 
 #if _DEBUG
-static char* g_buildType = "DEBUG";
+static char* buildType = "DEBUG";
 #else
-static char* g_buildType = "RELEASE";
+static char* buildType = "RELEASE";
 #endif
 
-static char* g_buildID = "100";
+static char* buildID = "100";
 
 // Window placement for fullscreen toggling.
-static WINDOWPLACEMENT g_windowPos = { sizeof(g_windowPos) };
+static WINDOWPLACEMENT windowPos = { sizeof(windowPos) };
+
+static GameState state;
 
 static void ToggleFullscreen(HWND window)
 {
@@ -124,7 +128,7 @@ static void ToggleFullscreen(HWND window)
 	{
 		MONITORINFO mi = { sizeof(mi) };
 
-		if (GetWindowPlacement(window, &g_windowPos) && GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &mi))
+		if (GetWindowPlacement(window, &windowPos) && GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &mi))
 		{
 			SetWindowLong(window, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
 			SetWindowPos(window, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left, 
@@ -134,7 +138,7 @@ static void ToggleFullscreen(HWND window)
 	else
 	{
 		SetWindowLong(window, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-		SetWindowPlacement(window, &g_windowPos);
+		SetWindowPlacement(window, &windowPos);
 		SetWindowPos(window, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 	}
 }
@@ -153,7 +157,7 @@ static void ShowFPS(GLFWwindow* window)
 		double fps = (double)frameCount / elapsed;
 
 		char profile[64];
-		sprintf(profile, "Gamecraft - FPS: %.01f - %s - Build: %s\n", fps, g_buildType, g_buildID);
+		sprintf(profile, "Gamecraft - FPS: %.01f - %s - Build: %s\n", fps, buildType, buildID);
 
 		glfwSetWindowTitle(window, profile);
 		frameCount = 0;
@@ -164,35 +168,36 @@ static void ShowFPS(GLFWwindow* window)
 
 static void Update(GLFWwindow* window, Player* player, World* world, float deltaTime)
 {
-	if (KeyPressed(KEY_ESCAPE))
+	Input& input = state.input;
+
+	if (KeyPressed(input, KEY_ESCAPE))
 	{
 		SaveWorld(world);
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		g_paused = true;
 	}
 
-	if (g_paused && MousePressed(0))
+	if (g_paused && MousePressed(input, 0))
 	{
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		g_paused = false;
 		return;
 	}
 
-	Renderer* rend = (Renderer*)glfwGetWindowUserPointer(window);
-	UpdateWorld(world, rend, player);
+	UpdateWorld(&state, world, state.camera, player);
 
 	if (g_paused) return;
 
-	if (KeyPressed(KEY_T))
+	if (KeyPressed(input, KEY_T))
 		ToggleFullscreen(glfwGetWin32Window(window));
 
 	double mouseX, mouseY;
 
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
-	double cX = rend->windowWidth / 2.0, cY = rend->windowHeight / 2.0f;
+	double cX = state.windowWidth / 2.0, cY = state.windowHeight / 2.0f;
 
-	Camera* cam = player->camera;
+	Camera* cam = state.camera;
 
 	float rotX = (float)(cX - mouseX) * cam->sensitivity;
 	float rotY = (float)(cY - mouseY) * cam->sensitivity;
@@ -200,7 +205,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	RotateCamera(cam, rotX, rotY);
 	glfwSetCursorPos(window, cX, cY);
 
-	Simulate(rend, world, player, deltaTime);
+	Simulate(&state, world, player, deltaTime);
 }
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
@@ -255,14 +260,15 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	_CrtSetDbgFlag(_CRTDBG_CHECK_ALWAYS_DF);
 #endif
 	
-	CreateThreads();
+	CreateThreads(&state);
+	LoadAssets(&state);
 
-	LoadAssets();
+	Camera* cam = NewCamera();
+	state.camera = cam;
 
-	Renderer* rend = Calloc<Renderer>();
-	InitRenderer(rend, screenWidth, screenHeight);
+	InitRenderer(&state, cam, screenWidth, screenHeight);
 
-	glfwSetWindowUserPointer(window, rend);
+	glfwSetWindowUserPointer(window, &state);
 	SetWindowSize(window, screenWidth, screenHeight);
 
 	glfwSetKeyCallback(window, OnKey);
@@ -270,12 +276,11 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glfwSetMouseButtonCallback(window, OnMouseButton);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetCursorPos(window, rend->windowWidth / 2.0f, rend->windowHeight / 2.0f);
+	glfwSetCursorPos(window, state.windowWidth / 2.0f, state.windowHeight / 2.0f);
 
-	World* world = NewWorld(13);
+	World* world = NewWorld(&state, 13);
 
-	Player* player = NewPlayer(rend->camera);
-	rend->camera = player->camera;
+	Player* player = NewPlayer();
 	world->player = player;
 	
 	double lastTime = glfwGetTime();
@@ -286,11 +291,11 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	{
 		BEGIN_TIMED_BLOCK(GAME_LOOP);
 
-		ResetInput();
+		ResetInput(state.input);
 		glfwPollEvents();
 
 		Update(window, player, world, deltaTime);
-		RenderScene(rend);
+		RenderScene(&state, cam);
 
 		END_TIMED_BLOCK(GAME_LOOP);
 		FLUSH_COUNTERS();
@@ -301,7 +306,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
-		rend->animTime = fmodf(rend->animTime + deltaTime, 100.0f);
+		cam->animTime = fmodf(cam->animTime + deltaTime, 100.0f);
 		lastTime = endTime;
 
 		#if DEBUG_MEMORY

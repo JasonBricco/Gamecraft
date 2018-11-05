@@ -2,36 +2,34 @@
 // Jason Bricco
 //
 
-static BlockData g_blockData[BLOCK_COUNT];
-
-static inline float* GetTextures(Block block)
+static inline float* GetTextures(World* world, Block block)
 {
-    return g_blockData[block].textures;
+    return world->blockData[block].textures;
 }
 
-static inline CullType GetCullType(Block block)
+static inline CullType GetCullType(World* world, Block block)
 {
-    return g_blockData[block].cull;
+    return world->blockData[block].cull;
 }
 
-static inline bool IsPassable(Block block)
+static inline bool IsPassable(World* world, Block block)
 {
-    return g_blockData[block].passable;
+    return world->blockData[block].passable;
 }
 
-static inline BlockMeshType GetMeshType(Block block)
+static inline BlockMeshType GetMeshType(World* world, Block block)
 {
-    return g_blockData[block].meshType;
+    return world->blockData[block].meshType;
 }
 
-static inline BuildBlockFunc BuildFunc(Block block)
+static inline BuildBlockFunc BuildFunc(World* world, Block block)
 {
-    return g_blockData[block].buildFunc;
+    return world->blockData[block].buildFunc;
 }
 
-static inline SoundAsset* GetBlockSetSound(Block block)
+static inline SoundAsset* GetBlockSetSound(World* world, Block block)
 {
-    return g_blockData[block].onSetSound;
+    return world->blockData[block].onSetSound;
 }
 
 static inline void SetBlockTextures(BlockData& data, float top, float bottom, float front, float back, float right, float left)
@@ -44,50 +42,48 @@ static inline void SetBlockTextures(BlockData& data, float top, float bottom, fl
     data.textures[FACE_LEFT] = left;
 }
 
-static void CreateBlockData()
+static void CreateBlockData(GameState* state, BlockData* data)
 {
-    BlockData& air = g_blockData[BLOCK_AIR];
+    BlockData& air = data[BLOCK_AIR];
     air.cull = CULL_ALL;
     air.passable = true;
-    air.onSetSound = GetAsset<SoundAsset>(ASSET_LEAVES_SOUND);
+    air.onSetSound = GetAsset<SoundAsset>(state, ASSET_LEAVES_SOUND);
 
-    BlockData& grass = g_blockData[BLOCK_GRASS];
+    BlockData& grass = data[BLOCK_GRASS];
     SetBlockTextures(grass, 0.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     grass.buildFunc = BuildBlock;
-    grass.onSetSound = GetAsset<SoundAsset>(ASSET_STONE_SOUND);
+    grass.onSetSound = GetAsset<SoundAsset>(state, ASSET_STONE_SOUND);
     
-    BlockData& dirt = g_blockData[BLOCK_DIRT];
+    BlockData& dirt = data[BLOCK_DIRT];
     SetBlockTextures(dirt, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f);
     dirt.buildFunc = BuildBlock;
-    dirt.onSetSound = GetAsset<SoundAsset>(ASSET_STONE_SOUND);
+    dirt.onSetSound = GetAsset<SoundAsset>(state, ASSET_STONE_SOUND);
 
-    BlockData& stone = g_blockData[BLOCK_STONE];
+    BlockData& stone = data[BLOCK_STONE];
     SetBlockTextures(stone, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f);
     stone.buildFunc = BuildBlock;
-    stone.onSetSound = GetAsset<SoundAsset>(ASSET_STONE_SOUND);
+    stone.onSetSound = GetAsset<SoundAsset>(state, ASSET_STONE_SOUND);
 
-    BlockData& water = g_blockData[BLOCK_WATER];
+    BlockData& water = data[BLOCK_WATER];
     SetBlockTextures(water, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f);
     water.meshType = MESH_TYPE_FLUID;
     water.buildFunc = BuildBlock;
     water.cull = CULL_TRANSPARENT;
     water.passable = true;
-    water.onSetSound = GetAsset<SoundAsset>(ASSET_STONE_SOUND);
+    water.onSetSound = GetAsset<SoundAsset>(state, ASSET_STONE_SOUND);
 
-    BlockData& sand = g_blockData[BLOCK_SAND];
+    BlockData& sand = data[BLOCK_SAND];
     SetBlockTextures(sand, 5.0f, 5.0f, 5.0f, 5.0f, 5.0f, 5.0f);
     sand.buildFunc = BuildBlock;
-    sand.onSetSound = GetAsset<SoundAsset>(ASSET_STONE_SOUND);
+    sand.onSetSound = GetAsset<SoundAsset>(state, ASSET_STONE_SOUND);
 
-    BlockData& crate = g_blockData[BLOCK_CRATE];
+    BlockData& crate = data[BLOCK_CRATE];
     SetBlockTextures(crate, 6.0f, 6.0f, 6.0f, 6.0f, 6.0f, 6.0f);
     crate.buildFunc = BuildBlock;
-    crate.onSetSound = GetAsset<SoundAsset>(ASSET_STONE_SOUND);
+    crate.onSetSound = GetAsset<SoundAsset>(state, ASSET_STONE_SOUND);
 
-    BlockData& stoneBrick = g_blockData[BLOCK_STONEBRICK];
+    BlockData& stoneBrick = data[BLOCK_STONEBRICK];
     SetBlockTextures(stoneBrick, 7.0f, 7.0f, 7.0f, 7.0f, 7.0f, 7.0f);
     stoneBrick.buildFunc = BuildBlock;
-    stoneBrick.onSetSound = GetAsset<SoundAsset>(ASSET_STONE_SOUND);
+    stoneBrick.onSetSound = GetAsset<SoundAsset>(state, ASSET_STONE_SOUND);
 }
-
-#define g_blockData Error_Invalid_Use

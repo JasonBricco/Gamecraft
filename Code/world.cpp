@@ -296,7 +296,7 @@ static inline void SetBlock(World* world, LWorldPos wPos, Block block)
     if (GetBlock(chunk, rP.x, rP.y, rP.z) != block)
     {
         SetBlock(chunk, rP.x, rP.y, rP.z, block);
-        GetBlockSetSound(block)->Play();
+        PlaySound(GetBlockSetSound(world, block));
         FlagChunkForUpdate(world, chunk, lP, rP);
     }
 }
@@ -349,7 +349,7 @@ static inline Chunk* ChunkFromPool(World* world)
 	return chunk;
 }
 
-static Chunk* CreateChunk(World* world, int lcX, int lcZ, ChunkPos cPos)
+static Chunk* CreateChunk(GameState* state, World* world, int lcX, int lcZ, ChunkPos cPos)
 {
     int index = ChunkIndex(world, lcX, lcZ);
 	Chunk* chunk = world->chunks[index];
@@ -361,7 +361,7 @@ static Chunk* CreateChunk(World* world, int lcX, int lcZ, ChunkPos cPos)
 		chunk->cPos = cPos;
         chunk->lwPos = chunk->lcPos * CHUNK_SIZE_X;
         chunk->active = true;
-        QueueAsync(LoadChunk, world, chunk);
+        QueueAsync(state, LoadChunk, world, chunk);
 		world->chunks[index] = chunk;
 	}
 
@@ -380,7 +380,7 @@ static void DestroyChunk(World* world, Chunk* chunk)
 // To allow "infinite" terrain, the world is always located near the origin.
 // This function fills the world near the origin based on the reference
 // world position within the world.
-static void ShiftWorld(World* world)
+static void ShiftWorld(GameState* state, World* world)
 {
     // Return all chunks in the active area to the hash table.
 	for (int i = 0; i < world->totalChunks; i++)
@@ -425,7 +425,7 @@ static void ShiftWorld(World* world)
     {
         // Encoded ivec4 values as x, y = local x, z and z, w = world x, z.
         ivec4 p = world->chunksToCreate[i];
-        CreateChunk(world, p.x, p.y, ivec3(p.z, 0, p.w));
+        CreateChunk(state, world, p.x, p.y, ivec3(p.z, 0, p.w));
     }
 
     world->chunksToCreate.clear();
@@ -443,7 +443,7 @@ static void ShiftWorld(World* world)
 	}
 }
 
-static void CheckWorld(World* world, Player* player)
+static void CheckWorld(GameState* state, World* world, Player* player)
 {
     Rectf bounds = world->pBounds;
     vec3 pos = player->pos;
@@ -483,32 +483,32 @@ static void CheckWorld(World* world, Player* player)
     if (shift) 
     {
         player->pos = pos;
-        MoveCamera(player->camera, player->pos);
-        ShiftWorld(world);
+        MoveCamera(state->camera, player->pos);
+        ShiftWorld(state, world);
     }
 }
 
-static void UpdateWorld(World* world, Renderer* rend, Player* player)
+static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* player)
 {
     if (!player->spawned)
     {
         Chunk* spawnChunk = GetChunk(world, ChunkToLChunkPos(world->spawnChunk, world->ref));
 
         if (spawnChunk->state >= CHUNK_LOADED)
-            SpawnPlayer(player, world->pBounds);
+            SpawnPlayer(state, player, world->pBounds);
     }
     else
     {
         world->playerRegion = LWorldToRegionPos(player->pos, world->ref);
 
         if (world->chunksBuilding == 0)
-            CheckWorld(world, player);
+            CheckWorld(state, world, player);
 
         world->visibleCount = 0;
-        GetCameraPlanes(rend->camera);
-        GetVisibleChunks(world, rend->camera);
+        GetCameraPlanes(cam);
+        GetVisibleChunks(world, cam);
 
-        TryBuildMeshes(world, rend);
+        TryBuildMeshes(state, world, cam);
 
         while (world->destroyQueue.count > 0)
         {
@@ -521,7 +521,7 @@ static void UpdateWorld(World* world, Renderer* rend, Player* player)
     }
 }
 
-static World* NewWorld(int loadRange)
+static World* NewWorld(GameState* state, int loadRange)
 {
     World* world = Calloc<World>();
 
@@ -561,7 +561,7 @@ static World* NewWorld(int loadRange)
 
     world->pBounds = NewRect(vec3(min, 0.0f, min), vec3(max, 0.0f, max));
 
-    CreateBlockData();
+    CreateBlockData(state, world->blockData);
 
     world->savePath = PathToExe("Saves");
     CreateDirectory(world->savePath, NULL);
@@ -581,7 +581,7 @@ static World* NewWorld(int loadRange)
         world->seed = seed;
     }
 
-    ShiftWorld(world);
+    ShiftWorld(state, world);
 
     return world;
 }

@@ -2,36 +2,32 @@
 // Jason Bricco
 //
 
-// Holds work to be added by the main thread and performed by background threads.
-static WorkQueue g_workQueue;
-static HANDLE g_semaphore;
-
-static inline void SemaphoreWait()
+static inline void SemaphoreWait(HANDLE semaphore)
 {
-	WaitForSingleObject(g_semaphore, INFINITE);
+	WaitForSingleObject(semaphore, INFINITE);
 }
 
-static inline void SemaphoreSignal(int32_t count)
+static inline void SemaphoreSignal(HANDLE semaphore, int32_t count)
 {
-	ReleaseSemaphore(g_semaphore, count, NULL);
+	ReleaseSemaphore(semaphore, count, NULL);
 }
 
-static inline bool DoNextAsync()
+static inline bool DoNextAsync(WorkQueue& queue)
 {
     bool sleep = false;
  
-    uint32_t originalRead = g_workQueue.read;
-    uint32_t nextRead = (originalRead + 1) & (g_workQueue.size - 1);
+    uint32_t originalRead = queue.read;
+    uint32_t nextRead = (originalRead + 1) & (queue.size - 1);
  
     // If read and write are equal, then we have run out of work to do. Write is the location
     // where the next item will be placed - it isn't placed yet.
-    if (originalRead != g_workQueue.write)
+    if (originalRead != queue.write)
     {
         // Increments the work queue's next value only if it matches our expected next value. 
         // This prevents problems caused by multiple threads running this code.
-        if (atomic_compare_exchange_weak(&g_workQueue.read, &originalRead, nextRead))
+        if (atomic_compare_exchange_weak(&queue.read, &originalRead, nextRead))
         {
-            AsyncItem item = g_workQueue.items[originalRead];
+            AsyncItem item = queue.items[originalRead];
             item.func(item.world, item.chunk);
         }
     }
@@ -40,30 +36,33 @@ static inline bool DoNextAsync()
     return sleep;
 }
 
-static DWORD WINAPI ThreadProc(LPVOID)
+static DWORD WINAPI ThreadProc(LPVOID ptr)
 {
+	GameState* state = (GameState*)ptr;
+
 	while (true)
 	{
-		if (DoNextAsync()) 
-			SemaphoreWait();
+		if (DoNextAsync(state->workQueue)) 
+			SemaphoreWait(state->semaphore);
     }
 }
 
-static inline void QueueAsync(AsyncFunc func, World* world, Chunk* chunk)
+static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, Chunk* chunk)
 {
-	uint32_t nextWrite = (g_workQueue.write + 1) & (g_workQueue.size - 1);
-	assert(nextWrite != g_workQueue.read);
-	AsyncItem* item = g_workQueue.items + g_workQueue.write;
+	WorkQueue& queue = state->workQueue;
+	uint32_t nextWrite = (queue.write + 1) & (queue.size - 1);
+	assert(nextWrite != queue.read);
+	AsyncItem* item = queue.items + queue.write;
 	item->func = func;
 	item->world = world;
 	item->chunk = chunk;
-	g_workQueue.write = nextWrite;
-	SemaphoreSignal(1);
+	queue.write = nextWrite;
+	SemaphoreSignal(state->semaphore, 1);
 }
 
-static void CreateThreads()
+static void CreateThreads(GameState* state)
 {
-	g_semaphore = CreateSemaphore(NULL, 0, MAXLONG, NULL);
+	state->semaphore = CreateSemaphore(NULL, 0, MAXLONG, NULL);
 
 	SYSTEM_INFO info;
 	GetSystemInfo(&info);
@@ -71,16 +70,14 @@ static void CreateThreads()
 	int threadCount = info.dwNumberOfProcessors - 1;
 	Print("Creating %i threads.\n", threadCount)
 
-	g_workQueue.size = 4096;
-	g_workQueue.items = Calloc<AsyncItem>(g_workQueue.size);
+	WorkQueue& queue = state->workQueue;
+	queue.size = 4096;
+	queue.items = Calloc<AsyncItem>(queue.size);
 
 	for (int i = 0; i < threadCount; i++)
 	{
 		DWORD threadID; 
-		HANDLE handle = CreateThread(NULL, NULL, ThreadProc, NULL, NULL, &threadID);
+		HANDLE handle = CreateThread(NULL, NULL, ThreadProc, state, NULL, &threadID);
         CloseHandle(handle);
 	}
 }
-
-#define g_workQueue Error_Invalid_Use
-#define g_semaphore Error_Invalid_Use

@@ -4,7 +4,7 @@
 
 using AsyncFunc = void(*)(World*, Chunk*);
 
-struct AsyncItem
+struct AsyncItem`
 {
     AsyncFunc func;
     World* world;
@@ -18,7 +18,7 @@ struct WorkQueue
     // catches up to write, then it has run out of work to do. If write catches up to 
     // read, then we will overwrite work in the queue that hasn't been completed yet.
     atomic<uint32_t> read;
-    atomic<uint32_t> write;
+    uint32_t write;
 
     // Stores all work to be done by background threads.
     AsyncItem* items;

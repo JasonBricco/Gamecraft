@@ -97,7 +97,7 @@ static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result)
 			{
 				Block block = GetBlock(world, x, y, z);
 
-				if (IsPassable(block)) continue;
+				if (IsPassable(world, block)) continue;
 
 				float newDist = BlockRayIntersection(vec3((float)x, (float)y, (float)z), ray);
 				minDistance = Min(minDistance, newDist);
@@ -114,10 +114,10 @@ static bool VoxelRaycast(World* world, Ray ray, float dist, vec3* result)
 	return false;
 }
 
-static HitInfo GetVoxelHit(Renderer* rend, World* world)
+static HitInfo GetVoxelHit(GameState* state, Camera* cam, World* world)
 {
 	HitInfo info = {};
-	Ray ray = ScreenCenterToRay(rend);
+	Ray ray = ScreenCenterToRay(state, cam);
 
 	vec3 point;
 	
@@ -434,7 +434,7 @@ static inline void AddColumnCollision(World* world, Player* player, int x, int z
 
 	for (int y = minY; y <= maxY; y++)
 	{
-		if (!IsPassable(GetBlock(world, x, y, z)))
+		if (!IsPassable(world, GetBlock(world, x, y, z)))
 		{
 			if (startY == INT_MIN)
 				startY = y;
@@ -445,7 +445,7 @@ static inline void AddColumnCollision(World* world, Player* player, int x, int z
 		{
 			if (size > 0)
 			{
-				if (!IsPassable(GetBlock(world, x, y + 1, z)))
+				if (!IsPassable(world, GetBlock(world, x, y + 1, z)))
 					size++;
 				else
 				{
@@ -575,45 +575,46 @@ static bool OverlapsBlock(Player* player, int bX, int bY, int bZ)
 	return Intersect(&col, &bb, nullptr);
 }
 
-static void Simulate(Renderer* rend, World* world, Player* player, float deltaTime)
+static void Simulate(GameState* state, World* world, Player* player, float deltaTime)
 {
 	if (!player->spawned) return;
 
-	Camera* cam = player->camera;
+	Input& input = state->input;
+	Camera* cam = state->camera;
 
 	vec3 accel = vec3(0.0f);
 
-	if (KeyHeld(KEY_UP)) accel += GetXZ(cam->forward);
-	if (KeyHeld(KEY_DOWN)) accel += GetXZ(-cam->forward);
-	if (KeyHeld(KEY_LEFT)) accel += GetXZ(-cam->right);
-	if (KeyHeld(KEY_RIGHT)) accel += GetXZ(cam->right);
+	if (KeyHeld(input, KEY_UP)) accel += GetXZ(cam->forward);
+	if (KeyHeld(input, KEY_DOWN)) accel += GetXZ(-cam->forward);
+	if (KeyHeld(input, KEY_LEFT)) accel += GetXZ(-cam->right);
+	if (KeyHeld(input, KEY_RIGHT)) accel += GetXZ(cam->right);
 
-	if (KeyPressed(KEY_F1))
+	if (KeyPressed(input, KEY_F1))
 		player->pos.y = 75.0f;
 
 	if (accel != vec3(0.0f))
 		accel = normalize(accel);
 
-	if (KeyPressed(KEY_TAB))
+	if (KeyPressed(input, KEY_TAB))
 		player->flying = !player->flying;
 
-	if (KeyPressed(KEY_P))
+	if (KeyPressed(input, KEY_P))
 		player->speedMode = !player->speedMode;
 
 	if (player->flying)
 	{
 		player->speed = player->speedMode ? 1000.0f : 200.0f;
 
-		if (KeyHeld(KEY_SPACE))
+		if (KeyHeld(input, KEY_SPACE))
 			accel.y = 1.0f;
 
-		if (KeyHeld(KEY_SHIFT)) accel.y = -1.0f;
+		if (KeyHeld(input, KEY_SHIFT)) accel.y = -1.0f;
 	}
 	else 
 	{
 		player->speed = 50.0f;
 
-		if ((player->colFlags & HIT_DOWN) && KeyHeld(KEY_SPACE))
+		if ((player->colFlags & HIT_DOWN) && KeyHeld(input, KEY_SPACE))
 			player->velocity.y = 10.0f;
 	}
 
@@ -623,7 +624,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 	player->pos.x = std::clamp(player->pos.x, min, max);
 	player->pos.z = std::clamp(player->pos.z, min, max);
 
-	MoveCamera(player->camera, player->pos);
+	MoveCamera(cam, player->pos);
 
 	// Tint the screen if the camera is in water. Subtract 0.1 to account
 	// for the near clip plane of the camera.
@@ -632,27 +633,27 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 
 	if (eyeBlock == BLOCK_WATER)
 	{
-		rend->fadeColor = vec4(0.17f, 0.45f, 0.69f, 0.75f);
-		rend->disableFluidCull = true;
+		cam->fadeColor = vec4(0.17f, 0.45f, 0.69f, 0.75f);
+		cam->disableFluidCull = true;
 	}
 	else
 	{
-		rend->fadeColor = CLEAR_COLOR;
-		rend->disableFluidCull = false;
+		cam->fadeColor = CLEAR_COLOR;
+		cam->disableFluidCull = false;
 	}
 
-	if (KeyPressed(KEY_BACKSPACE))
+	if (KeyPressed(input, KEY_BACKSPACE))
 	{
 		ivec3 cPos = LWorldToLChunkPos(player->pos);
 		Chunk* chunk = GetChunk(world, cPos);
 		FillChunk(world, chunk, BLOCK_AIR);
 	}
 
-	int op = MousePressed(0) ? 0 : MousePressed(1) ? 1 : -1;
+	int op = MousePressed(input, 0) ? 0 : MousePressed(input, 1) ? 1 : -1;
 
 	if (op >= 0)
 	{
-		HitInfo info = GetVoxelHit(rend, world);
+		HitInfo info = GetVoxelHit(state, cam, world);
 
 		if (info.hit)
 		{
@@ -660,7 +661,7 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 
 			if (op == 0)
 			{
-				int lastNum = LastNumKey();
+				int lastNum = LastNumKey(input);
 				setPos = info.adjPos;
 				SetBlock(world, setPos, (Block)(Clamp(lastNum, 1, BLOCK_COUNT - 1)));
 			}
@@ -674,10 +675,9 @@ static void Simulate(Renderer* rend, World* world, Player* player, float deltaTi
 }
 
 // Creates and spawns the player. The player is spawned within the center local space chunk.
-static Player* NewPlayer(Camera* camera)
+static Player* NewPlayer()
 {
 	Player* player = Malloc<Player>();
-	player->camera = camera;
 	player->collider = Capsule(0.3f, 1.2f);
 	player->velocity = vec3(0.0f);
 	player->speed = 50.0f;
@@ -689,12 +689,12 @@ static Player* NewPlayer(Camera* camera)
 	return player;
 }
 
-static void SpawnPlayer(Player* player, Rectf spawnBounds)
+static void SpawnPlayer(GameState* state, Player* player, Rectf spawnBounds)
 {
 	vec3 spawn = spawnBounds.min + (CHUNK_SIZE_X / 2.0f);
 	spawn.y = 100.0f;
 	player->pos = spawn;
 
-	MoveCamera(player->camera, player->pos);
+	MoveCamera(state->camera, player->pos);
 	player->spawned = true;
 }

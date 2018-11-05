@@ -22,7 +22,7 @@ enum KeyType
     KEY_COUNT
 };
  
-struct GameInput
+struct Input
 {   
     bool mousePressed[2];
     bool mouseHeld[2];

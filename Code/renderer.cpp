@@ -29,11 +29,11 @@ static Graphic* CreateGraphic(Shader* shader, Texture* texture)
 	return graphic;
 }
 
-static void DrawGraphic(Renderer* rend, Graphic* graphic)
+static void DrawGraphic(Camera* cam, Graphic* graphic)
 {
 	Shader* shader = graphic->shader;
 	UseShader(shader);
-	SetUniform(shader->proj, rend->ortho);
+	SetUniform(shader->proj, cam->ortho);
 
 	glBindTexture(GL_TEXTURE_2D, graphic->texture->id);
 	DrawMesh(graphic->mesh, shader, graphic->pos);
@@ -46,12 +46,12 @@ static inline void SetCrosshairPos(Graphic* crosshair, int width, int height)
 
 static void SetWindowSize(GLFWwindow* window, int width, int height)
 {
-	Renderer* rend = (Renderer*)glfwGetWindowUserPointer(window);
-	rend->windowWidth = width;
-	rend->windowHeight = height;
-	glViewport(0, 0, width, height);
+	GameState* state = (GameState*)glfwGetWindowUserPointer(window);
+	Camera* cam = state->camera;
 
-	Camera* cam = rend->camera;
+	state->windowWidth = width;
+	state->windowHeight = height;
+	glViewport(0, 0, width, height);
 
 	float fov = radians(CAMERA_FOV);
 	float ratio = (float)width / (float)height;
@@ -62,11 +62,11 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 	cam->farH = cam->farDist * t;
 	cam->farW = cam->farH * ratio;
 
-	rend->perspective = perspective(fov, ratio, cam->nearDist, cam->farDist);
-	rend->ortho = ortho(0.0f, (float)width, (float)height, 0.0f);
+	cam->perspective = perspective(fov, ratio, cam->nearDist, cam->farDist);
+	cam->ortho = ortho(0.0f, (float)width, (float)height, 0.0f);
 
-	if (rend->crosshair != nullptr)
-		SetCrosshairPos(rend->crosshair, width, height);
+	if (cam->crosshair != nullptr)
+		SetCrosshairPos(cam->crosshair, width, height);
 }
 
 static Camera* NewCamera()
@@ -108,10 +108,9 @@ static inline void MoveCamera(Camera* cam, vec3 pos)
 	UpdateCameraVectors(cam);
 }
 
-static inline void UpdateViewMatrix(Renderer* rend)
+static inline void UpdateViewMatrix(Camera* cam)
 {
-	Camera* cam = rend->camera;
-	rend->view = lookAt(cam->pos, cam->target, cam->up);
+	cam->view = lookAt(cam->pos, cam->target, cam->up);
 }
 
 static void OnOpenGLMessage(GLenum, GLenum type, GLuint, GLenum severity, GLsizei, GLchar* msg, void*)
@@ -120,47 +119,45 @@ static void OnOpenGLMessage(GLenum, GLenum type, GLuint, GLenum severity, GLsize
 		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, msg);
 }
 
-static void InitRenderer(Renderer* rend, int screenWidth, int screenHeight)
+static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int screenHeight)
 {
-	rend->camera = NewCamera();
-
-	Graphic* graphic = CreateGraphic(GetAsset<Shader>(ASSET_CROSSHAIR_SHADER), GetAsset<Texture>(ASSET_CROSSHAIR));
+	Graphic* graphic = CreateGraphic(GetAsset<Shader>(state, ASSET_CROSSHAIR_SHADER), GetAsset<Texture>(state, ASSET_CROSSHAIR));
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
 	
-	rend->crosshair = graphic;
+	cam->crosshair = graphic;
 
 	for (int i = 0; i < CHUNK_MESH_COUNT; i++)
-		rend->meshLists[i].reserve(512);
+		cam->meshLists[i].reserve(512);
 
-	rend->fadeMesh = CreateMesh(16, 4);
+	cam->fadeMesh = CreateMesh(16, 4);
 	VertexSpec fadeSpec = { true, 2, false, 0, false, 0 };
 
-	SetMeshIndices(rend->fadeMesh, 4);
+	SetMeshIndices(cam->fadeMesh, 4);
 
-	SetMeshVertex(rend->fadeMesh, -1.0f, 1.0f);
-	SetMeshVertex(rend->fadeMesh, 1.0f, 1.0f);
-	SetMeshVertex(rend->fadeMesh, 1.0f, -1.0f);
-	SetMeshVertex(rend->fadeMesh, -1.0f, -1.0f);
+	SetMeshVertex(cam->fadeMesh, -1.0f, 1.0f);
+	SetMeshVertex(cam->fadeMesh, 1.0f, 1.0f);
+	SetMeshVertex(cam->fadeMesh, 1.0f, -1.0f);
+	SetMeshVertex(cam->fadeMesh, -1.0f, -1.0f);
 	
-	FillMeshData(rend->fadeMesh, GL_STATIC_DRAW, fadeSpec);
+	FillMeshData(cam->fadeMesh, GL_STATIC_DRAW, fadeSpec);
 
-	rend->fadeShader = GetAsset<Shader>(ASSET_FADE_SHADER);
-	rend->fadeColor = CLEAR_COLOR;
+	cam->fadeShader = GetAsset<Shader>(state, ASSET_FADE_SHADER);
+	cam->fadeColor = CLEAR_COLOR;
 }
 
-static Ray ScreenCenterToRay(Renderer* rend)
+static Ray ScreenCenterToRay(GameState* state, Camera* cam)
 {
-	mat4 projection = rend->perspective * rend->view;
+	mat4 projection = cam->perspective * cam->view;
 
-	int w = rend->windowWidth;
-	int h = rend->windowHeight;
+	int w = state->windowWidth;
+	int h = state->windowHeight;
 	vec4 viewport = vec4(0.0f, (float)h, (float)w, (float)(-h));
 
 	ivec2 cursor = ivec2(w / 2, h / 2);
 
 	vec3 origin = unProject(vec3(cursor, 0.0f), mat4(1.0f), projection, viewport);
 
-	return { origin, rend->camera->forward };
+	return { origin, cam->forward };
 }
 
 // The six camera frustum planes can be obtained using the eight points the define the corners
@@ -258,28 +255,28 @@ static inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 	return FRUSTUM_VISIBLE;
 }
 
-static void RenderScene(Renderer* rend)
+static void RenderScene(GameState* state, Camera* cam)
 {
 	BEGIN_TIMED_BLOCK(RENDER_SCENE);
 
 	glClear(GL_COLOR_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
-	UpdateViewMatrix(rend);
+	UpdateViewMatrix(cam);
 
 	// Opaque pass.
-	Shader* shader = GetAsset<Shader>(ASSET_DIFFUSE_SHADER);
+	Shader* shader = GetAsset<Shader>(state, ASSET_DIFFUSE_SHADER);
 
 	UseShader(shader);
-	SetUniform(shader->view, rend->view);
-	SetUniform(shader->proj, rend->perspective);
+	SetUniform(shader->view, cam->view);
+	SetUniform(shader->proj, cam->perspective);
 
-	glBindTexture(GL_TEXTURE_2D_ARRAY, GetAsset<Texture>(ASSET_DIFFUSE_ARRAY)->id);
-	int count = (int)rend->meshLists[MESH_TYPE_OPAQUE].size();
+	glBindTexture(GL_TEXTURE_2D_ARRAY, GetAsset<Texture>(state, ASSET_DIFFUSE_ARRAY)->id);
+	int count = (int)cam->meshLists[MESH_TYPE_OPAQUE].size();
 
 	for (int i = 0; i < count; i++)
 	{
-		ChunkMesh cM = rend->meshLists[MESH_TYPE_OPAQUE][i];
+		ChunkMesh cM = cam->meshLists[MESH_TYPE_OPAQUE][i];
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
@@ -287,42 +284,42 @@ static void RenderScene(Renderer* rend)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Fluid pass.
-	shader = GetAsset<Shader>(ASSET_FLUID_SHADER);
+	shader = GetAsset<Shader>(state, ASSET_FLUID_SHADER);
 
 	UseShader(shader);
-	SetUniform(shader->view, rend->view);
-	SetUniform(shader->proj, rend->perspective);
-	SetUniform(shader->time, rend->animTime);
+	SetUniform(shader->view, cam->view);
+	SetUniform(shader->proj, cam->perspective);
+	SetUniform(shader->time, cam->animTime);
 
-	if (rend->disableFluidCull) 
+	if (cam->disableFluidCull) 
 		glDisable(GL_CULL_FACE);
 
-	count = (int)rend->meshLists[MESH_TYPE_FLUID].size();
+	count = (int)cam->meshLists[MESH_TYPE_FLUID].size();
 
 	for (int i = 0; i < count; i++)
 	{
-		ChunkMesh cM = rend->meshLists[MESH_TYPE_FLUID][i];
+		ChunkMesh cM = cam->meshLists[MESH_TYPE_FLUID][i];
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
-	if (rend->disableFluidCull) 
+	if (cam->disableFluidCull) 
 		glEnable(GL_CULL_FACE);
 
 	glDisable(GL_DEPTH_TEST);
 
-	if (rend->fadeColor != CLEAR_COLOR)
+	if (cam->fadeColor != CLEAR_COLOR)
 	{
-		shader = rend->fadeShader;
+		shader = cam->fadeShader;
 
 		UseShader(shader);
-		SetUniform(shader->color, rend->fadeColor);
-		DrawMesh(rend->fadeMesh);
+		SetUniform(shader->color, cam->fadeColor);
+		DrawMesh(cam->fadeMesh);
 	}
 
 	if (!g_paused)
 	{
 		glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
-		DrawGraphic(rend, rend->crosshair);
+		DrawGraphic(cam, cam->crosshair);
 	}
 
 	glDisable(GL_BLEND);
@@ -330,4 +327,163 @@ static void RenderScene(Renderer* rend)
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	END_TIMED_BLOCK(RENDER_SCENE);
+}
+
+static void LoadTexture(Texture* tex, char* asset)
+{
+    int width, height, components;
+
+    char* path = PathToExe(asset);
+    uint8_t* data = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
+    Free<char>(path);
+    assert(data != nullptr);
+
+    glGenTextures(1, &tex->id);
+    glBindTexture(GL_TEXTURE_2D, tex->id);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+    stbi_image_free(data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+static void LoadTextureArray(Texture* tex, char** paths, bool mipMaps)
+{
+    int count = sb_count(paths);
+    uint8_t** dataList = Malloc<uint8_t*>(count);
+
+    int width = 0, height = 0, components;
+
+    for (int i = 0; i < count; i++)
+    {
+        char* path = PathToExe(paths[i]);
+        dataList[i] = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
+        Free<char>(path);
+        assert(dataList[i] != nullptr);
+    }
+
+    glGenTextures(1, &tex->id);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, tex->id);
+
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 6, GL_RGBA8, width, height, count);
+
+    for (int i = 0; i < count; i++)
+    {
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA,
+            GL_UNSIGNED_BYTE, dataList[i]);
+        stbi_image_free(dataList[i]);
+    }
+
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    if (mipMaps) glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+
+    Free<uint8_t*>(dataList);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+}
+
+static bool ShaderHasErrors(GLuint shader, ShaderType type)
+{
+    int status = 0;
+    GLint length = 0;
+
+    if (type == SHADER_PROGRAM)
+    {
+        glGetProgramiv(shader, GL_LINK_STATUS, &status);
+
+        if (status == GL_FALSE)
+        {
+            glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
+
+            GLchar* errorLog = Malloc<GLchar>(length);
+            glGetProgramInfoLog(shader, length, NULL, errorLog);
+            
+            OutputDebugString("Error! Shader program failed to link.");
+            OutputDebugString(errorLog);
+            Free<GLchar>(errorLog);
+            return true;
+        }
+    }
+    else
+    {
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+
+        if (status == GL_FALSE)
+        {
+            glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
+
+            GLchar* errorLog = Malloc<GLchar>(length);
+            glGetShaderInfoLog(shader, length, NULL, errorLog);
+            
+            OutputDebugString("Error! Shader failed to compile.");
+            OutputDebugString(errorLog);
+            Free<GLchar>(errorLog);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static Shader* LoadShader(char* path)
+{
+    char* code = ReadFileData(path);
+
+    if (code == nullptr)
+    {
+        OutputDebugString("Failed to load shader from file.");
+        OutputDebugString(path);
+        abort();
+    }
+
+    char* vertex[2] = { "#version 440 core\n#define VERTEX 1\n", code };
+    char* frag[2] = { "#version 440 core\n", code };
+
+    GLuint vS = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vS, 2, vertex, NULL);
+    glCompileShader(vS);
+    
+    if (ShaderHasErrors(vS, VERTEX_SHADER))
+    {
+        OutputDebugString("Failed to compile the vertex shader.");
+        abort();
+    }
+
+    GLuint fS = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fS, 2, frag, NULL);
+    glCompileShader(fS);
+    
+    if (ShaderHasErrors(fS, FRAGMENT_SHADER))
+    {
+        OutputDebugString("Failed to compile the fragment shader.");
+        abort();
+    }
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vS);
+    glAttachShader(program, fS);
+    glLinkProgram(program);
+    
+    if (ShaderHasErrors(program, SHADER_PROGRAM))
+    {
+        OutputDebugString("Failed to link the shaders into the program.");
+        abort();
+    }
+
+    free(code);
+    glDeleteShader(vS);
+    glDeleteShader(fS);
+
+    Shader* shader = Calloc<Shader>();
+    shader->handle = program;
+
+    return shader;
 }
