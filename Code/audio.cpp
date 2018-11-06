@@ -20,7 +20,7 @@ static void LoadMusic(MusicAsset* asset, char* path)
 	if (!asset->music.openFromFile(PathToExe(path)))
     	Print("Failed to load music at %s\n", path);
 
-    asset->music.setVolume(75.0f);
+    asset->music.setVolume(0.0f);
     asset->music.setLoop(true);
 }
 
@@ -31,6 +31,18 @@ static inline void PlayMusic(MusicAsset* asset)
 
 static void ChangeVolume(GameState* state, float target, float seconds)
 {
-	// TODO: Change volume of state->currentMusic by fading it from its current volume 
-	// to the target volume over 'seconds' seconds.
+	Music& music = state->currentMusic->music;
+	state->volumeLerp = { music.getVolume(), target, 0.0f, seconds };
+}
+
+static void UpdateAudio(GameState* state, float deltaTime)
+{
+	Music& music = state->currentMusic->music;
+	LerpData& lData = state->volumeLerp;
+
+	if (lData.t < 1.0f)
+	{
+		lData.t = Min(lData.t + (deltaTime / lData.time), 1.0f);
+		music.setVolume(Lerp(lData.start, lData.end, lData.t));
+	}
 }

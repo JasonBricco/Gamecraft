@@ -174,16 +174,19 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	{
 		SaveWorld(world);
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		ChangeVolume(&state, 25.0f, 0.5f);
 		g_paused = true;
 	}
 
 	if (g_paused && MousePressed(input, 0))
 	{
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		ChangeVolume(&state, 75.0f, 0.5f);
 		g_paused = false;
 		return;
 	}
 
+	UpdateAudio(&state, deltaTime);
 	UpdateWorld(&state, world, state.camera, player);
 
 	if (g_paused) return;

@@ -73,4 +73,5 @@ static void LoadAssets(GameState* state)
     state->currentMusic = music;
 
     PlayMusic(music);
+    ChangeVolume(state, 75.0f, 5.0f);
 }

@@ -108,6 +108,13 @@ static inline vec3 GetV3(ivec3 v)
     return { v.x, v.y, v.z };
 }
 
+struct LerpData
+{
+    float start, end;
+    float t, time;
+};
+
+// Linear interpolation.
 static inline float Lerp(float a, float b, float t)
 {
     return a + t * (b - a);

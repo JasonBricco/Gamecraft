@@ -4,7 +4,7 @@
 
 using AsyncFunc = void(*)(World*, Chunk*);
 
-struct AsyncItem`
+struct AsyncItem
 {
     AsyncFunc func;
     World* world;
