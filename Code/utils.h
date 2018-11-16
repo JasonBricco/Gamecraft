@@ -8,6 +8,8 @@
 #define Min(A, B) ((A < B) ? (A) : (B))
 #define Max(A, B) ((A > B) ? (A) : (B))
 
+#define Align4(v) ((v + 3) & ~3)
+#define Align8(v) ((v + 7) & ~7)
 #define Align16(v) ((v + 15) & ~15)
 
 typedef vec4 Color;

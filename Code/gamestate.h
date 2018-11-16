@@ -15,6 +15,8 @@ struct GameState
 	Camera* camera;
 	Input input;
 
-	MusicAsset* currentMusic;
+	AudioEngine audio;
+
+	// MusicAsset* currentMusic;
 	LerpData volumeLerp;
 };

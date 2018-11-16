@@ -79,12 +79,12 @@ static inline void ReadBinary(char* path, char* ptr)
     file.close();
 }
 
-string GetLastErrorText()
+static string GetLastErrorText()
 {
     DWORD errorMessageID = GetLastError();
     
     if (errorMessageID == 0)
-        return string();
+        return string("No error given.");
 
     LPSTR messageBuffer = nullptr;
     size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,

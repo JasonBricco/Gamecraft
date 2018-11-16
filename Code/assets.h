@@ -32,11 +32,5 @@ struct Texture : public Asset
 
 struct SoundAsset : public Asset
 {
-	SoundBuffer buffer;
-	Sound sound;
-};
-
-struct MusicAsset : public Asset
-{
-	Music music;
+	
 };

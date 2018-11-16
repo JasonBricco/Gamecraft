@@ -18,6 +18,10 @@
 
 #include <windows.h>
 #include <shlwapi.h>
+#include <xaudio2.h>
+#include <mfapi.h>
+#include <mfidl.h>
+#include <mfreadwrite.h>
 #include <time.h>
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
@@ -54,28 +58,33 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/norm.hpp"
 
-#include <SFML/Audio.hpp>
-
 using namespace glm;
 using namespace std;
-using namespace sf;
 
 #pragma warning(pop)
 
 #if _DEBUG
 #define Print(...) { \
-    char buffer[256]; \
-    snprintf(buffer, sizeof(buffer), __VA_ARGS__); \
-    OutputDebugString(buffer); \
+    char print_buffer[256]; \
+    snprintf(print_buffer, sizeof(print_buffer), __VA_ARGS__); \
+    OutputDebugString(print_buffer); \
 }
 #else
 #define Print(...)
 #endif
 
+#define ErrorBox(...) { \
+	char error_buffer[256]; \
+	snprintf(error_buffer, sizeof(error_buffer), __VA_ARGS__); \
+	MessageBox(NULL, error_buffer, NULL, MB_OK); \
+	exit(-1); \
+}
+
 static bool g_paused;
 
 #include "memory.h"
 #include "profiling.h"
+#include "audio.h"
 #include "intrinsics.h"
 #include "filehelper.h"
 #include "assets.h"
@@ -174,19 +183,19 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	{
 		SaveWorld(world);
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		ChangeVolume(&state, 25.0f, 0.5f);
+		// ChangeVolume(&state, 25.0f, 0.5f);
 		g_paused = true;
 	}
 
 	if (g_paused && MousePressed(input, 0))
 	{
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		ChangeVolume(&state, 75.0f, 0.5f);
+		// ChangeVolume(&state, 75.0f, 0.5f);
 		g_paused = false;
 		return;
 	}
 
-	UpdateAudio(&state, deltaTime);
+	// UpdateAudio(&state, deltaTime);
 	UpdateWorld(&state, world, state.camera, player);
 
 	if (g_paused) return;
@@ -262,6 +271,8 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #if DEBUG_MEMORY
 	_CrtSetDbgFlag(_CRTDBG_CHECK_ALWAYS_DF);
 #endif
+
+	InitAudio(&state.audio, 48000, 48000 * sizeof(int16_t) * 2);
 	
 	CreateThreads(&state);
 	LoadAssets(&state);
@@ -322,6 +333,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	SaveWorld(world);
 	glfwTerminate();
+
 	FLUSH_COUNTERS();
 
 	#if DEBUG_MEMORY
