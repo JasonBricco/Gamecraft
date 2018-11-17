@@ -48,11 +48,11 @@ static void FillAndSubmit(AudioEngine* engine, int start, int count)
 		int16_t sample = (int16_t)(sin(engine->tSin) * 16000);
 		engine->samples[i] = sample;
 		engine->samples[i + 1] = sample;
-		engine->tSin += 0.016f;
+		engine->tSin = fmod(engine->tSin + 0.016f, 2.0f * PI);
 	}
 
 	XAUDIO2_BUFFER buffer = {};
-	buffer.AudioBytes = 2 * engine->bufferSize;
+	buffer.AudioBytes = engine->bufferSize * sizeof(int16_t);
 	buffer.pAudioData = (BYTE*)engine->samples;
 	buffer.Flags = 0;
 	buffer.PlayBegin = start;

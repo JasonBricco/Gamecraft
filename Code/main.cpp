@@ -63,23 +63,6 @@ using namespace std;
 
 #pragma warning(pop)
 
-#if _DEBUG
-#define Print(...) { \
-    char print_buffer[256]; \
-    snprintf(print_buffer, sizeof(print_buffer), __VA_ARGS__); \
-    OutputDebugString(print_buffer); \
-}
-#else
-#define Print(...)
-#endif
-
-#define ErrorBox(...) { \
-	char error_buffer[256]; \
-	snprintf(error_buffer, sizeof(error_buffer), __VA_ARGS__); \
-	MessageBox(NULL, error_buffer, NULL, MB_OK); \
-	exit(-1); \
-}
-
 static bool g_paused;
 
 #include "memory.h"
@@ -272,7 +255,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	_CrtSetDbgFlag(_CRTDBG_CHECK_ALWAYS_DF);
 #endif
 
-	InitAudio(&state.audio, 48000, 48000 * sizeof(int16_t) * 2);
+	InitAudio(&state.audio, 41000, 41000 * sizeof(int16_t) * 2);
 	
 	CreateThreads(&state);
 	LoadAssets(&state);

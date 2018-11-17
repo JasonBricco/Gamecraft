@@ -95,3 +95,25 @@ static string GetLastErrorText()
 
     return message;
 }
+
+#if _DEBUG
+#define Print(...) { \
+    char print_buffer[256]; \
+    snprintf(print_buffer, sizeof(print_buffer), __VA_ARGS__); \
+    OutputDebugString(print_buffer); \
+}
+
+#define ErrorBox(...) { \
+    char error_buffer[256]; \
+    snprintf(error_buffer, sizeof(error_buffer), __VA_ARGS__); \
+    DebugBreak(); \
+}
+#else
+#define Print(...)
+
+#define ErrorBox(...) { \
+    char error_buffer[256]; \
+    snprintf(error_buffer, sizeof(error_buffer), __VA_ARGS__); \
+    MessageBox(NULL, error_buffer, NULL, MB_OK); \
+}
+#endif

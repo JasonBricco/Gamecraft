@@ -115,8 +115,10 @@ static inline void UpdateViewMatrix(Camera* cam)
 
 static void OnOpenGLMessage(GLenum, GLenum type, GLuint, GLenum severity, GLsizei, GLchar* msg, void*)
 {
-	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, msg);
+	if (type != GL_DEBUG_TYPE_ERROR)
+		return;
+
+	Print("GL CALLBACK: type = 0x%x, severity = 0x%x, message = %s\n", type, severity, msg);
 }
 
 static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int screenHeight)
