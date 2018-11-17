@@ -32,7 +32,7 @@
 #define STBI_ONLY_PNG
 
 #include "stb_image.h"
-#include "stretchy_buffer.h"
+#include "stb_vorbis.h"
 
 #include <unordered_map>
 #include <fstream>
@@ -62,6 +62,8 @@ using namespace glm;
 using namespace std;
 
 #pragma warning(pop)
+
+#define Unused(x) ((void)(x))
 
 static bool g_paused;
 
@@ -255,6 +257,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	_CrtSetDbgFlag(_CRTDBG_CHECK_ALWAYS_DF);
 #endif
 
+	OpenMusic(&state.audio, "Assets\\LittleTown.ogg");
 	InitAudio(&state.audio, 41000, 41000 * sizeof(int16_t) * 2);
 	
 	CreateThreads(&state);

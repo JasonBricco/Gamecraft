@@ -38,22 +38,21 @@ static void LoadAssets(GameState* state)
     fade->color = glGetUniformLocation(fade->handle, "inColor");
     SetAsset(state, ASSET_FADE_SHADER, fade);
 
-    char** paths = NULL;
+    const int texCount = 8;
+    char* paths[texCount];
 
-    sb_push(paths, "Assets/Grass.png");
-    sb_push(paths, "Assets/GrassSide.png");
-    sb_push(paths, "Assets/Dirt.png");
-    sb_push(paths, "Assets/Stone.png");
-    sb_push(paths, "Assets/Water.png");
-    sb_push(paths, "Assets/Sand.png");
-    sb_push(paths, "Assets/Crate.png");
-    sb_push(paths, "Assets/StoneBrick.png");
+    paths[0] = "Assets/Grass.png";
+    paths[1] = "Assets/GrassSide.png";
+    paths[2] = "Assets/Dirt.png";
+    paths[3] = "Assets/Stone.png";
+    paths[4] = "Assets/Water.png";
+    paths[5] = "Assets/Sand.png";
+    paths[6] = "Assets/Crate.png";
+    paths[7] = "Assets/StoneBrick.png";
 
     Texture* diffuseArray = Malloc<Texture>();
-    LoadTextureArray(diffuseArray, paths, true);
+    LoadTextureArray(diffuseArray, paths, texCount, true);
     SetAsset(state, ASSET_DIFFUSE_ARRAY, diffuseArray);
-
-    sb_free(paths);
 
     Texture* crosshairTex = Malloc<Texture>();
     LoadTexture(crosshairTex, "Assets/Crosshair.png");

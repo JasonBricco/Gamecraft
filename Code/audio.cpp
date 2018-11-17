@@ -27,11 +27,14 @@ static void InitAudio(AudioEngine* engine, int sampleRate, int bufferSize)
 	format.nAvgBytesPerSec = format.nSamplesPerSec * format.nBlockAlign;
 
 	IXAudio2SourceVoice* sourceVoice = NULL;
-	hr = pXAudio->CreateSourceVoice(&sourceVoice, &format, 0, 1.0f, engine);
+	hr = pXAudio->CreateSourceVoice(&sourceVoice, &format, 0, 2.0f, engine);
+	sourceVoice->SetFrequencyRatio(1.1f);
+
 	CheckForError(hr, "Failed to create the source voice.\n");
 
 	engine->samples = Malloc<int16_t>(bufferSize);
 	engine->bufferSize = bufferSize;
+	engine->sampleCount = bufferSize / format.nChannels;
 
 	hr = sourceVoice->Start(0);
     CheckForError(hr, "Failed to start playing sound.\n");
@@ -41,21 +44,27 @@ static void InitAudio(AudioEngine* engine, int sampleRate, int bufferSize)
     engine->sourceVoice = sourceVoice;
 }
 
-static void FillAndSubmit(AudioEngine* engine, int start, int count)
+static void OpenMusic(AudioEngine* engine, char* path)
 {
-	for (int i = start; i < start + count; i += 2)
-	{
-		int16_t sample = (int16_t)(sin(engine->tSin) * 16000);
-		engine->samples[i] = sample;
-		engine->samples[i + 1] = sample;
-		engine->tSin = fmod(engine->tSin + 0.016f, 2.0f * PI);
-	}
+	path = PathToExe(path);
+
+	int error;
+	engine->musicPtr = stb_vorbis_open_filename(path, &error, nullptr);
+
+	if (engine->musicPtr == nullptr) 
+		ErrorBox("Couldn't open music at %s. Error: %i\n", path, error);
+}
+
+static void FillAndSubmit(AudioEngine* engine, int count)
+{
+	int n = stb_vorbis_get_samples_short_interleaved(engine->musicPtr, 2, engine->samples, count * 2);
+	assert(n > 0);
+	Unused(n);
 
 	XAUDIO2_BUFFER buffer = {};
 	buffer.AudioBytes = engine->bufferSize * sizeof(int16_t);
 	buffer.pAudioData = (BYTE*)engine->samples;
-	buffer.Flags = 0;
-	buffer.PlayBegin = start;
+	buffer.PlayBegin = 0;
 	buffer.PlayLength = count;
 	HRESULT hr = engine->sourceVoice->SubmitSourceBuffer(&buffer);
 	CheckForError(hr, "Failed to submit the source buffer to the source voice. %s\n", GetLastErrorText().c_str());
@@ -66,19 +75,8 @@ void AudioEngine::OnVoiceProcessingPassStart(UINT32 bytesRequired)
 	if (bytesRequired == 0)
 		return;
 
-	int count = bytesRequired / sizeof(int16_t);
-	int startIndex = write;
-	int endIndex = startIndex + count;
-
-	if (endIndex <= bufferSize)
-		FillAndSubmit(this, startIndex, endIndex - startIndex);
-	else
-	{
-		FillAndSubmit(this, startIndex, bufferSize - startIndex);
-		FillAndSubmit(this, 0, endIndex % bufferSize);
-	}
-
-	write = (write + count) % bufferSize;
+	int samplesNeeded = bytesRequired / 4;
+	FillAndSubmit(this, samplesNeeded);
 }
 
 static void PlaySound(SoundAsset*)

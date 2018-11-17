@@ -13,7 +13,7 @@ IF "%~1" == "-d" GOTO build_debug
 
 set f=-MD -Oi -O2 -Zi
 set def=-D_CRT_SECURE_NO_WARNINGS=1 -DNDEBUG -D_HAS_EXCEPTIONS=0 -DSFML_STATIC=1
-set lb=glew32s.lib glfw3.lib noise.lib
+set lb=glew32s.lib glfw3.lib noise.lib stb_vorbis.lib
 set link=/LIBPATH:W:\Common\Lib /LTCG /SUBSYSTEM:WINDOWS
 
 GOTO compile
@@ -22,7 +22,7 @@ GOTO compile
 
 set f=-MDd -Oi- -Od -Zi
 set def=-D_DEBUG=1 -D_CRT_SECURE_NO_WARNINGS=1 -D_HAS_EXCEPTIONS=0 -DSFML_STATIC=1
-set lb=glew32sd.lib glfw3-d.lib noise-d.lib
+set lb=glew32sd.lib glfw3-d.lib noise-d.lib stb_vorbis-d.lib
 set link=/LIBPATH:W:\Common\Lib /ignore:4099 /SUBSYSTEM:WINDOWS
 
 :compile

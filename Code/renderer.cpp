@@ -113,6 +113,7 @@ static inline void UpdateViewMatrix(Camera* cam)
 	cam->view = lookAt(cam->pos, cam->target, cam->up);
 }
 
+#pragma warning(suppress: 4100)
 static void OnOpenGLMessage(GLenum, GLenum type, GLuint, GLenum severity, GLsizei, GLchar* msg, void*)
 {
 	if (type != GL_DEBUG_TYPE_ERROR)
@@ -354,9 +355,8 @@ static void LoadTexture(Texture* tex, char* asset)
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-static void LoadTextureArray(Texture* tex, char** paths, bool mipMaps)
+static void LoadTextureArray(Texture* tex, char** paths, int count, bool mipMaps)
 {
-    int count = sb_count(paths);
     uint8_t** dataList = Malloc<uint8_t*>(count);
 
     int width = 0, height = 0, components;

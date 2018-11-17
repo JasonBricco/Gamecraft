@@ -82,4 +82,4 @@ struct Camera
 
 static Shader* LoadShader(char* path);
 static void LoadTexture(Texture* tex, char* asset);
-static void LoadTextureArray(Texture* tex, char** paths, bool mipMaps);
+static void LoadTextureArray(Texture* tex, char** paths, int count, bool mipMaps);

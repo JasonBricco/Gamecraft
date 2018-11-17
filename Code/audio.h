@@ -7,10 +7,17 @@ struct AudioEngine : public IXAudio2VoiceCallback
 	IXAudio2* pXAudio;
 	IXAudio2MasteringVoice* masteringVoice;
 	IXAudio2SourceVoice* sourceVoice;
+	
 	int16_t* samples;
-	int bufferSize;
+
+	// Buffer size is the total size of the buffer in bytes.
+	// Sample count is the total size of the buffer in samples.
+	// A sample includes both channels in stereo sound.
+	int bufferSize, sampleCount;
 	int write;
-	float tSin;
+
+	// A handle to the music file that is being streamed from.
+	stb_vorbis* musicPtr;
 
 	void OnVoiceProcessingPassStart(UINT32 bytesRequired);
 	void OnVoiceProcessingPassEnd() {}
