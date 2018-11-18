@@ -4,7 +4,7 @@
 
 #define CheckForError(hr, ...) if (FAILED(hr)) ErrorBox(__VA_ARGS__)
 
-static void InitAudio(AudioEngine* engine, int sampleRate, int bufferSize)
+static void InitAudio(AudioEngine* engine)
 {
 	HRESULT hr;
 
@@ -18,6 +18,13 @@ static void InitAudio(AudioEngine* engine, int sampleRate, int bufferSize)
 	hr = pXAudio->CreateMasteringVoice(&masteringVoice);
 	CheckForError(hr, "Failed to create the mastering voice.\n");
 
+    engine->pXAudio = pXAudio;
+    engine->masteringVoice = masteringVoice;
+}
+
+static WAVEFORMATEX GetFormat(int sampleRate)
+{
+	assert(sampleRate == 44100);
 	WAVEFORMATEX format = {};
 	format.wFormatTag = WAVE_FORMAT_PCM;	
 	format.nChannels = 2;
@@ -25,42 +32,49 @@ static void InitAudio(AudioEngine* engine, int sampleRate, int bufferSize)
 	format.wBitsPerSample = 16;
 	format.nBlockAlign = (format.nChannels * format.wBitsPerSample) / 8;
 	format.nAvgBytesPerSec = format.nSamplesPerSec * format.nBlockAlign;
-
-	IXAudio2SourceVoice* sourceVoice = NULL;
-	hr = pXAudio->CreateSourceVoice(&sourceVoice, &format, 0, 2.0f, engine);
-	sourceVoice->SetFrequencyRatio(1.1f);
-
-	CheckForError(hr, "Failed to create the source voice.\n");
-
-	engine->samples = Malloc<int16_t>(bufferSize);
-	engine->bufferSize = bufferSize;
-	engine->sampleCount = bufferSize / format.nChannels;
-
-	hr = sourceVoice->Start(0);
-    CheckForError(hr, "Failed to start playing sound.\n");
-
-    engine->pXAudio = pXAudio;
-    engine->masteringVoice = masteringVoice;
-    engine->sourceVoice = sourceVoice;
+	return format;
 }
 
-static void OpenMusic(AudioEngine* engine, char* path)
+static void LoadMusic(AudioEngine* engine, char* path)
 {
 	path = PathToExe(path);
 
 	int error;
-	engine->musicPtr = stb_vorbis_open_filename(path, &error, nullptr);
+	stb_vorbis* ptr = stb_vorbis_open_filename(path, &error, nullptr);
 
-	if (engine->musicPtr == nullptr) 
+	if (ptr == nullptr) 
 		ErrorBox("Couldn't open music at %s. Error: %i\n", path, error);
+
+	Free<char>(path);
+
+	stb_vorbis_info info = stb_vorbis_get_info(ptr);
+	int sampleRate = info.sample_rate;
+
+	WAVEFORMATEX format = GetFormat(sampleRate);
+
+	IXAudio2SourceVoice* source = NULL;
+	HRESULT hr = engine->pXAudio->CreateSourceVoice(&source, &format, 0, 2.0f, engine);
+	CheckForError(hr, "Failed to create the source voice.\n");
+
+	int bufferSize = sampleRate * 2;
+	engine->musicSamples = Malloc<int16_t>(bufferSize);
+	engine->bufferSize = bufferSize;
+	engine->sampleCount = bufferSize / format.nChannels;
+
+	engine->bufferSize = bufferSize;
+	engine->musicPtr = ptr;
+	engine->musicSource = source;
+
+	hr = source->Start(0);
+    CheckForError(hr, "Failed to start playing sound.\n");
 }
 
 static inline int GetMusicSamples(AudioEngine* engine, int count)
 {
-	return stb_vorbis_get_samples_short_interleaved(engine->musicPtr, 2, engine->samples, count * 2);
+	return stb_vorbis_get_samples_short_interleaved(engine->musicPtr, 2, engine->musicSamples, count * 2);
 }
 
-static void FillAndSubmit(AudioEngine* engine, int count)
+static void SubmitMusicSamples(AudioEngine* engine, int count)
 {
 	int n = GetMusicSamples(engine, count);
 
@@ -72,10 +86,10 @@ static void FillAndSubmit(AudioEngine* engine, int count)
 
 	XAUDIO2_BUFFER buffer = {};
 	buffer.AudioBytes = engine->bufferSize * sizeof(int16_t);
-	buffer.pAudioData = (BYTE*)engine->samples;
+	buffer.pAudioData = (BYTE*)engine->musicSamples;
 	buffer.PlayBegin = 0;
 	buffer.PlayLength = n;
-	HRESULT hr = engine->sourceVoice->SubmitSourceBuffer(&buffer);
+	HRESULT hr = engine->musicSource->SubmitSourceBuffer(&buffer);
 	CheckForError(hr, "Failed to submit the source buffer to the source voice. %s\n", GetLastErrorText().c_str());
 }
 
@@ -85,10 +99,64 @@ void AudioEngine::OnVoiceProcessingPassStart(UINT32 bytesRequired)
 		return;
 
 	int samplesNeeded = bytesRequired / 4;
-	FillAndSubmit(this, samplesNeeded);
+	SubmitMusicSamples(this, samplesNeeded);
 }
 
-static void PlaySound(SoundAsset*)
+static void LoadSound(AudioEngine* engine, SoundAsset* asset, char* path)
 {
-	// TODO
+	path = PathToExe(path);
+
+	int channels, sampleRate;
+	int count = stb_vorbis_decode_filename(path, &channels, &sampleRate, &asset->samples);
+
+	if (count == -1)
+		ErrorBox("Could not open sound at path %s\n", path);
+
+	Free<char>(path);
+
+	asset->engine = engine;
+	asset->sampleCount = count;
+	asset->sampleRate = sampleRate;
+}
+
+void SoundCallback::OnStreamEnd()
+{
+	auto& pool = engine->voicePool;
+	source->Stop();
+	pool.push(source);
+}
+
+static void PlaySound(SoundAsset* sound)
+{
+	AudioEngine* engine = sound->engine;
+	auto& pool = engine->voicePool;
+	IXAudio2SourceVoice* source;
+	HRESULT hr;
+
+	if (pool.size() > 0)
+	{
+		source = pool.front();
+		pool.pop();
+	}
+	else
+	{
+		SoundCallback* callback = Malloc<SoundCallback>();
+		WAVEFORMATEX format = GetFormat(sound->sampleRate);
+		hr = engine->pXAudio->CreateSourceVoice(&source, &format, 0, 2.0f, callback);
+		CheckForError(hr, "Failed to create the source voice.\n");
+
+		callback->engine = engine;
+		callback->source = source;
+		engine->callbacks.push_back(callback);
+	}
+
+	XAUDIO2_BUFFER buffer = {};
+	buffer.Flags = XAUDIO2_END_OF_STREAM;
+	buffer.AudioBytes = sound->sampleCount * 4;
+	buffer.pAudioData = (BYTE*)sound->samples;
+	hr = source->SubmitSourceBuffer(&buffer);
+	CheckForError(hr, "Failed to submit the source buffer to the source voice. %s\n", GetLastErrorText().c_str());
+
+	hr = source->Start(0);
+	CheckForError(hr, "Failed to start playing sound.\n");
 }

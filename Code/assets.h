@@ -31,5 +31,8 @@ struct Texture : public Asset
 
 struct SoundAsset : public Asset
 {
-	
+	AudioEngine* engine;
+	int16_t* samples;
+	int sampleCount;
+	int sampleRate;
 };

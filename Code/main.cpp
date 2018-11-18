@@ -40,6 +40,7 @@
 #include <string>
 #include <mutex>
 #include <algorithm>
+#include <queue>
 
 #if DEBUG_MEMORY
 #include <crtdbg.h>
@@ -257,8 +258,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	_CrtSetDbgFlag(_CRTDBG_CHECK_ALWAYS_DF);
 #endif
 
-	OpenMusic(&state.audio, "Assets\\LittleTown.ogg");
-	InitAudio(&state.audio, 41000, 41000 * sizeof(int16_t) * 2);
+	InitAudio(&state.audio);
 	
 	CreateThreads(&state);
 	LoadAssets(&state);

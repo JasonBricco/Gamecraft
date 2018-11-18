@@ -58,19 +58,15 @@ static void LoadAssets(GameState* state)
     LoadTexture(crosshairTex, "Assets/Crosshair.png");
     SetAsset(state, ASSET_CROSSHAIR, crosshairTex);
 
-    // SoundAsset* stoneSound = Calloc<SoundAsset>();
-    // SetAsset(state, ASSET_STONE_SOUND, stoneSound);
-    // LoadSound(stoneSound, "Assets/Stone.ogg");
+    AudioEngine* audio = &state->audio;
 
-    // SoundAsset* leavesSound = Calloc<SoundAsset>();
-    // SetAsset(state, ASSET_LEAVES_SOUND, leavesSound);
-    // LoadSound(leavesSound, "Assets/Leaves.ogg");
+    SoundAsset* stoneSound = Calloc<SoundAsset>();
+    SetAsset(state, ASSET_STONE_SOUND, stoneSound);
+    LoadSound(audio, stoneSound, "Assets/Stone.ogg");
 
-    // MusicAsset* music = Calloc<MusicAsset>();
-    // SetAsset(state, ASSET_MUSIC, music);
-    // LoadMusic(music, "Assets/LittleTown.ogg");
-    // state->currentMusic = music;
+    SoundAsset* leavesSound = Calloc<SoundAsset>();
+    SetAsset(state, ASSET_LEAVES_SOUND, leavesSound);
+    LoadSound(audio, leavesSound, "Assets/Leaves.ogg");
 
-    // PlayMusic(music);
-    // ChangeVolume(state, 75.0f, 5.0f);
+    LoadMusic(audio, "Assets\\LittleTown.ogg");
 }
