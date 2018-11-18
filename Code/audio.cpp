@@ -55,17 +55,26 @@ static void OpenMusic(AudioEngine* engine, char* path)
 		ErrorBox("Couldn't open music at %s. Error: %i\n", path, error);
 }
 
+static inline int GetMusicSamples(AudioEngine* engine, int count)
+{
+	return stb_vorbis_get_samples_short_interleaved(engine->musicPtr, 2, engine->samples, count * 2);
+}
+
 static void FillAndSubmit(AudioEngine* engine, int count)
 {
-	int n = stb_vorbis_get_samples_short_interleaved(engine->musicPtr, 2, engine->samples, count * 2);
-	assert(n > 0);
-	Unused(n);
+	int n = GetMusicSamples(engine, count);
+
+	if (n == 0)
+	{
+		stb_vorbis_seek_start(engine->musicPtr);
+		n = GetMusicSamples(engine, count);
+	}
 
 	XAUDIO2_BUFFER buffer = {};
 	buffer.AudioBytes = engine->bufferSize * sizeof(int16_t);
 	buffer.pAudioData = (BYTE*)engine->samples;
 	buffer.PlayBegin = 0;
-	buffer.PlayLength = count;
+	buffer.PlayLength = n;
 	HRESULT hr = engine->sourceVoice->SubmitSourceBuffer(&buffer);
 	CheckForError(hr, "Failed to submit the source buffer to the source voice. %s\n", GetLastErrorText().c_str());
 }
