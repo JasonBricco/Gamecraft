@@ -35,6 +35,16 @@ static WAVEFORMATEX GetFormat(int sampleRate)
 	return format;
 }
 
+static void ChangeVolume(AudioEngine* engine, float target, float seconds)
+{
+	IXAudio2SourceVoice* music = engine->musicSource;
+
+	float volume;
+	music->GetVolume(&volume);
+
+	engine->volumeLerp = { volume, target, 0.0f, seconds };
+}
+
 static void LoadMusic(AudioEngine* engine, char* path)
 {
 	path = PathToExe(path);
@@ -56,6 +66,8 @@ static void LoadMusic(AudioEngine* engine, char* path)
 	HRESULT hr = engine->pXAudio->CreateSourceVoice(&source, &format, 0, 2.0f, engine);
 	CheckForError(hr, "Failed to create the source voice.\n");
 
+	source->SetVolume(0.0f);
+
 	int bufferSize = sampleRate * 2;
 	engine->musicSamples = Malloc<int16_t>(bufferSize);
 	engine->bufferSize = bufferSize;
@@ -67,6 +79,8 @@ static void LoadMusic(AudioEngine* engine, char* path)
 
 	hr = source->Start(0);
     CheckForError(hr, "Failed to start playing sound.\n");
+
+    ChangeVolume(engine, 0.75f, 3.0f);
 }
 
 static inline int GetMusicSamples(AudioEngine* engine, int count)
@@ -159,4 +173,16 @@ static void PlaySound(SoundAsset* sound)
 
 	hr = source->Start(0);
 	CheckForError(hr, "Failed to start playing sound.\n");
+}
+
+static void UpdateAudio(AudioEngine* engine, float deltaTime)
+{
+	IXAudio2SourceVoice* music = engine->musicSource;
+	LerpData& lData = engine->volumeLerp;
+
+	if (lData.t < 1.0f)
+	{
+		lData.t = Min(lData.t + (deltaTime / lData.time), 1.0f);
+		music->SetVolume(Lerp(lData.start, lData.end, lData.t));
+	}
 }

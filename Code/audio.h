@@ -27,6 +27,8 @@ struct AudioEngine : public IXAudio2VoiceCallback
 	// Stores sound callbacks so they can be freed if needed.
 	vector<SoundCallback*> callbacks;
 
+	LerpData volumeLerp;
+
 	void OnVoiceProcessingPassStart(UINT32 bytesRequired);
 	void OnVoiceProcessingPassEnd() {}
 	void OnStreamEnd() {}

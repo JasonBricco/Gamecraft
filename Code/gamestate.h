@@ -16,7 +16,4 @@ struct GameState
 	Input input;
 
 	AudioEngine audio;
-
-	// MusicAsset* currentMusic;
-	LerpData volumeLerp;
 };
