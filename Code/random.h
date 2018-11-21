@@ -2,7 +2,7 @@
 // Jason Bricco
 //
 
-// Returns a random number between 0 and max.
+// Returns a random number between 0 and max, exclusive.
 inline int32_t Rand(int32_t max)
 {
     return rand() % max;

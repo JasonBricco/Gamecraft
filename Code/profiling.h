@@ -44,8 +44,7 @@ static void FlushCounters()
 
                 char buffer[128];
                 sprintf(buffer, "%s: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u, Lowest: %I64u\n", 
-                    g_counters[i].label, cycles, calls, cyclesPerCall, 
-                    g_counters[i].lowest);
+                    g_counters[i].label, cycles, calls, cyclesPerCall, g_counters[i].lowest);
                 OutputDebugString(buffer);
 
                 g_counters[i].cycles = 0;
@@ -55,12 +54,6 @@ static void FlushCounters()
 
         OutputDebugString("\n");
     }
-
-    #if PROFILING_ONCE
-
-    profilingEnabled = false;
-
-    #endif
 }
 
 inline void EndTimedBlock(int ID, char* label, uint64_t start)

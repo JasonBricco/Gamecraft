@@ -103,7 +103,7 @@ static string GetLastErrorText()
     OutputDebugString(print_buffer); \
 }
 
-#define ErrorBox(...) { \
+#define Error(...) { \
     char error_buffer[256]; \
     snprintf(error_buffer, sizeof(error_buffer), __VA_ARGS__); \
     DebugBreak(); \
@@ -111,7 +111,7 @@ static string GetLastErrorText()
 #else
 #define Print(...)
 
-#define ErrorBox(...) { \
+#define Error(...) { \
     char error_buffer[256]; \
     snprintf(error_buffer, sizeof(error_buffer), __VA_ARGS__); \
     MessageBox(NULL, error_buffer, NULL, MB_OK); \

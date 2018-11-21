@@ -207,6 +207,7 @@ static void LoadChunk(World* world, Chunk* chunk)
     }
     else GenerateChunkTerrain(world, chunk);
 
+    assert(ChunkIsValid(world, chunk));
     chunk->state = CHUNK_LOADED;
 }
 

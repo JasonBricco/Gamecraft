@@ -4,7 +4,6 @@
 
 #define DEBUG_MEMORY 0
 #define PROFILING 0
-#define PROFILING_ONCE 0
 
 #pragma warning(push, 0)
 
@@ -69,6 +68,7 @@ using namespace std;
 static bool g_paused;
 
 #include "memory.h"
+#include "collections.h"
 #include "random.h"
 #include "utils.h"
 #include "profiling.h"
@@ -88,7 +88,6 @@ static bool g_paused;
 #include "async.h"
 #include "gamestate.h"
 
-#include "test.cpp"
 #include "audio.cpp"
 #include "assets.cpp"
 #include "async.cpp"
@@ -108,7 +107,7 @@ static char* buildType = "DEBUG";
 static char* buildType = "RELEASE";
 #endif
 
-static char* buildID = "100";
+static char* buildID = "110";
 
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT windowPos = { sizeof(windowPos) };
@@ -209,10 +208,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
 	if (!glfwInit())
-	{
-		OutputDebugString("GLFW failed to initialize.");
-		return -1;
-	}
+		Error("GLFW failed to initialize.\n");
 
 	// Window creation.
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -226,18 +222,12 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	GLFWwindow* window = glfwCreateWindow(screenWidth, screenHeight, "Gamecraft", NULL, NULL);
 
 	if (window == nullptr)
-	{
-		OutputDebugString("Failed to create window.");
-		return -2;
-	}
+		Error("Failed to create window.\n");
 
 	glfwMakeContextCurrent(window);
 
 	if (glewInit() != GLEW_OK)
-	{
-		OutputDebugString("Failed to initialize GLEW.");
-		return -3;
-	}
+		Error("Failed to initialize GLEW.\n");
 
 	glewExperimental = GL_TRUE;
 
@@ -311,7 +301,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		#if DEBUG_MEMORY
 
-		if (KeyPressed(KEY_BACKSLASH))
+		if (KeyPressed(state.input, KEY_BACKSLASH))
 			LogMemoryStatus();
 
 		#endif

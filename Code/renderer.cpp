@@ -392,10 +392,23 @@ static void LoadTextureArray(Texture* tex, char** paths, int count, bool mipMaps
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
 
+static void OutputShaderError(GLuint shader, char* mode)
+{
+	GLint length = 0;
+	glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
+
+    GLchar* errorLog = Calloc<GLchar>(length);
+    glGetProgramInfoLog(shader, length, NULL, errorLog);
+    
+   	Print("Error! Shader program failed to %s. Log: %s\n", mode, length == 0 ? "No error given." : errorLog);
+   	
+    Free<GLchar>(errorLog);
+    Unused(mode);
+}
+
 static bool ShaderHasErrors(GLuint shader, ShaderType type)
 {
     int status = 0;
-    GLint length = 0;
 
     if (type == SHADER_PROGRAM)
     {
@@ -403,14 +416,7 @@ static bool ShaderHasErrors(GLuint shader, ShaderType type)
 
         if (status == GL_FALSE)
         {
-            glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
-
-            GLchar* errorLog = Malloc<GLchar>(length);
-            glGetProgramInfoLog(shader, length, NULL, errorLog);
-            
-            OutputDebugString("Error! Shader program failed to link.");
-            OutputDebugString(errorLog);
-            Free<GLchar>(errorLog);
+        	OutputShaderError(shader, "link");
             return true;
         }
     }
@@ -420,14 +426,7 @@ static bool ShaderHasErrors(GLuint shader, ShaderType type)
 
         if (status == GL_FALSE)
         {
-            glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
-
-            GLchar* errorLog = Malloc<GLchar>(length);
-            glGetShaderInfoLog(shader, length, NULL, errorLog);
-            
-            OutputDebugString("Error! Shader failed to compile.");
-            OutputDebugString(errorLog);
-            Free<GLchar>(errorLog);
+        	OutputShaderError(shader, "compile");
             return true;
         }
     }
@@ -440,11 +439,7 @@ static Shader* LoadShader(char* path)
     char* code = ReadFileData(path);
 
     if (code == nullptr)
-    {
-        OutputDebugString("Failed to load shader from file.");
-        OutputDebugString(path);
-        abort();
-    }
+        Error("Failed to load shader from file at path %s\n.", path);
 
     char* vertex[2] = { "#version 440 core\n#define VERTEX 1\n", code };
     char* frag[2] = { "#version 440 core\n", code };
@@ -454,20 +449,14 @@ static Shader* LoadShader(char* path)
     glCompileShader(vS);
     
     if (ShaderHasErrors(vS, VERTEX_SHADER))
-    {
-        OutputDebugString("Failed to compile the vertex shader.");
-        abort();
-    }
+       	Error("Failed to compile the vertex shader.\n");
 
     GLuint fS = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fS, 2, frag, NULL);
     glCompileShader(fS);
     
     if (ShaderHasErrors(fS, FRAGMENT_SHADER))
-    {
-        OutputDebugString("Failed to compile the fragment shader.");
-        abort();
-    }
+        Error("Failed to compile the fragment shader.\n");
 
     GLuint program = glCreateProgram();
     glAttachShader(program, vS);
@@ -475,10 +464,7 @@ static Shader* LoadShader(char* path)
     glLinkProgram(program);
     
     if (ShaderHasErrors(program, SHADER_PROGRAM))
-    {
-        OutputDebugString("Failed to link the shaders into the program.");
-        abort();
-    }
+        Error("Failed to link the shaders into the program.\n");
 
     free(code);
     glDeleteShader(vS);

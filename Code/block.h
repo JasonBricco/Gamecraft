@@ -43,6 +43,8 @@ struct BlockData
 {
     float textures[6];
     bool passable;
+    uint8_t light;
+    int lightStep;
     BlockMeshType meshType;
     CullType cull;
     BuildBlockFunc buildFunc;

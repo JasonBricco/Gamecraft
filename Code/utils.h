@@ -29,15 +29,22 @@ struct Ray
     vec3 dir;
 };
 
-#define LEFT 0
-#define RIGHT 1
-#define BACK 2
-#define FRONT 3
+#define DIRECTION_LEFT 0
+#define DIRECTION_RIGHT 1
+#define DIRECTION_BACK 2
+#define DIRECTION_FRONT 3
+#define DIRECTION_UP 4
+#define DIRECTION_DOWN 5
 
-static const ivec3 DIRECTIONS[26] = 
+static const ivec3 DIRECTIONS_2D[8] = 
 { 
     ivec3(-1, 0, 0), ivec3(1, 0, 0), ivec3(0, 0, -1), ivec3(0, 0, 1),
     ivec3(-1, 0, -1), ivec3(-1, 0, 1), ivec3(1, 0, -1), ivec3(1, 0, 1)
+};
+
+static const ivec3 DIRECTIONS_3D[6] =
+{
+    ivec3(-1, 0, 0), ivec3(1, 0, 0), ivec3(0, 0, -1), ivec3(0, 0, 1), ivec3(0, 1, 0), ivec3(0, -1, 0)
 };
 
 static inline int Clamp(int value, int min, int max)
@@ -75,9 +82,9 @@ static inline int RoundToInt(float value)
     return (int)roundf(value);
 }
 
-static inline int32_t FloorToInt(float value)
+static inline int FloorToInt(float value)
 {
-    return (int32_t)floorf(value);
+    return (int)floorf(value);
 }
 
 static inline bool Approx(float a, float b)

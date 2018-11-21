@@ -2,6 +2,56 @@
 // Jason Bricco
 //
 
+#if _DEBUG
+
+static bool ChunkIsValid(World* world, Chunk* chunk)
+{
+    if (chunk == nullptr) return true;
+
+    LChunkPos lP = chunk->lcPos;
+
+    int lim = world->size;
+
+    if (lP.x < 0 || lP.y < 0 || lP.x >= lim || lP.y >= lim)
+        return false;
+
+    if (chunk->state < 0 || chunk->state >= CHUNK_STATE_COUNT)
+        return false;
+
+    for (int i = 0; i < CHUNK_SIZE_3; i++)
+    {
+        Block block = chunk->blocks[i];
+
+        if (block < 0 || block >= BLOCK_COUNT)
+            return false;
+    }
+
+    return true;
+}
+
+static bool RegionIsValid(Region region)
+{
+    for (int i = 0; i < REGION_SIZE_3; i++)
+    {
+        SerializedChunk* chunk = region.chunks + i;
+
+        if (chunk->size > chunk->maxSize)
+            return false;
+
+        if (chunk->size < 0 || chunk->maxSize < 0 || chunk->size > 40000 || chunk->maxSize > 40000)
+            return false;
+    }
+
+    return true;
+}
+
+#else
+
+#define ChunkIsValid(world, chunk)
+#define RegionIsValid(region)
+
+#endif
+
 static inline void EnqueueChunk(ChunkQueue& queue, Chunk* chunk)
 {
     if (queue.front == nullptr)
@@ -21,9 +71,24 @@ static inline Chunk* DequeueChunk(ChunkQueue& queue)
     return front;
 }
 
+static inline bool BlockInsideChunk(int x, int y, int z)
+{
+    return x >= 0 && x < CHUNK_SIZE_X && y >= 0 && y < CHUNK_SIZE_Y && z >= 0 && z < CHUNK_SIZE_X;
+}
+
+static inline bool BlockInsideChunk(RelPos p)
+{
+    return BlockInsideChunk(p.x, p.y, p.z);
+}
+
+static inline bool ChunkInsideWorld(World* world, int x, int z)
+{
+    return x >= 0 && x < world->size && z >= 0 && z < world->size;
+}
+
 static inline RelPos LWorldToRelPos(int lwX, int lwY, int lwZ)
 {
-	return ivec3(lwX & CHUNK_SIZE_X - 1, lwY, lwZ & CHUNK_SIZE_X - 1);
+	return ivec3(lwX & CHUNK_MASK, lwY, lwZ & CHUNK_MASK);
 }
 
 static inline RelPos LWorldToRelPos(LWorldPos wPos)
@@ -77,6 +142,7 @@ static inline int32_t ChunkIndex(World* world, int32_t lcX, int32_t lcZ)
 
 static inline Chunk* GetChunk(World* world, int32_t lcX, int32_t lcZ)
 {
+    assert(ChunkInsideWorld(world, lcX, lcZ));
 	return world->chunks[ChunkIndex(world, lcX, lcZ)];
 }
 
@@ -87,7 +153,7 @@ static inline Chunk* GetChunk(World* world, LChunkPos pos)
 
 static inline Chunk* GetChunkSafe(World* world, LChunkPos pos)
 {
-    if (pos.x < 0 || pos.x >= world->size || pos.z < 0 || pos.z >= world->size)
+    if (!ChunkInsideWorld(world, pos.x, pos.z))
         return nullptr;
 
     return GetChunk(world, pos);
@@ -170,14 +236,31 @@ static inline void AddChunkToHash(World* world, Chunk* chunk)
     world->chunkHash[bucket] = chunk;
 }
 
+static inline RebasedPos Rebase(World* world, LChunkPos lP, int rX, int rZ)
+{
+    if (rX < 0)
+        return Rebase(world, lP + DIRECTIONS_2D[DIRECTION_LEFT], CHUNK_SIZE_X + rX, rZ);
+
+    if (rX >= CHUNK_SIZE_X) 
+        return Rebase(world, lP + DIRECTIONS_2D[DIRECTION_RIGHT], rX - CHUNK_SIZE_X, rZ);
+
+    if (rZ < 0)
+        return Rebase(world, lP + DIRECTIONS_2D[DIRECTION_BACK], rX, CHUNK_SIZE_X + rZ);
+    
+    if (rZ >= CHUNK_SIZE_X)
+        return Rebase(world, lP + DIRECTIONS_2D[DIRECTION_FRONT], rX, rZ - CHUNK_SIZE_X);
+
+    return { GetChunk(world, lP), rX, rZ };
+}
+
 static inline Block GetBlock(Chunk* chunk, int rX, int rY, int rZ)
 {
-    if (rY < 0) return BLOCK_STONE;
-    if (rY >= WORLD_HEIGHT) return BLOCK_AIR;
-
+    assert(rY >= 0 && rY < CHUNK_SIZE_Y);
     int index = rX + CHUNK_SIZE_X * (rY + CHUNK_SIZE_Y * rZ);
     assert(index >= 0 && index < CHUNK_SIZE_3);
-    return chunk->blocks[index];
+    Block block = chunk->blocks[index];
+    assert(block >= 0 && block < BLOCK_COUNT);
+    return block;
 }
 
 static inline Block GetBlock(Chunk* chunk, RelPos pos)
@@ -192,21 +275,8 @@ static inline Block GetBlockSafe(World* world, Chunk* chunk, int rX, int rY, int
     if (rY < 0) return BLOCK_STONE;
     if (rY >= WORLD_HEIGHT) return BLOCK_AIR;
 
-    if (rX < 0)
-        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[LEFT]), CHUNK_SIZE_X + rX, rY, rZ);
-
-    if (rX >= CHUNK_SIZE_X) 
-        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[RIGHT]), rX - CHUNK_SIZE_X, rY, rZ);
-
-    if (rZ < 0) 
-        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[BACK]), rX, rY, CHUNK_SIZE_X + rZ);
-    
-    if (rZ >= CHUNK_SIZE_X) 
-        return GetBlockSafe(world, GetChunk(world, chunk->lcPos + DIRECTIONS[FRONT]), rX, rY, rZ - CHUNK_SIZE_X);
-
-    Block block = GetBlock(chunk, rX, rY, rZ);
-    assert(block >= 0 && block < BLOCK_COUNT);
-    return block;
+    RebasedPos p = Rebase(world, chunk->lcPos, rX, rZ);
+    return GetBlock(p.chunk, p.rX, rY, p.rZ);
 }
 
 static inline Block GetBlockSafe(World* world, Chunk* chunk, RelPos p)
@@ -216,12 +286,14 @@ static inline Block GetBlockSafe(World* world, Chunk* chunk, RelPos p)
 
 static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
 {
+    if (lwY < 0) return BLOCK_STONE;
+    if (lwY >= WORLD_HEIGHT) return BLOCK_AIR;
+
     LChunkPos lcPos = LWorldToLChunkPos(lwX, lwZ);
     Chunk* chunk = GetChunk(world, lcPos);
-    assert(chunk != nullptr);
 
-    if (chunk->state < CHUNK_LOADED)
-        return BLOCK_AIR;
+    assert(chunk != nullptr);
+    assert (chunk->state >= CHUNK_LOADED);
 
     RelPos rPos = LWorldToRelPos(lwX, lwY, lwZ);
     return GetBlock(chunk, rPos);
@@ -234,6 +306,7 @@ static inline Block GetBlock(World* world, LWorldPos pos)
 
 static inline void SetBlock(Chunk* chunk, int rX, int rY, int rZ, Block block)
 {
+    assert(block >= 0 && block < BLOCK_COUNT);
     int index = rX + CHUNK_SIZE_X * (rY + CHUNK_SIZE_Y * rZ);
     assert(index >= 0 && index < CHUNK_SIZE_3);
     chunk->blocks[index] = block;
@@ -244,23 +317,6 @@ static inline void SetBlock(Chunk* chunk, RelPos pos, Block block)
     SetBlock(chunk, pos.x, pos.y, pos.z, block);
 }
 
-static inline Chunk* GetRelChunk(World* world, LChunkPos lP, int rX, int rZ)
-{
-    if (rX < 0)
-        return GetRelChunk(world, lP + DIRECTIONS[LEFT], CHUNK_SIZE_X + rX, rZ);
-
-    if (rX >= CHUNK_SIZE_X) 
-        return GetRelChunk(world, lP + DIRECTIONS[RIGHT], rX - CHUNK_SIZE_X, rZ);
-
-    if (rZ < 0)
-        return GetRelChunk(world, lP + DIRECTIONS[BACK], rX, CHUNK_SIZE_X + rZ);
-    
-    if (rZ >= CHUNK_SIZE_X)
-        return GetRelChunk(world, lP + DIRECTIONS[FRONT], rX, rZ - CHUNK_SIZE_X);
-
-    return GetChunk(world, lP);
-}
-
 static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkPos lP, RelPos rP)
 {
     chunk->pendingUpdate = true;
@@ -268,8 +324,8 @@ static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkPos lP, RelPos 
 
     for (int i = 0; i < 8; i++)
     {
-        RelPos nextRel = rP + DIRECTIONS[i];
-        Chunk* adj = GetRelChunk(world, lP, nextRel.x, nextRel.z);
+        RelPos nextRel = rP + DIRECTIONS_2D[i];
+        Chunk* adj = Rebase(world, lP, nextRel.x, nextRel.z).chunk;
         assert(adj->lcPos.x > 0 && adj->lcPos.z > 0 && adj->lcPos.x < world->size - 1 && adj->lcPos.z < world->size - 1);
         adj->pendingUpdate = true;
     }
@@ -323,7 +379,7 @@ static void FillChunk(World* world, Chunk* chunk, Block block)
     chunk->pendingUpdate = true;
 
     for (int i = 0; i < 8; i++)
-        GetChunk(world, chunk->lcPos + DIRECTIONS[i])->pendingUpdate = true;
+        GetChunk(world, chunk->lcPos + DIRECTIONS_2D[i])->pendingUpdate = true;
 }
 
 static inline void AddChunkToPool(World* world, Chunk* chunk)
@@ -508,7 +564,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
         GetCameraPlanes(cam);
         GetVisibleChunks(world, cam);
 
-        TryBuildMeshes(state, world, cam);
+        ProcessVisibleChunks(state, world, cam);
 
         while (world->destroyQueue.count > 0)
         {

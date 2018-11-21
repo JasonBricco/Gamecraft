@@ -7,6 +7,7 @@
 #define CHUNK_SIZE_Y 256
 
 #define CHUNK_SIZE_BITS 4
+#define CHUNK_MASK 15
 
 // The number of blocks in a chunk.
 #define CHUNK_SIZE_3 65536
@@ -50,6 +51,8 @@ enum ChunkState
 {
     CHUNK_LOADING,
     CHUNK_LOADED,
+    CHUNK_SCATTERING,
+    CHUNK_SCATTERED,
     CHUNK_BUILDING,
     CHUNK_NEEDS_FILL,
     CHUNK_BUILT,
@@ -64,6 +67,10 @@ struct Chunk
 
     Block blocks[CHUNK_SIZE_3];
     Mesh* meshes[CHUNK_MESH_COUNT];
+
+    uint8_t rays[CHUNK_SIZE_2];
+    uint8_t lights[CHUNK_SIZE_3];
+    uint8_t sunlight[CHUNK_SIZE_3];
 
     bool pendingUpdate;
 
@@ -175,4 +182,16 @@ struct World
     int seed;
 
     BlockData blockData[BLOCK_COUNT];
+
+    // Used to prevent multiple threads from scattering light at the same time.
+    // This is required since light values are written into neighbor chunks.
+    // If two threads are writing into the same neighbor chunk at the same time,
+    // incorrect lighting values could result.
+    mutex scatterMutex;
+};
+
+struct RebasedPos
+{
+    Chunk* chunk;
+    int rX, rZ;
 };

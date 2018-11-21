@@ -2,7 +2,7 @@
 // Jason Bricco
 //
 
-#define CheckForError(hr, ...) if (FAILED(hr)) ErrorBox(__VA_ARGS__)
+#define CheckForError(hr, ...) if (FAILED(hr)) Error(__VA_ARGS__)
 
 static void InitAudio(AudioEngine* engine)
 {
@@ -53,7 +53,7 @@ static void LoadMusic(AudioEngine* engine, char* path)
 	stb_vorbis* ptr = stb_vorbis_open_filename(path, &error, nullptr);
 
 	if (ptr == nullptr) 
-		ErrorBox("Couldn't open music at %s. Error: %i\n", path, error);
+		Error("Couldn't open music at %s. Error: %i\n", path, error);
 
 	Free<char>(path);
 
@@ -124,7 +124,7 @@ static void LoadSound(AudioEngine* engine, SoundAsset* asset, char* path)
 	int count = stb_vorbis_decode_filename(path, &channels, &sampleRate, &asset->samples);
 
 	if (count == -1)
-		ErrorBox("Could not open sound at path %s\n", path);
+		Error("Could not open sound at path %s\n", path);
 
 	Free<char>(path);
 
