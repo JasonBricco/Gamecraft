@@ -376,8 +376,7 @@ static void LoadTextureArray(Texture* tex, char** paths, int count, bool mipMaps
 
     for (int i = 0; i < count; i++)
     {
-        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA,
-            GL_UNSIGNED_BYTE, dataList[i]);
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, dataList[i]);
         stbi_image_free(dataList[i]);
     }
 

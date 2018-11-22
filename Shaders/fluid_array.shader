@@ -36,7 +36,7 @@ void main()
 	vec3 light = vertColor.rgb;
 	float sun = vertColor.a;
 
-	// // Assume the ambient value to always be 1.0 for now.
+	// Assume the ambient value to always be 1.0 for now.
 	vec3 amb = vec3(1.0f) * sun;
 	amb = max(amb, light);
 
