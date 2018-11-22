@@ -26,6 +26,7 @@ in vec4 vertColor;
 out vec4 outColor;
 
 uniform sampler2DArray tex;
+uniform float ambient;
 
 void main()
 {
@@ -34,8 +35,7 @@ void main()
 	vec3 light = vertColor.rgb;
 	float sun = vertColor.a;
 
-	// Assume the ambient value to always be 1.0 for now.
-	vec3 amb = vec3(1.0f) * sun;
+	vec3 amb = vec3(ambient) * sun;
 	amb = max(amb, light);
 
 	outColor.xyz *= amb;

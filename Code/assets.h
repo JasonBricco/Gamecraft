@@ -21,7 +21,7 @@ struct Asset {};
 struct Shader : public Asset
 {
     GLuint handle;
-    GLint view, model, proj, time, color;
+    GLint model, view, proj, ambient, time, color;
 };
 
 struct Texture : public Asset

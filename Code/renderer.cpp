@@ -273,6 +273,7 @@ static void RenderScene(GameState* state, Camera* cam)
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);
 	SetUniform(shader->proj, cam->perspective);
+	SetUniform(shader->ambient, state->ambient);
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, GetAsset<Texture>(state, ASSET_DIFFUSE_ARRAY)->id);
 	int count = (int)cam->meshLists[MESH_TYPE_OPAQUE].size();
@@ -293,6 +294,7 @@ static void RenderScene(GameState* state, Camera* cam)
 	SetUniform(shader->view, cam->view);
 	SetUniform(shader->proj, cam->perspective);
 	SetUniform(shader->time, cam->animTime);
+	SetUniform(shader->ambient, state->ambient);
 
 	if (cam->disableFluidCull) 
 		glDisable(GL_CULL_FACE);

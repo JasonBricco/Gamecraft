@@ -16,25 +16,27 @@ static inline void SetAsset(GameState* state, AssetID id, Asset* asset)
 
 static void LoadAssets(GameState* state)
 {
-    Shader* diffuseShader = LoadShader("Shaders\\diffuse_array.shader");
+    Shader* diffuseShader = (Shader*)LoadShader("Shaders\\diffuse_array.shader");
     diffuseShader->view = glGetUniformLocation(diffuseShader->handle, "view");
     diffuseShader->model = glGetUniformLocation(diffuseShader->handle, "model");
     diffuseShader->proj = glGetUniformLocation(diffuseShader->handle, "projection");
+    diffuseShader->ambient = glGetUniformLocation(diffuseShader->handle, "ambient");
     SetAsset(state, ASSET_DIFFUSE_SHADER, diffuseShader);
 
-    Shader* fluidShader = LoadShader("Shaders\\fluid_array.shader");
+    Shader* fluidShader = (Shader*)LoadShader("Shaders\\fluid_array.shader");
     fluidShader->view = glGetUniformLocation(fluidShader->handle, "view");
     fluidShader->model = glGetUniformLocation(fluidShader->handle, "model");
     fluidShader->proj = glGetUniformLocation(fluidShader->handle, "projection");
     fluidShader->time = glGetUniformLocation(fluidShader->handle, "time");
+    fluidShader->ambient = glGetUniformLocation(fluidShader->handle, "ambient");
     SetAsset(state, ASSET_FLUID_SHADER, fluidShader);
 
-    Shader* crosshair = LoadShader("Shaders\\crosshair.shader");
+    Shader* crosshair = (Shader*)LoadShader("Shaders\\crosshair.shader");
     crosshair->model = glGetUniformLocation(crosshair->handle, "model");
     crosshair->proj = glGetUniformLocation(crosshair->handle, "projection");
     SetAsset(state, ASSET_CROSSHAIR_SHADER, crosshair);
 
-    Shader* fade = LoadShader("Shaders\\fade.shader");
+    Shader* fade = (Shader*)LoadShader("Shaders\\fade.shader");
     fade->color = glGetUniformLocation(fade->handle, "inColor");
     SetAsset(state, ASSET_FADE_SHADER, fade);
 

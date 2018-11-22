@@ -16,4 +16,6 @@ struct GameState
 	Input input;
 
 	AudioEngine audio;
+
+	float ambient;
 };

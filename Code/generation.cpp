@@ -130,12 +130,6 @@ static void GenerateChunkTerrain(World* world, Chunk* chunk)
         }
     }
 
-    for (int x = 0; x < CHUNK_SIZE_X; x++)
-    {
-        for (int z = 0; z < CHUNK_SIZE_X; z++)
-            SetBlock(chunk, x, 200, z, BLOCK_STONEBRICK);
-    }
-
     Noise::FreeNoiseSet(ridged);
     Noise::FreeNoiseSet(base);
     Noise::FreeNoiseSet(biome);

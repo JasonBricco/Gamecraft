@@ -39,7 +39,9 @@ static inline uint8_t GetLightEmitted(World* world, Block block)
 
 static inline int GetBlockLightStep(World* world, Block block)
 {
-    return world->blockData[block].lightStep;
+    int step = world->blockData[block].lightStep;
+    assert(step > 0);
+    return step;
 }
 
 static inline bool IsTransparent(World* world, Block block)

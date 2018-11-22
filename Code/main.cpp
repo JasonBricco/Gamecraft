@@ -109,6 +109,8 @@ static char* buildType = "RELEASE";
 
 static char* buildID = "110";
 
+static vec3 clearColor = vec3(0.53f, 0.80f, 0.92f);
+
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT windowPos = { sizeof(windowPos) };
 
@@ -185,6 +187,13 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 	if (g_paused) return;
 
+	if (KeyPressed(input, KEY_EQUAL))
+	{
+		state.ambient = state.ambient == 0.0f ? 1.0f : 0.0f;
+		vec3 newClear = clearColor * state.ambient;
+		glClearColor(newClear.r, newClear.g, newClear.b, 1.0f);
+	}
+
 	if (KeyPressed(input, KEY_T))
 		ToggleFullscreen(glfwGetWin32Window(window));
 
@@ -234,7 +243,8 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	// Set vertical synchronization to the monitor refresh rate.
 	glfwSwapInterval(1);
 
-	glClearColor(0.53f, 0.80f, 0.92f, 1.0f);
+	state.ambient = 1.0f;
+	glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_MULTISAMPLE);

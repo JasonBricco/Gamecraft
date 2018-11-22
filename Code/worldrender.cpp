@@ -60,11 +60,6 @@ static uint8_t GetSunlightSafe(World* world, Chunk* chunk, int x, int y, int z)
     return GetSunlight(p.chunk, p.rX, y, p.rZ);
 }
 
-static inline void SetSunlight(Chunk* chunk, int x, int y, int z, uint8_t light)
-{
-    chunk->sunlight[x + CHUNK_SIZE_X * (y + CHUNK_SIZE_Y * z)] = light;
-}
-
 static inline uint8_t GetLight(Chunk* chunk, int x, int y, int z)
 {
     return chunk->lights[x + CHUNK_SIZE_X * (y + CHUNK_SIZE_Y * z)];
@@ -94,52 +89,58 @@ static bool SetMaxSunlight(Chunk* chunk, uint8_t light, int x, int y, int z)
     if (y >= GetRay(chunk, x, z)) 
         return false;
     
-    uint8_t oldLight = chunk->sunlight[x + CHUNK_SIZE_X * (y + CHUNK_SIZE_Y * z)];
+    int index = x + CHUNK_SIZE_X * (y + CHUNK_SIZE_Y * z);
+    uint8_t oldLight = chunk->sunlight[index];
     
     if (oldLight < light) 
     {
-        SetSunlight(chunk, x, y, z, light);
+        chunk->sunlight[index] = light;
         return true;
     }
     
     return false;
 }
 
-static void ScatterSunlightNodes(World* world, Chunk* chunk, queue<RelPos>& nodes) 
+static void ScatterSunlightNodes(World* world, queue<LightNode>& nodes) 
 {
     world->scatterMutex.lock();
 
     while (nodes.size() > 0)
     {
-        RelPos pos = nodes.front();
+        LightNode node = nodes.front();
         nodes.pop();
 
-        assert(nodes.size() < 1000);
+        Chunk* chunk = node.chunk;
+        RelPos p = node.pos;
 
-        Block block = GetBlockSafe(world, chunk, pos.x, pos.y, pos.z);
+        Block block = GetBlockSafe(world, chunk, p.x, p.y, p.z);
         int step = GetBlockLightStep(world, block);
-        assert(step > 0);
-        int light = GetSunlight(chunk, pos.x, pos.y, pos.z) - step;
+        int light = GetSunlight(chunk, p.x, p.y, p.z) - step;
+
+        assert(light <= MAX_LIGHT);
         
         if (light <= MIN_LIGHT) 
             continue;
         
         for (int i = 0; i < 6; i++)
         {
-            RelPos nextPos = pos + DIRECTIONS_3D[i];
+            RelPos nextPos = p + DIRECTIONS_3D[i];
 
             RebasedPos rel = Rebase(world, chunk->lcPos, nextPos.x, nextPos.z);
             block = GetBlock(rel.chunk, rel.rX, nextPos.y, rel.rZ);
 
             if (IsTransparent(world, block) && SetMaxSunlight(rel.chunk, (uint8_t)light, rel.rX, nextPos.y, rel.rZ)) 
-                nodes.push(nextPos);
+            {
+                node = { rel.chunk, ivec3(rel.rX, nextPos.y, rel.rZ) };
+                nodes.push(node);
+            }
         }
     }
 
     world->scatterMutex.unlock();
 }
 
-static void ScatterSunlight(World* world, Chunk* chunk, queue<RelPos>& nodes)
+static void ScatterSunlight(World* world, Chunk* chunk, queue<LightNode>& nodes)
 {
     for (int z = 0; z < CHUNK_SIZE_X; z++)
     {
@@ -151,18 +152,20 @@ static void ScatterSunlight(World* world, Chunk* chunk, queue<RelPos>& nodes)
             for (int y = ray; y <= maxY; y++) 
             {
                 if (y >= CHUNK_SIZE_Y) continue;
-                nodes.push(ivec3(x, y, z));
+
+                LightNode node = { chunk, ivec3(x, y, z) };
+                nodes.push(node);
             }
         }
     }
 
-    ScatterSunlightNodes(world, chunk, nodes);
+    ScatterSunlightNodes(world, nodes);
 }
 
 static void GenerateLight(World* world, Chunk* chunk)
 {
     ComputeRays(world, chunk);
-    queue<RelPos> sunNodes;
+    queue<LightNode> sunNodes;
     ScatterSunlight(world, chunk, sunNodes);
     chunk->state = CHUNK_SCATTERED;
 }
