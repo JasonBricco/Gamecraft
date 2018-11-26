@@ -238,6 +238,8 @@ static inline void AddChunkToHash(World* world, Chunk* chunk)
 
 static inline RebasedPos Rebase(World* world, LChunkPos lP, int rX, int rZ)
 {
+    assert(ChunkInsideWorld(world, lP.x, lP.z));
+    
     if (rX < 0)
         return Rebase(world, lP + DIRECTIONS_2D[DIRECTION_LEFT], CHUNK_SIZE_X + rX, rZ);
 
@@ -568,7 +570,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     {
         world->playerRegion = LWorldToRegionPos(player->pos, world->ref);
 
-        if (world->chunksBuilding == 0)
+        if (world->buildCount == 0 && world->scatterCount == 0)
             CheckWorld(state, world, player);
 
         world->visibleCount = 0;

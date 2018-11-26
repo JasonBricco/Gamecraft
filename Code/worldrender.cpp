@@ -167,6 +167,7 @@ static void GenerateLight(World* world, Chunk* chunk)
     queue<LightNode> sunNodes;
     ScatterSunlight(world, chunk, sunNodes);
     chunk->state = CHUNK_SCATTERED;
+    world->scatterCount--;
 }
 
 // Builds mesh data for the chunk.
@@ -264,6 +265,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
                 if (NeighborsHaveState(world, chunk, CHUNK_LOADED))
                 {
                     chunk->state = CHUNK_SCATTERING;
+                    world->scatterCount++;
                     QueueAsync(state, GenerateLight, world, chunk);
                 }
             } break;
@@ -273,7 +275,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
                 if (NeighborsHaveState(world, chunk, CHUNK_SCATTERED))
                 {
                     chunk->state = CHUNK_BUILDING;
-                    world->chunksBuilding++;
+                    world->buildCount++;
                     QueueAsync(state, BuildChunk, world, chunk);
                 }
             } break;
@@ -283,7 +285,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
                 assert(chunk->state == CHUNK_NEEDS_FILL);
                 FillChunkMeshes(chunk);
                 chunk->state = CHUNK_BUILT;
-                world->chunksBuilding--;
+                world->buildCount--;
             }
 
             case CHUNK_BUILT:

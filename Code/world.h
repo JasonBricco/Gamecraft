@@ -147,7 +147,10 @@ struct World
     Chunk** visibleChunks;
     int visibleCount;
 
-    int chunksBuilding;
+    // Tracks work being done by background threads so that the world cannot shift
+    // while background work is being done.
+    int buildCount;
+    atomic<int> scatterCount;
 
     vector<ivec4> chunksToCreate;
 
