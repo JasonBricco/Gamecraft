@@ -164,7 +164,6 @@ static void ScatterSunlight(World* world, Chunk* chunk, queue<LightNode>& nodes)
 
 static void GenerateLight(World* world, Chunk* chunk)
 {
-    ComputeRays(world, chunk);
     queue<LightNode> sunNodes;
     ScatterSunlight(world, chunk, sunNodes);
     chunk->state = CHUNK_SCATTERED;

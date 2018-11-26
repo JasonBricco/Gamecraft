@@ -86,6 +86,7 @@ static bool g_paused;
 #include "worldrender.h"
 #include "simulation.h"
 #include "async.h"
+#include "generation.h"
 #include "gamestate.h"
 
 #include "audio.cpp"

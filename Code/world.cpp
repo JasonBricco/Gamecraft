@@ -405,6 +405,17 @@ static inline Chunk* ChunkFromPool(World* world)
 	return chunk;
 }
 
+static void LoadChunk(World* world, Chunk* chunk)
+{
+    if (!LoadChunkFromDisk(world, chunk))
+        GenerateChunkTerrain(world, chunk);
+
+    assert(ChunkIsValid(world, chunk));
+    ComputeRays(world, chunk);
+
+    chunk->state = CHUNK_LOADED;
+}
+
 static Chunk* CreateChunk(GameState* state, World* world, int lcX, int lcZ, ChunkPos cPos)
 {
     int index = ChunkIndex(world, lcX, lcZ);

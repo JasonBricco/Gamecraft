@@ -163,7 +163,7 @@ static Ray ScreenCenterToRay(GameState* state, Camera* cam)
 	return { origin, cam->forward };
 }
 
-// The six camera frustum planes can be obtained using the eight points the define the corners
+// The six camera frustum planes can be obtained using the eight points that define the corners
 // of the view frustum. This is an optimized version.
 static inline void GetCameraPlanes(Camera* cam)
 {	
