@@ -413,8 +413,6 @@ static void LoadChunk(World* world, Chunk* chunk)
         GenerateChunkTerrain(world, chunk);
 
     assert(ChunkIsValid(world, chunk));
-    ComputeRays(world, chunk);
-
     chunk->state = CHUNK_LOADED;
 }
 
@@ -570,7 +568,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     {
         world->playerRegion = LWorldToRegionPos(player->pos, world->ref);
 
-        if (world->buildCount == 0 && world->scatterCount == 0)
+        if (world->buildCount == 0)
             CheckWorld(state, world, player);
 
         world->visibleCount = 0;

@@ -108,7 +108,7 @@ static char* buildType = "DEBUG";
 static char* buildType = "RELEASE";
 #endif
 
-static char* buildID = "110";
+static char* buildID = "115";
 
 static vec3 clearColor = vec3(0.53f, 0.80f, 0.92f);
 
@@ -217,6 +217,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
+
 	if (!glfwInit())
 		Error("GLFW failed to initialize.\n");
 
