@@ -76,7 +76,7 @@ struct Chunk
 
     ChunkState state;
 
-    bool active, modified;
+    bool active, inLevel;
 
     Chunk* next;
 };
@@ -134,6 +134,10 @@ struct World
     int size;
 
     int loadRange;
+
+    // The area the world actually exists.
+    // Chunks outside of this range are entirely air.
+    Recti bounds;
 
     // Chunk pool to avoid constant allocating/freeing.
     Chunk** pool;

@@ -211,7 +211,7 @@ static bool LoadChunkFromDisk(World* world, Chunk* chunk)
 
 static void SaveChunk(World* world, Chunk* chunk)
 {
-	assert(chunk->modified);
+	assert(chunk->inLevel);
 
     ChunkPos p = chunk->cPos;
 
@@ -262,7 +262,6 @@ static void SaveChunk(World* world, Chunk* chunk)
     }
 
     store->data[1] = (uint16_t)(store->size - 2);
-    chunk->modified = false;
 }
 
 static void SaveWorld(World* world)
@@ -276,7 +275,7 @@ static void SaveWorld(World* world)
     {
         Chunk* chunk = world->chunks[i];
 
-        if (chunk->modified)
+        if (chunk->inLevel)
             SaveChunk(world, chunk);
     }
 

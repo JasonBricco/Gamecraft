@@ -2,11 +2,20 @@
 // Jason Bricco
 //
 
+using AsyncCallback = void(*)(World*, Chunk*);
 using AsyncFunc = void(*)(World*, Chunk*);
 
 struct AsyncItem
 {
     AsyncFunc func;
+    World* world;
+    Chunk* chunk;
+    AsyncCallback callback;
+};
+
+struct AsyncCallbackItem
+{
+    AsyncCallback callback;
     World* world;
     Chunk* chunk;
 };
@@ -23,4 +32,7 @@ struct WorkQueue
     // Stores all work to be done by background threads.
     AsyncItem* items;
     int size;
+
+    mutex callbackMutex;
+    queue<AsyncCallbackItem> callbacks;
 };

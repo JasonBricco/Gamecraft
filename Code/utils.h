@@ -165,6 +165,22 @@ static inline Rectf NewRect(vec3 min, vec3 max)
     return { min, max };
 }
 
+struct Recti
+{
+    ivec3 min;
+    ivec3 max;
+};
+
+static inline Recti NewRect(ivec3 min, ivec3 max)
+{
+    return { min, max };
+}
+
+static inline bool Intersects(ivec3 pos, Recti rect)
+{
+    return pos.x >= rect.min.x && pos.z >= rect.min.z && pos.x < rect.max.x && pos.z < rect.max.z;
+}
+
 // Implements hashing and equality checking operations for the ivec3 type.
 // This allows it to be a key in a map.
 struct ivec3Key

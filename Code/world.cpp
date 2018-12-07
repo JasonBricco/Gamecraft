@@ -322,7 +322,6 @@ static inline void SetBlock(Chunk* chunk, RelPos pos, Block block)
 static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkPos lP, RelPos rP)
 {
     chunk->pendingUpdate = true;
-    chunk->modified = true;
 
     for (int i = 0; i < 8; i++)
     {
@@ -373,8 +372,6 @@ static void FillChunk(Chunk* chunk, Block block)
 // Fill a chunk with a single block type.
 static void FillChunk(World* world, Chunk* chunk, Block block)
 {
-    chunk->modified = true;
-
     FillChunk(chunk, block);
 
     // Rebuild meshes for this chunk and all neighbor chunks.
@@ -409,11 +406,18 @@ static inline Chunk* ChunkFromPool(World* world)
 
 static void LoadChunk(World* world, Chunk* chunk)
 {
-    if (!LoadChunkFromDisk(world, chunk))
-        GenerateChunkTerrain(world, chunk);
+    // Only generate the chunk if it falls within the world boundaries.
+    // If not, it will be left in its default state - entirely air.
+    if (Intersects(chunk->cPos, world->bounds))
+    {
+        if (!LoadChunkFromDisk(world, chunk))
+            GenerateChunkTerrain(world, chunk);
 
-    assert(ChunkIsValid(world, chunk));
-    ComputeRays(world, chunk);
+        assert(ChunkIsValid(world, chunk));
+        ComputeRays(world, chunk);
+
+        chunk->inLevel = true;
+    }
 
     chunk->state = CHUNK_LOADED;
 }
@@ -437,13 +441,18 @@ static Chunk* CreateChunk(GameState* state, World* world, int lcX, int lcZ, Chun
 	return chunk;
 }
 
-static void DestroyChunk(World* world, Chunk* chunk)
+static void DestroyChunkCallback(World* world, Chunk* chunk)
 {
-    if (chunk->modified)
-        SaveChunk(world, chunk);
-
     DestroyChunkMeshes(chunk);
-	AddChunkToPool(world, chunk);
+    AddChunkToPool(world, chunk);
+}
+
+static void DestroyChunk(GameState* state, World* world, Chunk* chunk)
+{
+    if (chunk->inLevel)
+        QueueAsync(state, SaveChunk, world, chunk, DestroyChunkCallback);
+    else 
+        DestroyChunkCallback(world, chunk);
 }
 
 // To allow "infinite" terrain, the world is always located near the origin.
@@ -559,6 +568,8 @@ static void CheckWorld(GameState* state, World* world, Player* player)
 
 static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* player)
 {
+    RunAsyncCallbacks(state->workQueue);
+
     if (!player->spawned)
     {
         Chunk* spawnChunk = GetChunk(world, ChunkToLChunkPos(world->spawnChunk, world->ref));
@@ -584,15 +595,17 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
             Chunk* chunk = DequeueChunk(world->destroyQueue);
 
             if (chunk->state != CHUNK_LOADING)
-                DestroyChunk(world, chunk);
+                DestroyChunk(state, world, chunk);
             else EnqueueChunk(world->destroyQueue, chunk);
         }
     }
 }
 
-static World* NewWorld(GameState* state, int loadRange)
+static World* NewWorld(GameState* state, int loadRange, ivec3 minBounds, ivec3 maxBounds)
 {
     World* world = Calloc<World>();
+
+    world->bounds = NewRect(minBounds, maxBounds);
 
     // Load range worth of chunks on each side plus the middle chunk.
     world->size = (loadRange * 2) + 1;
