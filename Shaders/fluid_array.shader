@@ -38,6 +38,7 @@ void main()
 	float sun = vertColor.a;
 
 	vec3 amb = vec3(ambient) * sun;
+	amb = max(amb, light);
 
 	outColor.xyz *= amb;
     outColor.a = 0.5f;

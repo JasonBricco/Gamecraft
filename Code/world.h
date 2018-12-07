@@ -51,6 +51,8 @@ enum ChunkState
 {
     CHUNK_LOADING,
     CHUNK_LOADED,
+    CHUNK_SCATTERING,
+    CHUNK_SCATTERED,
     CHUNK_BUILDING,
     CHUNK_NEEDS_FILL,
     CHUNK_BUILT,
@@ -65,6 +67,10 @@ struct Chunk
 
     Block blocks[CHUNK_SIZE_3];
     Mesh* meshes[CHUNK_MESH_COUNT];
+
+    uint8_t rays[CHUNK_SIZE_2];
+    uint8_t lights[CHUNK_SIZE_3];
+    uint8_t sunlight[CHUNK_SIZE_3];
 
     bool pendingUpdate;
 
@@ -144,6 +150,7 @@ struct World
     // Tracks work being done by background threads so that the world cannot shift
     // while background work is being done.
     int buildCount;
+    atomic<int> scatterCount;
 
     vector<ivec4> chunksToCreate;
 
@@ -178,6 +185,12 @@ struct World
     int seed;
 
     BlockData blockData[BLOCK_COUNT];
+
+    // Used to prevent multiple threads from scattering light at the same time.
+    // This is required since light values are written into neighbor chunks.
+    // If two threads are writing into the same neighbor chunk at the same time,
+    // incorrect lighting values could result.
+    mutex scatterMutex;
 };
 
 struct RebasedPos
