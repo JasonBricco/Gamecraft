@@ -51,8 +51,6 @@ enum ChunkState
 {
     CHUNK_LOADING,
     CHUNK_LOADED,
-    CHUNK_SCATTERING,
-    CHUNK_SCATTERED,
     CHUNK_BUILDING,
     CHUNK_NEEDS_FILL,
     CHUNK_BUILT,
@@ -68,15 +66,11 @@ struct Chunk
     Block blocks[CHUNK_SIZE_3];
     Mesh* meshes[CHUNK_MESH_COUNT];
 
-    uint8_t rays[CHUNK_SIZE_2];
-    uint8_t lights[CHUNK_SIZE_3];
-    uint8_t sunlight[CHUNK_SIZE_3];
-
     bool pendingUpdate;
 
     ChunkState state;
 
-    bool active, inLevel;
+    bool active, modified;
 
     Chunk* next;
 };
@@ -88,56 +82,23 @@ struct ChunkQueue
     int count;
 };
 
-struct SerializedChunk
-{
-    int size, maxSize;
-    uint16_t* data;
-
-    inline void Add(uint16_t value)
-    {
-        if (size + 1 > maxSize)
-        {
-            maxSize = (maxSize + 1) * 2;
-            data = Realloc<uint16_t>(data, maxSize);
-            assert(data != nullptr);
-        }
-
-        data[size++] = value;
-    }
-
-    inline void Reserve(int count)
-    {
-        maxSize = count;
-        data = Realloc<uint16_t>(data, count);
-        assert(data != nullptr);
-    }
-
-    inline void Clear()
-    {
-        size = 0;
-    }
-};
-
-struct Region
-{
-    SerializedChunk* chunks;
-    bool hasData;
-};
+struct Player;
+struct Region;
 
 typedef unordered_map<RegionPos, Region, ivec3Key, ivec3Key> RegionMap;
-struct Player;
 
 struct World
 {
-    // Size of the active world near the origin. 
+    // Size of the active world near the origin.
     // The potential world is unlimited in size.
     int size;
 
     int loadRange;
 
-    // The area the world actually exists.
-    // Chunks outside of this range are entirely air.
-    Recti bounds;
+    // The radius of the island the terrain generates within and the radius
+    // at which the terrain begins falling off into sea.
+    int sqRadius;
+    int falloffRadius;
 
     // Chunk pool to avoid constant allocating/freeing.
     Chunk** pool;
@@ -154,7 +115,6 @@ struct World
     // Tracks work being done by background threads so that the world cannot shift
     // while background work is being done.
     int buildCount;
-    atomic<int> scatterCount;
 
     vector<ivec4> chunksToCreate;
 
@@ -189,12 +149,6 @@ struct World
     int seed;
 
     BlockData blockData[BLOCK_COUNT];
-
-    // Used to prevent multiple threads from scattering light at the same time.
-    // This is required since light values are written into neighbor chunks.
-    // If two threads are writing into the same neighbor chunk at the same time,
-    // incorrect lighting values could result.
-    mutex scatterMutex;
 };
 
 struct RebasedPos

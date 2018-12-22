@@ -4,25 +4,25 @@
 
 static inline int RegionIndex(int x, int z)
 {
-	return z * REGION_SIZE + x;
+    return z * REGION_SIZE + x;
 }
 
 static inline int RegionIndex(ivec3 p)
 {
-	return RegionIndex(p.x, p.z);
+    return RegionIndex(p.x, p.z);
 }
 
 static bool LoadRegionFile(World* world, RegionPos p, RegionMap::iterator* it)
 {
     Print("Loading region at %i, %i\n", p.x, p.z);
 
-	char path[MAX_PATH];
+    char path[MAX_PATH];
     sprintf(path, "%s\\%i%i.txt", world->savePath, p.x, p.z);
 
-	if (!PathFileExists(path))
-		return false;
+    if (!PathFileExists(path))
+        return false;
 
-	HANDLE file = CreateFile(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE file = CreateFile(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         
     if (file == INVALID_HANDLE_VALUE)
     {
@@ -66,7 +66,7 @@ static bool LoadRegionFile(World* world, RegionPos p, RegionMap::iterator* it)
 
         if (!ReadFile(file, chunk->data + 2, items * sizeof(uint16_t), &bytesRead, NULL))
         {
-        	Print("Failed to load serialized chunk data. Error: %s", GetLastErrorText().c_str());
+            Print("Failed to load serialized chunk data. Error: %s", GetLastErrorText().c_str());
             Print("Tried to read %i items\n", items);
             return false;
         }
@@ -84,12 +84,12 @@ static bool LoadRegionFile(World* world, RegionPos p, RegionMap::iterator* it)
 
 static void SaveRegions(World* world)
 {
-	RegionMap& map = world->regions;
+    RegionMap& map = world->regions;
 
-	for (auto it = map.begin(); it != map.end();)
-	{
-		RegionPos p = it->first;
-		Region region = it->second;
+    for (auto it = map.begin(); it != map.end();)
+    {
+        RegionPos p = it->first;
+        Region region = it->second;
 
         if (!region.hasData)
         {
@@ -97,44 +97,44 @@ static void SaveRegions(World* world)
             continue;
         }
 
-		char path[MAX_PATH];
-    	sprintf(path, "%s\\%i%i.txt", world->savePath, p.x, p.z);
+        char path[MAX_PATH];
+        sprintf(path, "%s\\%i%i.txt", world->savePath, p.x, p.z);
 
-		HANDLE file = CreateFile(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        HANDLE file = CreateFile(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
-		if (file == INVALID_HANDLE_VALUE)
-		{
-		    Print("An error occurred while saving region %i, %i: %s\n", p.x, p.z, GetLastErrorText().c_str());
-		    return;
-		}
+        if (file == INVALID_HANDLE_VALUE)
+        {
+            Print("An error occurred while saving region %i, %i: %s\n", p.x, p.z, GetLastErrorText().c_str());
+            return;
+        }
 
-		for (int z = 0; z < REGION_SIZE; z++)
-		{
-			for (int x = 0; x < REGION_SIZE; x++)
-			{
-				int index = RegionIndex(x, z);
+        for (int z = 0; z < REGION_SIZE; z++)
+        {
+            for (int x = 0; x < REGION_SIZE; x++)
+            {
+                int index = RegionIndex(x, z);
                 assert(index >= 0 && index < REGION_SIZE_3);
 
-				SerializedChunk* chunk = region.chunks + index;
+                SerializedChunk* chunk = region.chunks + index;
 
                 if (chunk->size > 0)
                 {
-    				DWORD bytesToWrite = sizeof(uint16_t) * chunk->size;
-    				DWORD bytesWritten;
+                    DWORD bytesToWrite = sizeof(uint16_t) * chunk->size;
+                    DWORD bytesWritten;
 
-    				if (!WriteFile(file, chunk->data, bytesToWrite, &bytesWritten, NULL))
-    	    		{
-    	        		Print("Failed to save chunk. Error: %s\n", GetLastErrorText().c_str());
-    	        		continue;
-    	    		}
+                    if (!WriteFile(file, chunk->data, bytesToWrite, &bytesWritten, NULL))
+                    {
+                        Print("Failed to save chunk. Error: %s\n", GetLastErrorText().c_str());
+                        continue;
+                    }
 
-    	    		assert(bytesWritten == bytesToWrite);
+                    assert(bytesWritten == bytesToWrite);
 
-    	    		if (SetFilePointer(file, 0l, nullptr, FILE_END) == INVALID_SET_FILE_POINTER)
-    					Print("Failed to set the file pointer to the end of file.\n");
+                    if (SetFilePointer(file, 0l, nullptr, FILE_END) == INVALID_SET_FILE_POINTER)
+                        Print("Failed to set the file pointer to the end of file.\n");
                 }
-			}
-		}
+            }
+        }
 
         ivec3 diff = p - world->playerRegion;
 
@@ -146,13 +146,13 @@ static void SaveRegions(World* world)
         else it++;
 
         Print("Region at %i, %i saved successfully!\n", p.x, p.z);
-		CloseHandle(file);
-	}
+        CloseHandle(file);
+    }
 }
 
 static bool LoadChunkFromDisk(World* world, Chunk* chunk)
 {
-	ChunkPos p = chunk->cPos;
+    ChunkPos p = chunk->cPos;
     RegionPos regionP = ChunkToRegionPos(p);
 
     world->regionMutex.lock();
@@ -211,7 +211,7 @@ static bool LoadChunkFromDisk(World* world, Chunk* chunk)
 
 static void SaveChunk(World* world, Chunk* chunk)
 {
-	assert(chunk->inLevel);
+    assert(chunk->modified);
 
     ChunkPos p = chunk->cPos;
 
@@ -223,7 +223,7 @@ static void SaveChunk(World* world, Chunk* chunk)
     Region& region = it->second;
     assert(RegionIsValid(region));
 
-	ivec3 local = ivec3(p.x & REGION_MASK, 0, p.z & REGION_MASK);
+    ivec3 local = ivec3(p.x & REGION_MASK, 0, p.z & REGION_MASK);
     int offset = RegionIndex(local);
 
     assert(offset >= 0 && offset < REGION_SIZE_3);
@@ -262,6 +262,7 @@ static void SaveChunk(World* world, Chunk* chunk)
     }
 
     store->data[1] = (uint16_t)(store->size - 2);
+    chunk->modified = false;
 }
 
 static void SaveWorld(World* world)
@@ -275,7 +276,7 @@ static void SaveWorld(World* world)
     {
         Chunk* chunk = world->chunks[i];
 
-        if (chunk->inLevel)
+        if (chunk->modified)
             SaveChunk(world, chunk);
     }
 

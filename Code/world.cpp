@@ -322,6 +322,7 @@ static inline void SetBlock(Chunk* chunk, RelPos pos, Block block)
 static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkPos lP, RelPos rP)
 {
     chunk->pendingUpdate = true;
+    chunk->modified = true;
 
     for (int i = 0; i < 8; i++)
     {
@@ -406,19 +407,10 @@ static inline Chunk* ChunkFromPool(World* world)
 
 static void LoadChunk(World* world, Chunk* chunk)
 {
-    // Only generate the chunk if it falls within the world boundaries.
-    // If not, it will be left in its default state - entirely air.
-    if (Intersects(chunk->cPos, world->bounds))
-    {
-        if (!LoadChunkFromDisk(world, chunk))
-            GenerateChunkTerrain(world, chunk);
+    if (!LoadChunkFromDisk(world, chunk))
+        GenerateChunkTerrain(world, chunk);
 
-        assert(ChunkIsValid(world, chunk));
-        ComputeRays(world, chunk);
-
-        chunk->inLevel = true;
-    }
-
+    assert(ChunkIsValid(world, chunk));
     chunk->state = CHUNK_LOADED;
 }
 
@@ -449,10 +441,9 @@ static void DestroyChunkCallback(World* world, Chunk* chunk)
 
 static void DestroyChunk(GameState* state, World* world, Chunk* chunk)
 {
-    if (chunk->inLevel)
+    if (chunk->modified)
         QueueAsync(state, SaveChunk, world, chunk, DestroyChunkCallback);
-    else 
-        DestroyChunkCallback(world, chunk);
+    else DestroyChunkCallback(world, chunk);
 }
 
 // To allow "infinite" terrain, the world is always located near the origin.
@@ -581,7 +572,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     {
         world->playerRegion = LWorldToRegionPos(player->pos, world->ref);
 
-        if (world->buildCount == 0 && world->scatterCount == 0)
+        if (world->buildCount == 0)
             CheckWorld(state, world, player);
 
         world->visibleCount = 0;
@@ -601,11 +592,12 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     }
 }
 
-static World* NewWorld(GameState* state, int loadRange, ivec3 minBounds, ivec3 maxBounds)
+static World* NewWorld(GameState* state, int loadRange, int radius)
 {
     World* world = Calloc<World>();
 
-    world->bounds = NewRect(minBounds, maxBounds);
+    world->sqRadius = Square(radius);
+    world->falloffRadius = Square(radius - (CHUNK_SIZE_X * 2));
 
     // Load range worth of chunks on each side plus the middle chunk.
     world->size = (loadRange * 2) + 1;

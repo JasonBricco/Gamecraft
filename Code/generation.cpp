@@ -60,36 +60,52 @@ static void GenerateChunkTerrain(World* world, Chunk* chunk)
     {
         for (int z = 0; z < CHUNK_SIZE_X; z++)
         {
-            float terrainVal;
-            float biomeVal = GetRawNoiseValue2D(biome, x, z);
+            // Determine if this column is inside of the island. The world center is assumed to be the origin (0, 0).
+            int valueInCircle = Square(start.x + x) + Square(start.z + z);
 
-            // Value for flat terrain.
-            float flat = GetNoiseValue2D(base, x, z);
-            flat = ((flat * 0.2f) * 30.0f) + 10.0f;
-
-            // Value for mountainous terrain.
-            float mountain = GetNoiseValue2D(ridged, x, z);
-            mountain = (pow(mountain, 3.5f) * 60.0f) + 20.0f;
-
-            float lower = 0.0f;
-            float upper = 0.6f;
-
-            if (biomeVal < lower)
-                terrainVal = flat;
-            else if (biomeVal > upper)
-                terrainVal = mountain;
-            else
+            if (valueInCircle < world->sqRadius)
             {
-                // If we're close to the boundary between the two terrain types,
-                // interpolate between them for a smooth transition.
-                float a = SCurve3((biomeVal - lower) / (upper - lower));
-                terrainVal = Lerp(flat, mountain, a);
+                float p = 1.0f;
+
+                if (valueInCircle > world->falloffRadius)
+                    p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->sqRadius - world->falloffRadius));
+
+                float terrainVal;
+                float biomeVal = GetRawNoiseValue2D(biome, x, z);
+
+                // Value for flat terrain.
+                float flat = GetNoiseValue2D(base, x, z);
+                flat = ((flat * 0.2f) * 30.0f) + 10.0f;
+
+                // Value for mountainous terrain.
+                float mountain = GetNoiseValue2D(ridged, x, z);
+                mountain = (pow(mountain, 3.5f) * 60.0f) + 20.0f;
+
+                float lower = 0.0f;
+                float upper = 0.6f;
+
+                if (biomeVal < lower)
+                    terrainVal = flat;
+                else if (biomeVal > upper)
+                    terrainVal = mountain;
+                else
+                {
+                    // If we're close to the boundary between the two terrain types,
+                    // interpolate between them for a smooth transition.
+                    float a = SCurve3((biomeVal - lower) / (upper - lower));
+                    terrainVal = Lerp(flat, mountain, a);
+                }
+
+                int height = (int)(terrainVal * p);
+                surfaceMap[z * CHUNK_SIZE_X + x] = height;
+
+                maxY = Max(maxY, Max(height, SEA_LEVEL));
             }
-
-            int height = (int)terrainVal;
-            surfaceMap[z * CHUNK_SIZE_X + x] = height;
-
-            maxY = Max(maxY, Max(height, SEA_LEVEL));
+            else 
+            {
+                surfaceMap[z * CHUNK_SIZE_X + x] = 0;
+                maxY = Max(maxY, SEA_LEVEL);
+            }
         }
     }
 

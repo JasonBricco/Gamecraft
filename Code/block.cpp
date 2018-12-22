@@ -32,18 +32,6 @@ static inline SoundAsset* GetBlockSetSound(World* world, Block block)
     return world->blockData[block].onSetSound;
 }
 
-static inline uint8_t GetLightEmitted(World* world, Block block)
-{
-    return world->blockData[block].light;
-}
-
-static inline int GetBlockLightStep(World* world, Block block)
-{
-    int step = world->blockData[block].lightStep;
-    assert(step > 0);
-    return step;
-}
-
 static inline bool IsTransparent(World* world, Block block)
 {
     return GetCullType(world, block) != CULL_OPAQUE;
@@ -65,7 +53,6 @@ static void CreateBlockData(GameState* state, BlockData* data)
     air.cull = CULL_ALL;
     air.passable = true;
     air.onSetSound = GetAsset<SoundAsset>(state, ASSET_LEAVES_SOUND);
-    air.lightStep = 1;
 
     BlockData& grass = data[BLOCK_GRASS];
     SetBlockTextures(grass, 0.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f);
@@ -89,7 +76,6 @@ static void CreateBlockData(GameState* state, BlockData* data)
     water.cull = CULL_TRANSPARENT;
     water.passable = true;
     water.onSetSound = GetAsset<SoundAsset>(state, ASSET_STONE_SOUND);
-    water.lightStep = 2;
 
     BlockData& sand = data[BLOCK_SAND];
     SetBlockTextures(sand, 5.0f, 5.0f, 5.0f, 5.0f, 5.0f, 5.0f);
