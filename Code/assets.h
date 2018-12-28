@@ -2,37 +2,67 @@
 // Jason Bricco
 //
 
-enum AssetID
+enum ImageID
 {
-	ASSET_EMPTY,
-	ASSET_DIFFUSE_ARRAY,
-	ASSET_CROSSHAIR,
-	ASSET_DIFFUSE_SHADER,
-	ASSET_FLUID_SHADER,
-	ASSET_CROSSHAIR_SHADER,
-	ASSET_FADE_SHADER,
-	ASSET_STONE_SOUND,
-	ASSET_LEAVES_SOUND,
-	ASSET_COUNT
+	IMAGE_CRATE,
+	IMAGE_DIRT,
+	IMAGE_GRASS,
+	IMAGE_GRASS_SIDE,
+	IMAGE_SAND,
+	IMAGE_STONE,
+	IMAGE_STONE_BRICK,
+	IMAGE_WATER,
+	IMAGE_CROSSHAIR,
+	IMAGE_COUNT
 };
 
-struct Asset {};
+enum ImageArrayID
+{
+	IMAGE_ARRAY_BLOCKS,
+	IMAGE_ARRAY_COUNT
+};
 
-struct Shader : public Asset
+enum SoundID
+{
+	SOUND_LEAVES,
+	SOUND_STONE,
+	SOUND_COUNT
+};
+
+enum ShaderID
+{
+	SHADER_CROSSHAIR,
+	SHADER_DIFFUSE_ARRAY,
+	SHADER_FLUID_ARRAY,
+	SHADER_FADE,
+	SHADER_COUNT
+};
+
+typedef vector<ImageData> TextureArrayData;
+
+struct Shader
 {
     GLuint handle;
     GLint model, view, proj, ambient, time, color;
 };
 
-struct Texture : public Asset
+struct Texture
 {
 	GLuint id;
 };
 
-struct SoundAsset : public Asset
+struct Sound
 {
 	AudioEngine* engine;
 	int16_t* samples;
-	int sampleCount;
-	int sampleRate;
+	uint32_t sampleCount;
+	uint32_t sampleRate;
+};
+
+struct AssetDatabase
+{
+	Texture images[IMAGE_COUNT];
+	Texture imageArrays[IMAGE_ARRAY_COUNT];
+	Sound sounds[SOUND_COUNT];
+	Shader shaders[SHADER_COUNT];
 };

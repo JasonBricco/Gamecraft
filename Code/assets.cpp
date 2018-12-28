@@ -2,73 +2,92 @@
 // Jason Bricco
 //
 
-template <typename T>
-static inline T* GetAsset(GameState* state, AssetID id)
+static Texture GetTexture(GameState* state, ImageID id)
 {
-    static_assert(is_base_of<Asset, T>::value);
-    return (T*)state->assets[id];
+    return state->assets.images[id];
 }
 
-static inline void SetAsset(GameState* state, AssetID id, Asset* asset)
+static Texture GetTextureArray(GameState* state, ImageArrayID id)
 {
-    state->assets[id] = asset;
+    return state->assets.imageArrays[id];
+}
+
+static Sound GetSound(GameState* state, SoundID id)
+{
+    return state->assets.sounds[id];
+}
+
+static Shader GetShader(GameState* state, ShaderID id)
+{
+    return state->assets.shaders[id];
 }
 
 static void LoadAssets(GameState* state)
 {
-    Shader* diffuseShader = (Shader*)LoadShader("Shaders\\diffuse_array.shader");
-    diffuseShader->view = glGetUniformLocation(diffuseShader->handle, "view");
-    diffuseShader->model = glGetUniformLocation(diffuseShader->handle, "model");
-    diffuseShader->proj = glGetUniformLocation(diffuseShader->handle, "projection");
-    diffuseShader->ambient = glGetUniformLocation(diffuseShader->handle, "ambient");
-    SetAsset(state, ASSET_DIFFUSE_SHADER, diffuseShader);
+    char* path = PathToExe("Assets/Assets.gca");
 
-    Shader* fluidShader = (Shader*)LoadShader("Shaders\\fluid_array.shader");
-    fluidShader->view = glGetUniformLocation(fluidShader->handle, "view");
-    fluidShader->model = glGetUniformLocation(fluidShader->handle, "model");
-    fluidShader->proj = glGetUniformLocation(fluidShader->handle, "projection");
-    fluidShader->time = glGetUniformLocation(fluidShader->handle, "time");
-    fluidShader->ambient = glGetUniformLocation(fluidShader->handle, "ambient");
-    SetAsset(state, ASSET_FLUID_SHADER, fluidShader);
+    int size;
+    char* data = (char*)ReadFileData(path, &size);
 
-    Shader* crosshair = (Shader*)LoadShader("Shaders\\crosshair.shader");
-    crosshair->model = glGetUniformLocation(crosshair->handle, "model");
-    crosshair->proj = glGetUniformLocation(crosshair->handle, "projection");
-    SetAsset(state, ASSET_CROSSHAIR_SHADER, crosshair);
+    AssetFileHeader* header = (AssetFileHeader*)data;
 
-    Shader* fade = (Shader*)LoadShader("Shaders\\fade.shader");
-    fade->color = glGetUniformLocation(fade->handle, "inColor");
-    SetAsset(state, ASSET_FADE_SHADER, fade);
+    ImageData* imageData = (ImageData*)(data + header->images);
+    SoundData* soundData = (SoundData*)(data + header->sounds);
+    ShaderData* shaderData = (ShaderData*)(data + header->shaders);
 
-    const int texCount = 8;
-    char* paths[texCount];
+    AssetDatabase& db = state->assets;
 
-    paths[0] = "Assets/Grass.png";
-    paths[1] = "Assets/GrassSide.png";
-    paths[2] = "Assets/Dirt.png";
-    paths[3] = "Assets/Stone.png";
-    paths[4] = "Assets/Water.png";
-    paths[5] = "Assets/Sand.png";
-    paths[6] = "Assets/Crate.png";
-    paths[7] = "Assets/StoneBrick.png";
+    TextureArrayData* arrays = new TextureArrayData[header->arrayCount];
 
-    Texture* diffuseArray = Malloc<Texture>();
-    LoadTextureArray(diffuseArray, paths, texCount, true);
-    SetAsset(state, ASSET_DIFFUSE_ARRAY, diffuseArray);
+    for (uint32_t i = 0; i < header->imageCount; i++)
+    {
+        ImageData image = *(imageData + i);
 
-    Texture* crosshairTex = Malloc<Texture>();
-    LoadTexture(crosshairTex, "Assets/Crosshair.png");
-    SetAsset(state, ASSET_CROSSHAIR, crosshairTex);
+        if (image.array != INT_MAX)
+            arrays[image.array].push_back(image);
+        else db.images[i] = LoadTexture(image.width, image.height, (uint8_t*)(data + image.pixels));
+    }
+
+    for (uint32_t i = 0; i < header->arrayCount; i++)
+        db.imageArrays[i] = LoadTextureArray(arrays[i], data);
+
+    delete[] arrays;
 
     AudioEngine* audio = &state->audio;
+    
+    for (uint32_t i = 0; i < header->soundCount; i++)
+    {
+        SoundData sound = *(soundData + i);
+        db.sounds[i] = { audio, (int16_t*)(data + sound.samples), sound.sampleCount, sound.sampleRate };
+    }
 
-    SoundAsset* stoneSound = Calloc<SoundAsset>();
-    SetAsset(state, ASSET_STONE_SOUND, stoneSound);
-    LoadSound(audio, stoneSound, "Assets/Stone.ogg");
+    for (uint32_t i = 0; i < header->shaderCount; i += 2)
+    {
+        ShaderData vert = *(shaderData + i);
+        ShaderData frag = *(shaderData + i + 1);
 
-    SoundAsset* leavesSound = Calloc<SoundAsset>();
-    SetAsset(state, ASSET_LEAVES_SOUND, leavesSound);
-    LoadSound(audio, leavesSound, "Assets/Leaves.ogg");
+        db.shaders[i / 2] = LoadShader(vert.length, data + vert.data, frag.length, data + frag.data);
+    }
+
+    Shader& diffuseArray = db.shaders[SHADER_DIFFUSE_ARRAY];
+    diffuseArray.view = glGetUniformLocation(diffuseArray.handle, "view");
+    diffuseArray.model = glGetUniformLocation(diffuseArray.handle, "model");
+    diffuseArray.proj = glGetUniformLocation(diffuseArray.handle, "projection");
+    diffuseArray.ambient = glGetUniformLocation(diffuseArray.handle, "ambient");
+
+    Shader& fluidArray = db.shaders[SHADER_FLUID_ARRAY];
+    fluidArray.view = glGetUniformLocation(fluidArray.handle, "view");
+    fluidArray.model = glGetUniformLocation(fluidArray.handle, "model");
+    fluidArray.proj = glGetUniformLocation(fluidArray.handle, "projection");
+    fluidArray.time = glGetUniformLocation(fluidArray.handle, "time");
+    fluidArray.ambient = glGetUniformLocation(fluidArray.handle, "ambient");
+
+    Shader& crosshair = db.shaders[SHADER_CROSSHAIR];
+    crosshair.model = glGetUniformLocation(crosshair.handle, "model");
+    crosshair.proj = glGetUniformLocation(crosshair.handle, "projection");
+
+    Shader& fade = db.shaders[SHADER_FADE];
+    fade.color = glGetUniformLocation(fade.handle, "inColor");
 
     LoadMusic(audio, "Assets\\LittleTown.ogg");
 }

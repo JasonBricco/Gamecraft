@@ -2,12 +2,12 @@
 // Jason Bricco
 //
 
-static inline void UseShader(Shader* shader)
+static inline void UseShader(Shader shader)
 {
-    glUseProgram(shader->handle);
+    glUseProgram(shader.handle);
 }
 
-static Graphic* CreateGraphic(Shader* shader, Texture* texture)
+static Graphic* CreateGraphic(Shader shader, Texture texture)
 {
 	Graphic* graphic = Calloc<Graphic>();
 	graphic->mesh = CreateMesh(16, 6);
@@ -31,11 +31,11 @@ static Graphic* CreateGraphic(Shader* shader, Texture* texture)
 
 static void DrawGraphic(Camera* cam, Graphic* graphic)
 {
-	Shader* shader = graphic->shader;
+	Shader shader = graphic->shader;
 	UseShader(shader);
-	SetUniform(shader->proj, cam->ortho);
+	SetUniform(shader.proj, cam->ortho);
 
-	glBindTexture(GL_TEXTURE_2D, graphic->texture->id);
+	glBindTexture(GL_TEXTURE_2D, graphic->texture.id);
 	DrawMesh(graphic->mesh, shader, graphic->pos);
 }
 
@@ -71,7 +71,7 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 
 static Camera* NewCamera()
 {
-	Camera* cam = Calloc<Camera>();
+	Camera* cam = new Camera();
 	cam->nearDist = 0.1f;
 	cam->farDist = 512.0f;
 	cam->sensitivity = 0.05f;
@@ -124,7 +124,7 @@ static void OnOpenGLMessage(GLenum, GLenum type, GLuint, GLenum severity, GLsize
 
 static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int screenHeight)
 {
-	Graphic* graphic = CreateGraphic(GetAsset<Shader>(state, ASSET_CROSSHAIR_SHADER), GetAsset<Texture>(state, ASSET_CROSSHAIR));
+	Graphic* graphic = CreateGraphic(GetShader(state, SHADER_CROSSHAIR), GetTexture(state, IMAGE_CROSSHAIR));
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
 	
 	cam->crosshair = graphic;
@@ -144,7 +144,7 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 	
 	FillMeshData(cam->fadeMesh, GL_STATIC_DRAW, fadeSpec);
 
-	cam->fadeShader = GetAsset<Shader>(state, ASSET_FADE_SHADER);
+	cam->fadeShader = GetShader(state, SHADER_FADE);
 	cam->fadeColor = CLEAR_COLOR;
 }
 
@@ -268,14 +268,14 @@ static void RenderScene(GameState* state, Camera* cam)
 	UpdateViewMatrix(cam);
 
 	// Opaque pass.
-	Shader* shader = GetAsset<Shader>(state, ASSET_DIFFUSE_SHADER);
+	Shader shader = GetShader(state, SHADER_DIFFUSE_ARRAY);
 
 	UseShader(shader);
-	SetUniform(shader->view, cam->view);
-	SetUniform(shader->proj, cam->perspective);
-	SetUniform(shader->ambient, state->ambient);
+	SetUniform(shader.view, cam->view);
+	SetUniform(shader.proj, cam->perspective);
+	SetUniform(shader.ambient, state->ambient);
 
-	glBindTexture(GL_TEXTURE_2D_ARRAY, GetAsset<Texture>(state, ASSET_DIFFUSE_ARRAY)->id);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, GetTextureArray(state, IMAGE_ARRAY_BLOCKS).id);
 	int count = (int)cam->meshLists[MESH_TYPE_OPAQUE].size();
 
 	for (int i = 0; i < count; i++)
@@ -288,13 +288,13 @@ static void RenderScene(GameState* state, Camera* cam)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Fluid pass.
-	shader = GetAsset<Shader>(state, ASSET_FLUID_SHADER);
+	shader = GetShader(state, SHADER_FLUID_ARRAY);
 
 	UseShader(shader);
-	SetUniform(shader->view, cam->view);
-	SetUniform(shader->proj, cam->perspective);
-	SetUniform(shader->time, cam->animTime);
-	SetUniform(shader->ambient, state->ambient);
+	SetUniform(shader.view, cam->view);
+	SetUniform(shader.proj, cam->perspective);
+	SetUniform(shader.time, cam->animTime);
+	SetUniform(shader.ambient, state->ambient);
 
 	if (cam->disableFluidCull) 
 		glDisable(GL_CULL_FACE);
@@ -317,7 +317,7 @@ static void RenderScene(GameState* state, Camera* cam)
 		shader = cam->fadeShader;
 
 		UseShader(shader);
-		SetUniform(shader->color, cam->fadeColor);
+		SetUniform(shader.color, cam->fadeColor);
 		DrawMesh(cam->fadeMesh);
 	}
 
@@ -334,63 +334,47 @@ static void RenderScene(GameState* state, Camera* cam)
 	END_TIMED_BLOCK(RENDER_SCENE);
 }
 
-static void LoadTexture(Texture* tex, char* asset)
+static Texture LoadTexture(int width, int height, uint8_t* pixels)
 {
-    int width, height, components;
+	Texture tex;
 
-    char* path = PathToExe(asset);
-    uint8_t* data = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
-    Free<char>(path);
-    assert(data != nullptr);
-
-    glGenTextures(1, &tex->id);
-    glBindTexture(GL_TEXTURE_2D, tex->id);
+    glGenTextures(1, &tex.id);
+    glBindTexture(GL_TEXTURE_2D, tex.id);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-    stbi_image_free(data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    return tex;
 }
 
-static void LoadTextureArray(Texture* tex, char** paths, int count, bool mipMaps)
+static Texture LoadTextureArray(TextureArrayData& data, char* assetData)
 {
-    uint8_t** dataList = Malloc<uint8_t*>(count);
+	Texture tex;
 
-    int width = 0, height = 0, components;
+	glGenTextures(1, &tex.id);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, tex.id);
 
-    for (int i = 0; i < count; i++)
-    {
-        char* path = PathToExe(paths[i]);
-        dataList[i] = stbi_load(path, &width, &height, &components, STBI_rgb_alpha);
-        Free<char>(path);
-        assert(dataList[i] != nullptr);
-    }
+    ImageData first = data[0];
+    int width = first.width, height = first.height;
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 6, GL_RGBA8, width, height, (GLsizei)data.size());
 
-    glGenTextures(1, &tex->id);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, tex->id);
-
-    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 6, GL_RGBA8, width, height, count);
-
-    for (int i = 0; i < count; i++)
-    {
-        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, dataList[i]);
-        stbi_image_free(dataList[i]);
-    }
+	for (int i = 0; i < data.size(); i++)
+		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, assetData + data[i].pixels);
 
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    if (mipMaps) glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
-
-    Free<uint8_t*>(dataList);
+    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+
+    return tex;
 }
 
 static void OutputShaderError(GLuint shader, char* mode)
@@ -398,12 +382,12 @@ static void OutputShaderError(GLuint shader, char* mode)
 	GLint length = 0;
 	glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
 
-    GLchar* errorLog = Calloc<GLchar>(length);
+    GLchar* errorLog = (GLchar*)calloc(length, sizeof(GLchar));
     glGetProgramInfoLog(shader, length, NULL, errorLog);
     
    	Print("Error! Shader program failed to %s. Log: %s\n", mode, length == 0 ? "No error given." : errorLog);
    	
-    Free<GLchar>(errorLog);
+    free(errorLog);
     Unused(mode);
 }
 
@@ -435,25 +419,17 @@ static bool ShaderHasErrors(GLuint shader, ShaderType type)
     return false;
 }
 
-static Shader* LoadShader(char* path)
+static Shader LoadShader(int vertLength, char* vertCode, int fragLength, char* fragCode)
 {
-    char* code = ReadFileData(path);
-
-    if (code == nullptr)
-        Error("Failed to load shader from file at path %s\n.", path);
-
-    char* vertex[2] = { "#version 440 core\n#define VERTEX 1\n", code };
-    char* frag[2] = { "#version 440 core\n", code };
-
     GLuint vS = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vS, 2, vertex, NULL);
+    glShaderSource(vS, 1, &vertCode, &vertLength);
     glCompileShader(vS);
     
     if (ShaderHasErrors(vS, VERTEX_SHADER))
        	Error("Failed to compile the vertex shader.\n");
 
     GLuint fS = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fS, 2, frag, NULL);
+    glShaderSource(fS, 1, &fragCode, &fragLength);
     glCompileShader(fS);
     
     if (ShaderHasErrors(fS, FRAGMENT_SHADER))
@@ -467,12 +443,8 @@ static Shader* LoadShader(char* path)
     if (ShaderHasErrors(program, SHADER_PROGRAM))
         Error("Failed to link the shaders into the program.\n");
 
-    free(code);
     glDeleteShader(vS);
     glDeleteShader(fS);
 
-    Shader* shader = Calloc<Shader>();
-    shader->handle = program;
-
-    return shader;
+    return { program };
 }

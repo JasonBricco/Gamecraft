@@ -18,6 +18,14 @@
 		{
 			"name": "Visual Studio",
 			"shell_cmd": "@echo off && W:/Misc/Run.bat -d"
+		},
+		{
+			"name": "Asset Builder (Debug)",
+			"shell_cmd": "@echo off && W:/Misc/Build.bat -ad"
+		},
+		{
+			"name": "Asset Builder (Release)",
+			"shell_cmd": "@echo off && W:/Misc/Build.bat -ar"
 		}
 	]
 }

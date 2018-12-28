@@ -16,8 +16,8 @@ struct Graphic
 {
     vec3 pos;
     Mesh* mesh;
-    Texture* texture;
-    Shader* shader;
+    Texture texture;
+    Shader shader;
 };
 
 enum FrustumVisibility
@@ -70,7 +70,7 @@ struct Camera
 
     // Screen fading.
     Color fadeColor;
-    Shader* fadeShader;
+    Shader fadeShader;
     Mesh* fadeMesh;
 
     // Backface culling will be enabled if this is true.
@@ -80,6 +80,6 @@ struct Camera
     float animTime;
 };
 
-static Shader* LoadShader(char* path);
-static void LoadTexture(Texture* tex, char* asset);
-static void LoadTextureArray(Texture* tex, char** paths, int count, bool mipMaps);
+static Shader LoadShader(int vertLength, char* vertCode, int fragLength, char* fragCode);
+static Texture LoadTexture(int width, int height, uint8_t* pixels);
+static Texture LoadTextureArray(TextureArrayData& data, char* assetData);

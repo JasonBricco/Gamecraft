@@ -27,10 +27,6 @@
 #include "GLFW/glfw3native.h"
 #include "FastNoiseSIMD.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_ONLY_PNG
-
-#include "stb_image.h"
 #include "stb_vorbis.h"
 
 #include <unordered_map>
@@ -75,6 +71,7 @@ static bool g_paused;
 #include "audio.h"
 #include "intrinsics.h"
 #include "filehelper.h"
+#include "assetbuilder.h"
 #include "assets.h"
 #include "input.h"
 #include "uniforms.h"

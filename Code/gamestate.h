@@ -4,7 +4,7 @@
 
 struct GameState
 {
-	Asset* assets[ASSET_COUNT];
+	AssetDatabase assets;
 
 	// Holds work to be added by the main thread and performed by background threads.
 	WorkQueue workQueue;

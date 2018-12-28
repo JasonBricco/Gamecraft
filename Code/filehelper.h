@@ -15,45 +15,24 @@ static char* PathToExe(char* fileName)
     return path;
 }
 
-static char* ReadFileData(char* fileName)
+static void* ReadFileData(char* path, int* size)
 {
-    char* path = PathToExe(fileName);
-    char* buffer = nullptr;
+    FILE* file = fopen(path, "rb");
+    void* data = nullptr;
 
-    ifstream file(path);
-    Free<char>(path);
-
-    if (file)
+    if (file != nullptr)
     {
-        file.seekg(0, file.end);
-        uint32_t length = (uint32_t)file.tellg() + 1;
-        file.seekg(0, file.beg);
+        fseek(file, 0, SEEK_END);
+        *size = ftell(file);
+        fseek(file, 0, SEEK_SET);
 
-        char* inputBuffer = (char*)malloc(length);
-        memset(inputBuffer, 0, length);
-        file.read(inputBuffer, length);
-        inputBuffer[length - 1] = 0;
-
-        if (inputBuffer) file.close();
-        else
-        {
-            OutputDebugString("Failed to read file!");
-            file.close();
-            free(inputBuffer);
-            return nullptr;
-        }
-
-        buffer = inputBuffer;
-        inputBuffer = nullptr;
+        data = malloc(*size);
+        fread(data, *size, 1, file);
     }
-    else
-    {
-        OutputDebugString("Could not find the file: ");
-        OutputDebugString(path);
-        return nullptr;
-    }
+    else printf("Failed to open file at path %s\n", path);
 
-    return buffer;
+    fclose(file);
+    return data;
 }
 
 static inline void WriteBinary(char* path, char* data, int length)

@@ -46,5 +46,5 @@ struct BlockData
     BlockMeshType meshType;
     CullType cull;
     BuildBlockFunc buildFunc;
-    SoundAsset* onSetSound;
+    Sound onSetSound;
 };

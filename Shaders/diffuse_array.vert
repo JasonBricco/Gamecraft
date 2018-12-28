@@ -1,4 +1,4 @@
-#if VERTEX
+#version 440 core
 
 layout (location = 0) in vec3 pos;
 layout (location = 1) in vec3 inUv;
@@ -17,28 +17,3 @@ void main()
 	vertColor = inColor;
 	uv = inUv;
 }
-
-#else
-
-in vec3 uv;
-in vec4 vertColor;
-
-out vec4 outColor;
-
-uniform sampler2DArray tex;
-uniform float ambient;
-
-void main()
-{
-	outColor = texture(tex, uv) * 1.5f;
-
-	vec3 light = vertColor.rgb;
-	float sun = vertColor.a;
-
-	vec3 amb = vec3(ambient) * sun;
-	amb = max(amb, light);
-
-	outColor.xyz *= amb;
-}
-
-#endif

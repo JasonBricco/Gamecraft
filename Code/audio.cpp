@@ -55,7 +55,7 @@ static void LoadMusic(AudioEngine* engine, char* path)
 	if (ptr == nullptr) 
 		Error("Couldn't open music at %s. Error: %i\n", path, error);
 
-	Free<char>(path);
+	free(path);
 
 	stb_vorbis_info info = stb_vorbis_get_info(ptr);
 	int sampleRate = info.sample_rate;
@@ -69,7 +69,7 @@ static void LoadMusic(AudioEngine* engine, char* path)
 	source->SetVolume(0.0f);
 
 	int bufferSize = sampleRate * 2;
-	engine->musicSamples = Malloc<int16_t>(bufferSize);
+	engine->musicSamples = (int16_t*)malloc(bufferSize);
 	engine->bufferSize = bufferSize;
 	engine->sampleCount = bufferSize / format.nChannels;
 
@@ -116,23 +116,6 @@ void AudioEngine::OnVoiceProcessingPassStart(UINT32 bytesRequired)
 	SubmitMusicSamples(this, samplesNeeded);
 }
 
-static void LoadSound(AudioEngine* engine, SoundAsset* asset, char* path)
-{
-	path = PathToExe(path);
-
-	int channels, sampleRate;
-	int count = stb_vorbis_decode_filename(path, &channels, &sampleRate, &asset->samples);
-
-	if (count == -1)
-		Error("Could not open sound at path %s\n", path);
-
-	Free<char>(path);
-
-	asset->engine = engine;
-	asset->sampleCount = count;
-	asset->sampleRate = sampleRate;
-}
-
 void SoundCallback::OnStreamEnd()
 {
 	auto& pool = engine->voicePool;
@@ -140,9 +123,9 @@ void SoundCallback::OnStreamEnd()
 	pool.push(source);
 }
 
-static void PlaySound(SoundAsset* sound)
+static void PlaySound(Sound sound)
 {
-	AudioEngine* engine = sound->engine;
+	AudioEngine* engine = sound.engine;
 	auto& pool = engine->voicePool;
 	IXAudio2SourceVoice* source;
 	HRESULT hr;
@@ -155,7 +138,7 @@ static void PlaySound(SoundAsset* sound)
 	else
 	{
 		SoundCallback* callback = Malloc<SoundCallback>();
-		WAVEFORMATEX format = GetFormat(sound->sampleRate);
+		WAVEFORMATEX format = GetFormat(sound.sampleRate);
 		hr = engine->pXAudio->CreateSourceVoice(&source, &format, 0, 2.0f, callback);
 		CheckForError(hr, "Failed to create the source voice.\n");
 
@@ -166,8 +149,8 @@ static void PlaySound(SoundAsset* sound)
 
 	XAUDIO2_BUFFER buffer = {};
 	buffer.Flags = XAUDIO2_END_OF_STREAM;
-	buffer.AudioBytes = sound->sampleCount * 4;
-	buffer.pAudioData = (BYTE*)sound->samples;
+	buffer.AudioBytes = sound.sampleCount * 4;
+	buffer.pAudioData = (BYTE*)sound.samples;
 	hr = source->SubmitSourceBuffer(&buffer);
 	CheckForError(hr, "Failed to submit the source buffer to the source voice. %s\n", GetLastErrorText().c_str());
 
