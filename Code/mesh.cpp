@@ -160,9 +160,9 @@ static inline void DrawMesh(Mesh* mesh)
 	glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
 }
 
-static inline void DrawMesh(Mesh* mesh, Shader shader, vec3 pos)
+static inline void DrawMesh(Mesh* mesh, Shader* shader, vec3 pos)
 {
 	mat4 model = translate(mat4(1.0f), pos);
-	SetUniform(shader.model, model);
+	SetUniform(shader->model, model);
 	DrawMesh(mesh);
 }

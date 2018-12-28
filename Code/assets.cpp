@@ -17,9 +17,9 @@ static Sound GetSound(GameState* state, SoundID id)
     return state->assets.sounds[id];
 }
 
-static Shader GetShader(GameState* state, ShaderID id)
+static Shader* GetShader(GameState* state, ShaderID id)
 {
-    return state->assets.shaders[id];
+    return &state->assets.shaders[id];
 }
 
 static void LoadAssets(GameState* state)
@@ -66,28 +66,8 @@ static void LoadAssets(GameState* state)
         ShaderData vert = *(shaderData + i);
         ShaderData frag = *(shaderData + i + 1);
 
-        db.shaders[i / 2] = LoadShader(vert.length, data + vert.data, frag.length, data + frag.data);
+        LoadShader(&db.shaders[i / 2], vert.length, data + vert.data, frag.length, data + frag.data);
     }
-
-    Shader& diffuseArray = db.shaders[SHADER_DIFFUSE_ARRAY];
-    diffuseArray.view = glGetUniformLocation(diffuseArray.handle, "view");
-    diffuseArray.model = glGetUniformLocation(diffuseArray.handle, "model");
-    diffuseArray.proj = glGetUniformLocation(diffuseArray.handle, "projection");
-    diffuseArray.ambient = glGetUniformLocation(diffuseArray.handle, "ambient");
-
-    Shader& fluidArray = db.shaders[SHADER_FLUID_ARRAY];
-    fluidArray.view = glGetUniformLocation(fluidArray.handle, "view");
-    fluidArray.model = glGetUniformLocation(fluidArray.handle, "model");
-    fluidArray.proj = glGetUniformLocation(fluidArray.handle, "projection");
-    fluidArray.time = glGetUniformLocation(fluidArray.handle, "time");
-    fluidArray.ambient = glGetUniformLocation(fluidArray.handle, "ambient");
-
-    Shader& crosshair = db.shaders[SHADER_CROSSHAIR];
-    crosshair.model = glGetUniformLocation(crosshair.handle, "model");
-    crosshair.proj = glGetUniformLocation(crosshair.handle, "projection");
-
-    Shader& fade = db.shaders[SHADER_FADE];
-    fade.color = glGetUniformLocation(fade.handle, "inColor");
 
     LoadMusic(audio, "Assets\\LittleTown.ogg");
 }

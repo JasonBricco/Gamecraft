@@ -18,4 +18,5 @@ struct GameState
 	AudioEngine audio;
 
 	float ambient;
+	vec3 clearColor;
 };

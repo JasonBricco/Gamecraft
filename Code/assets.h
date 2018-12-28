@@ -43,7 +43,9 @@ typedef vector<ImageData> TextureArrayData;
 struct Shader
 {
     GLuint handle;
-    GLint model, view, proj, ambient, time, color;
+    GLint model, view, proj, ambient;
+    GLint time, fadeColor;
+    GLint fogColor, fogStart, fogEnd;
 };
 
 struct Texture

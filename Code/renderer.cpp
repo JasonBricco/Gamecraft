@@ -2,12 +2,12 @@
 // Jason Bricco
 //
 
-static inline void UseShader(Shader shader)
+static inline void UseShader(Shader* shader)
 {
-    glUseProgram(shader.handle);
+    glUseProgram(shader->handle);
 }
 
-static Graphic* CreateGraphic(Shader shader, Texture texture)
+static Graphic* CreateGraphic(Shader* shader, Texture texture)
 {
 	Graphic* graphic = new Graphic();
 	graphic->mesh = CreateMesh(16, 6);
@@ -31,9 +31,9 @@ static Graphic* CreateGraphic(Shader shader, Texture texture)
 
 static void DrawGraphic(Camera* cam, Graphic* graphic)
 {
-	Shader shader = graphic->shader;
+	Shader* shader = graphic->shader;
 	UseShader(shader);
-	SetUniform(shader.proj, cam->ortho);
+	SetUniform(shader->proj, cam->ortho);
 
 	glBindTexture(GL_TEXTURE_2D, graphic->texture.id);
 	DrawMesh(graphic->mesh, shader, graphic->pos);
@@ -124,6 +124,59 @@ static void OnOpenGLMessage(GLenum, GLenum type, GLuint, GLenum severity, GLsize
 
 static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int screenHeight)
 {
+	state->ambient = 1.0f;
+	vec3 clearColor = vec3(0.53f, 0.80f, 0.92f);
+	state->clearColor = clearColor;
+
+	glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
+	glPolygonMode(GL_FRONT, GL_FILL);
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_MULTISAMPLE);
+
+#if _DEBUG
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback((GLDEBUGPROC)OnOpenGLMessage, 0);
+#endif
+
+	AssetDatabase& db = state->assets;
+	float fogStart = 100.0f, fogEnd = 208.0f;
+
+    Shader* diffuseArray = &db.shaders[SHADER_DIFFUSE_ARRAY];
+    diffuseArray->view = glGetUniformLocation(diffuseArray->handle, "view");
+    diffuseArray->model = glGetUniformLocation(diffuseArray->handle, "model");
+    diffuseArray->proj = glGetUniformLocation(diffuseArray->handle, "projection");
+    diffuseArray->ambient = glGetUniformLocation(diffuseArray->handle, "ambient");
+    diffuseArray->fogStart = glGetUniformLocation(diffuseArray->handle, "fogStart");
+    diffuseArray->fogEnd = glGetUniformLocation(diffuseArray->handle, "fogEnd");
+    diffuseArray->fogColor = glGetUniformLocation(diffuseArray->handle, "fogColor");
+
+    UseShader(diffuseArray);
+    SetUniform(diffuseArray->fogStart, fogStart);
+    SetUniform(diffuseArray->fogEnd, fogEnd);
+    SetUniform(diffuseArray->fogColor, clearColor);
+
+    Shader* fluidArray = &db.shaders[SHADER_FLUID_ARRAY];
+    fluidArray->view = glGetUniformLocation(fluidArray->handle, "view");
+    fluidArray->model = glGetUniformLocation(fluidArray->handle, "model");
+    fluidArray->proj = glGetUniformLocation(fluidArray->handle, "projection");
+    fluidArray->time = glGetUniformLocation(fluidArray->handle, "time");
+    fluidArray->ambient = glGetUniformLocation(fluidArray->handle, "ambient");
+    fluidArray->fogStart = glGetUniformLocation(fluidArray->handle, "fogStart");
+    fluidArray->fogEnd = glGetUniformLocation(fluidArray->handle, "fogEnd");
+    fluidArray->fogColor = glGetUniformLocation(fluidArray->handle, "fogColor");
+
+    UseShader(fluidArray);
+    SetUniform(fluidArray->fogStart, fogStart);
+    SetUniform(fluidArray->fogEnd, fogEnd);
+    SetUniform(fluidArray->fogColor, clearColor);
+
+    Shader& crosshair = db.shaders[SHADER_CROSSHAIR];
+    crosshair.model = glGetUniformLocation(crosshair.handle, "model");
+    crosshair.proj = glGetUniformLocation(crosshair.handle, "projection");
+
+    Shader& fade = db.shaders[SHADER_FADE];
+    fade.fadeColor = glGetUniformLocation(fade.handle, "inColor");
+
 	Graphic* graphic = CreateGraphic(GetShader(state, SHADER_CROSSHAIR), GetTexture(state, IMAGE_CROSSHAIR));
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
 	
@@ -268,12 +321,12 @@ static void RenderScene(GameState* state, Camera* cam)
 	UpdateViewMatrix(cam);
 
 	// Opaque pass.
-	Shader shader = GetShader(state, SHADER_DIFFUSE_ARRAY);
+	Shader* shader = GetShader(state, SHADER_DIFFUSE_ARRAY);
 
 	UseShader(shader);
-	SetUniform(shader.view, cam->view);
-	SetUniform(shader.proj, cam->perspective);
-	SetUniform(shader.ambient, state->ambient);
+	SetUniform(shader->view, cam->view);
+	SetUniform(shader->proj, cam->perspective);
+	SetUniform(shader->ambient, state->ambient);
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, GetTextureArray(state, IMAGE_ARRAY_BLOCKS).id);
 	int count = (int)cam->meshLists[MESH_TYPE_OPAQUE].size();
@@ -291,10 +344,10 @@ static void RenderScene(GameState* state, Camera* cam)
 	shader = GetShader(state, SHADER_FLUID_ARRAY);
 
 	UseShader(shader);
-	SetUniform(shader.view, cam->view);
-	SetUniform(shader.proj, cam->perspective);
-	SetUniform(shader.time, cam->animTime);
-	SetUniform(shader.ambient, state->ambient);
+	SetUniform(shader->view, cam->view);
+	SetUniform(shader->proj, cam->perspective);
+	SetUniform(shader->time, cam->animTime);
+	SetUniform(shader->ambient, state->ambient);
 
 	if (cam->disableFluidCull) 
 		glDisable(GL_CULL_FACE);
@@ -317,7 +370,7 @@ static void RenderScene(GameState* state, Camera* cam)
 		shader = cam->fadeShader;
 
 		UseShader(shader);
-		SetUniform(shader.color, cam->fadeColor);
+		SetUniform(shader->fadeColor, cam->fadeColor);
 		DrawMesh(cam->fadeMesh);
 	}
 
@@ -419,21 +472,21 @@ static bool ShaderHasErrors(GLuint shader, ShaderType type)
     return false;
 }
 
-static Shader LoadShader(int vertLength, char* vertCode, int fragLength, char* fragCode)
+static void LoadShader(Shader* shader, int vertLength, char* vertCode, int fragLength, char* fragCode)
 {
     GLuint vS = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vS, 1, &vertCode, &vertLength);
     glCompileShader(vS);
     
     if (ShaderHasErrors(vS, VERTEX_SHADER))
-       	Error("Failed to compile the vertex shader.\n");
+       	Error("Failed to compile the vertex shader->\n");
 
     GLuint fS = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fS, 1, &fragCode, &fragLength);
     glCompileShader(fS);
     
     if (ShaderHasErrors(fS, FRAGMENT_SHADER))
-        Error("Failed to compile the fragment shader.\n");
+        Error("Failed to compile the fragment shader->\n");
 
     GLuint program = glCreateProgram();
     glAttachShader(program, vS);
@@ -446,5 +499,5 @@ static Shader LoadShader(int vertLength, char* vertCode, int fragLength, char* f
     glDeleteShader(vS);
     glDeleteShader(fS);
 
-    return { program };
+    shader->handle = program;
 }
