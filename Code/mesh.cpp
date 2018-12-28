@@ -4,13 +4,13 @@
 
 static Mesh* CreateMesh(int vertMax = 131072, int indexMax = 65536)
 {
-	Mesh* mesh = Calloc<Mesh>();
+	Mesh* mesh = new Mesh();
 
 	mesh->vertMax = vertMax;
 	mesh->indexMax = indexMax;
 
-	mesh->vertices = Malloc<float>(mesh->vertMax);
-	mesh->indices = Malloc<int>(mesh->indexMax);
+	mesh->vertices = (float*)malloc(mesh->vertMax * sizeof(float));
+	mesh->indices = (int*)malloc(mesh->indexMax * sizeof(int));
 
 	return mesh;
 }
@@ -20,7 +20,7 @@ static inline T* ExpandIfNeeded(T* data, int adding, int count, int& max)
 {
 	if (count + adding > max)
 	{
-		data = Realloc<T>(data, max * 2);
+		data = (T*)realloc(data, max * 2 * sizeof(T));
 		max *= 2;
 	}
 
@@ -127,8 +127,8 @@ static inline void FillMeshData(Mesh* mesh, GLenum type, VertexSpec spec)
 		glEnableVertexAttribArray(id);
 	}
 
-	Free<float>(mesh->vertices);
-	Free<int>(mesh->indices);
+	free(mesh->vertices);
+	free(mesh->indices);
 
 	mesh->vertices = nullptr;
 	mesh->indices = nullptr;
@@ -147,11 +147,11 @@ static void DestroyMesh(Mesh* mesh)
 
 	if (mesh->vertices != nullptr)
 	{
-		Free<float>(mesh->vertices);
-		Free<int>(mesh->indices);
+		free(mesh->vertices);
+		free(mesh->indices);
 	}
 
-	Free<Mesh>(mesh);
+	delete mesh;
 }
 
 static inline void DrawMesh(Mesh* mesh)

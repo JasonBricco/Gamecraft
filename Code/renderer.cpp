@@ -9,7 +9,7 @@ static inline void UseShader(Shader shader)
 
 static Graphic* CreateGraphic(Shader shader, Texture texture)
 {
-	Graphic* graphic = Calloc<Graphic>();
+	Graphic* graphic = new Graphic();
 	graphic->mesh = CreateMesh(16, 6);
 
 	VertexSpec spec = { true, 2, true, 2, false, 0 };

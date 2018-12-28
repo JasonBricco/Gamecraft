@@ -5,7 +5,7 @@
 static char* PathToExe(char* fileName)
 {
     int size = MAX_PATH * 2;
-    char* path = Malloc<char>(size);
+    char* path = (char*)malloc(size);
     GetModuleFileName(0, path, size);
 
     char* pos = strrchr(path, '\\');

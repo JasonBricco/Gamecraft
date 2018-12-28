@@ -24,7 +24,7 @@ struct SerializedChunk
         if (size + 1 > maxSize)
         {
             maxSize = (maxSize + 1) * 2;
-            data = Realloc<uint16_t>(data, maxSize);
+            data = (uint16_t*)realloc(data, maxSize * sizeof(uint16_t));
             assert(data != nullptr);
         }
 
@@ -34,7 +34,7 @@ struct SerializedChunk
     inline void Reserve(int count)
     {
         maxSize = count;
-        data = Realloc<uint16_t>(data, count);
+        data = (uint16_t*)realloc(data, count * sizeof(uint16_t));
         assert(data != nullptr);
     }
 

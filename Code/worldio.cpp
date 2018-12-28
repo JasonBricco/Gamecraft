@@ -31,7 +31,7 @@ static bool LoadRegionFile(World* world, RegionPos p, RegionMap::iterator* it)
     }
 
     Region region = {};
-    region.chunks = Calloc<SerializedChunk>(REGION_SIZE_3);
+    region.chunks = (SerializedChunk*)calloc(REGION_SIZE_3, sizeof(SerializedChunk));
     region.hasData = true;
 
     while (true)
@@ -166,7 +166,7 @@ static bool LoadChunkFromDisk(World* world, Chunk* chunk)
         if (!regionLoaded)
         {
             Region region = {};
-            region.chunks = Calloc<SerializedChunk>(REGION_SIZE_3);
+            region.chunks = (SerializedChunk*)calloc(REGION_SIZE_3, sizeof(SerializedChunk));
             it = world->regions.insert(make_pair(regionP, region)).first;
         }
     }

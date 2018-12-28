@@ -137,7 +137,7 @@ static void PlaySound(Sound sound)
 	}
 	else
 	{
-		SoundCallback* callback = Malloc<SoundCallback>();
+		SoundCallback* callback = new SoundCallback;
 		WAVEFORMATEX format = GetFormat(sound.sampleRate);
 		hr = engine->pXAudio->CreateSourceVoice(&source, &format, 0, 2.0f, callback);
 		CheckForError(hr, "Failed to create the source voice.\n");

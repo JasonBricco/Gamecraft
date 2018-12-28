@@ -2,14 +2,9 @@
 // Jason Bricco
 //
 
-#define DEBUG_MEMORY 0
 #define PROFILING 0
 
 #pragma warning(push, 0)
-
-#if DEBUG_MEMORY
-#define _CRTDBG_MAP_ALLOC
-#endif
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLEW_STATIC
@@ -36,10 +31,6 @@
 #include <mutex>
 #include <algorithm>
 #include <queue>
-
-#if DEBUG_MEMORY
-#include <crtdbg.h>
-#endif
 
 #define GLM_FORCE_INLINE
 #define GLM_FORCE_NO_CTOR_INIT
@@ -252,10 +243,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glDebugMessageCallback((GLDEBUGPROC)OnOpenGLMessage, 0);
 #endif
 
-#if DEBUG_MEMORY
-	_CrtSetDbgFlag(_CRTDBG_CHECK_ALWAYS_DF);
-#endif
-
 	InitAudio(&state.audio);
 	
 	CreateThreads(&state);
@@ -306,23 +293,12 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
 		cam->animTime = fmodf(cam->animTime + deltaTime, 100.0f);
 		lastTime = endTime;
-
-		#if DEBUG_MEMORY
-
-		if (KeyPressed(state.input, KEY_BACKSLASH))
-			LogMemoryStatus();
-
-		#endif
 	}
 
 	SaveWorld(world);
 	glfwTerminate();
 
 	FLUSH_COUNTERS();
-
-	#if DEBUG_MEMORY
-	_CrtDumpMemoryLeaks();
-	#endif
 
 	return 0;
 }

@@ -387,7 +387,7 @@ static inline void AddChunkToPool(World* world, Chunk* chunk)
     if (world->poolSize + 1 > world->maxPoolSize)
     {
         int newMax = world->maxPoolSize + (world->totalChunks / 2);
-        world->pool = Realloc<Chunk*>(world->pool, newMax);
+        world->pool = (Chunk**)realloc(world->pool, newMax * sizeof(Chunk*));
         world->maxPoolSize = newMax;
     }
 
@@ -398,7 +398,7 @@ static inline void AddChunkToPool(World* world, Chunk* chunk)
 static inline Chunk* ChunkFromPool(World* world)
 {
 	if (world->poolSize == 0)
-        return Calloc<Chunk>();
+        return new Chunk();
 
 	Chunk* chunk = world->pool[world->poolSize - 1];
 	world->poolSize--;
@@ -594,7 +594,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
 
 static World* NewWorld(GameState* state, int loadRange, int radius)
 {
-    World* world = Calloc<World>();
+    World* world = new World();
 
     world->sqRadius = Square(radius);
     world->falloffRadius = Square(radius - (CHUNK_SIZE_X * 2));
@@ -605,8 +605,8 @@ static World* NewWorld(GameState* state, int loadRange, int radius)
     world->spawnChunk = ivec3(0);
 
     world->totalChunks = Square(world->size);
-    world->chunks = Calloc<Chunk*>(world->totalChunks);
-    world->visibleChunks = Calloc<Chunk*>(world->totalChunks);
+    world->chunks = (Chunk**)calloc(world->totalChunks, sizeof(Chunk*));
+    world->visibleChunks = (Chunk**)calloc(world->totalChunks, sizeof(Chunk*));
 
     world->chunksToCreate.reserve(world->totalChunks);
 
@@ -620,13 +620,13 @@ static World* NewWorld(GameState* state, int loadRange, int radius)
     // Allocate extra chunks for the pool for world shifting. We create new chunks
     // before we destroy the old ones.
     int targetPoolSize = world->totalChunks * 2;
-    world->pool = Calloc<Chunk*>(targetPoolSize);
+    world->pool = (Chunk**)calloc(targetPoolSize, sizeof(Chunk*));
     world->poolSize = 0;
     world->maxPoolSize = targetPoolSize;
 
     for (int i = 0; i < targetPoolSize; i++)
     {
-        Chunk* chunk = Malloc<Chunk>();
+        Chunk* chunk = new Chunk();
         AddChunkToPool(world, chunk);
     }
 
