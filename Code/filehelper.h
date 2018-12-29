@@ -28,10 +28,9 @@ static void* ReadFileData(char* path, int* size)
 
         data = malloc(*size);
         fread(data, *size, 1, file);
+        fclose(file);
     }
-    else printf("Failed to open file at path %s\n", path);
 
-    fclose(file);
     return data;
 }
 
@@ -93,6 +92,7 @@ static string GetLastErrorText()
 #define Error(...) { \
     char error_buffer[256]; \
     snprintf(error_buffer, sizeof(error_buffer), __VA_ARGS__); \
-    MessageBox(NULL, error_buffer, NULL, MB_OK); \
+    MessageBox(NULL, error_buffer, NULL, MB_OK | MB_ICONERROR); \
+    exit(-1); \
 }
 #endif

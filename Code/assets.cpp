@@ -27,9 +27,19 @@ static void LoadAssets(GameState* state)
     char* path = PathToExe("Assets/Assets.gca");
 
     int size;
-    char* data = (char*)ReadFileData(path, &size);
+    void* dataPtr = ReadFileData(path, &size);
 
+    if (dataPtr == nullptr)
+        Error("Asset file not found! Ensure the file Assets.gca is in the Assets folder in the same directory as the executable.\n");
+
+    char* data = (char*)dataPtr;
     AssetFileHeader* header = (AssetFileHeader*)data;
+
+    if (header->code != (FORMAT_CODE('g', 'c', 'a', 'f')))
+        Error("Invalid asset file. The file may be damaged.\n");
+
+    if (header->version > 1)
+        Error("Asset file version is unsupported.\n");
 
     ImageData* imageData = (ImageData*)(data + header->images);
     SoundData* soundData = (SoundData*)(data + header->sounds);
