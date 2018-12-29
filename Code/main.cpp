@@ -55,12 +55,10 @@ using namespace std;
 static bool g_paused;
 
 #include "memory.h"
-#include "collections.h"
 #include "random.h"
 #include "utils.h"
 #include "profiling.h"
 #include "audio.h"
-#include "intrinsics.h"
 #include "filehelper.h"
 #include "assetbuilder.h"
 #include "assets.h"

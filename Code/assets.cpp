@@ -80,4 +80,6 @@ static void LoadAssets(GameState* state)
     }
 
     LoadMusic(audio, "Assets\\LittleTown.ogg");
+
+    free(path);
 }
