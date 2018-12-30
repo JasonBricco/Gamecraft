@@ -15,23 +15,35 @@ static char* PathToExe(char* fileName)
     return path;
 }
 
-static void* ReadFileData(char* path, int* size)
+static void* ReadFileData(char* path, uint32_t* sizePtr)
 {
-    FILE* file = fopen(path, "rb");
-    void* data = nullptr;
+    HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
 
-    if (file != nullptr)
+    if (file != INVALID_HANDLE_VALUE)
     {
-        fseek(file, 0, SEEK_END);
-        *size = ftell(file);
-        fseek(file, 0, SEEK_SET);
+        LARGE_INTEGER sizeValue;
 
-        data = malloc(*size);
-        fread(data, *size, 1, file);
-        fclose(file);
+        if (!GetFileSizeEx(file, &sizeValue))
+            return nullptr;
+
+        uint32_t size = (uint32_t)sizeValue.QuadPart;
+        void* data = malloc(size);
+
+        DWORD bytesRead;
+
+        if (ReadFile(file, data, size, &bytesRead, 0) && (size == bytesRead))
+            *sizePtr = size;
+        else
+        {
+            free(data);
+            data = nullptr;
+        }
+
+        CloseHandle(file);
+        return data;
     }
 
-    return data;
+    return nullptr;
 }
 
 static inline void WriteBinary(char* path, char* data, int length)

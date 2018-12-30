@@ -26,7 +26,7 @@ static void LoadAssets(GameState* state)
 {
     char* path = PathToExe("Assets/Assets.gca");
 
-    int size;
+    uint32_t size;
     void* dataPtr = ReadFileData(path, &size);
 
     if (dataPtr == nullptr)

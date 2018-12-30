@@ -2,6 +2,19 @@
 // Jason Bricco
 // 
 
+#define PROFILING 0
+
+static void EndMeasurement(char* id, uint64_t start)
+{
+    uint64_t elapsed = __rdtsc() - start;
+    char print_buffer[256];
+    sprintf(print_buffer, "%s: %llu\n", id, elapsed);
+    OutputDebugString(print_buffer);
+}
+
+#define MEASURE_START(id) uint64_t startCount##id = __rdtsc();
+#define MEASURE_END(id) EndMeasurement(#id, startCount##id)
+
 #if PROFILING
 
 enum MeasureSection

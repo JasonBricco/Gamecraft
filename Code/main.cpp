@@ -2,8 +2,6 @@
 // Jason Bricco
 //
 
-#define PROFILING 0
-
 #pragma warning(push, 0)
 
 #define GLFW_EXPOSE_NATIVE_WIN32
