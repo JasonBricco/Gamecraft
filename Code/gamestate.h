@@ -19,4 +19,6 @@ struct GameState
 
 	float ambient;
 	vec3 clearColor;
+
+	ParticleEmitter rain;
 };

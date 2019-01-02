@@ -294,8 +294,8 @@ static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
     LChunkPos lcPos = LWorldToLChunkPos(lwX, lwZ);
     Chunk* chunk = GetChunk(world, lcPos);
 
-    assert(chunk != nullptr);
-    assert (chunk->state >= CHUNK_LOADED);
+    if (chunk == nullptr || chunk->state < CHUNK_LOADED)
+        return BLOCK_STONE;
 
     RelPos rPos = LWorldToRelPos(lwX, lwY, lwZ);
     return GetBlock(chunk, rPos);

@@ -363,6 +363,8 @@ static void RenderScene(GameState* state, Camera* cam)
 	if (cam->disableFluidCull) 
 		glEnable(GL_CULL_FACE);
 
+	DrawParticles(state, state->rain, cam);
+
 	glDisable(GL_DEPTH_TEST);
 
 	if (cam->fadeColor != CLEAR_COLOR)

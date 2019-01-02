@@ -71,6 +71,7 @@ static bool g_paused;
 #include "simulation.h"
 #include "async.h"
 #include "generation.h"
+#include "particles.h"
 #include "gamestate.h"
 
 #include "audio.cpp"
@@ -85,6 +86,7 @@ static bool g_paused;
 #include "generation.cpp"
 #include "worldio.cpp"
 #include "simulation.cpp"
+#include "particles.cpp"
 
 #if _DEBUG
 static char* buildType = "DEBUG";
@@ -195,6 +197,9 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	glfwSetCursorPos(window, cX, cY);
 
 	Simulate(&state, world, player, deltaTime);
+
+	state.rain.pos = vec3(player->pos.x, player->pos.y + 50.0f, player->pos.z);
+	UpdateParticles(state.rain, world, deltaTime);
 }
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
@@ -245,6 +250,8 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPos(window, state.windowWidth / 2.0f, state.windowHeight / 2.0f);
+
+	InitParticleEmitter(state.rain, 5, 10.0f);
 
 	World* world = NewWorld(&state, 13, 1024);
 

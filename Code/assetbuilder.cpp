@@ -44,14 +44,15 @@ int main()
 		"W:/Assets/Stone.png",
 		"W:/Assets/StoneBrick.png",
 		"W:/Assets/Water.png",
-		"W:/Assets/Crosshair.png"
+		"W:/Assets/Crosshair.png",
+		"W:/Assets/Rain.png"
 	};
 
 	// Specifies which array each of the above images should be within. 
 	// INT_MAX means the image doesn't belong in an array.
 	int arrayIndices[] =
 	{
-		0, 0, 0, 0, 0, 0, 0, 0, INT_MAX
+		0, 0, 0, 0, 0, 0, 0, 0, INT_MAX, INT_MAX
 	};
 
 	char* soundPaths[] = 
@@ -69,7 +70,9 @@ int main()
 		"W:/Shaders/fluid_array.vert",
 		"W:/Shaders/fluid_array.frag",
 		"W:/Shaders/fade.vert",
-		"W:/Shaders/fade.frag"
+		"W:/Shaders/fade.frag",
+		"W:/Shaders/particle.vert",
+		"W:/Shaders/particle.frag"
 	};
 
 	const int imageCount = ArrayLength(imagePaths);
@@ -125,7 +128,7 @@ int main()
 		for (int i = 0; i < shaderCount; i++)
 		{
 			shaders[i].data = ftell(file);
-			int size;
+			uint32_t size;
 			char* data = (char*)ReadFileData(shaderPaths[i], &size);
 			shaders[i].length = size;
 			fwrite(data, size, 1, file);
