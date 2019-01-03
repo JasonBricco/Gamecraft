@@ -77,6 +77,7 @@ static void LoadAssets(GameState* state)
         ShaderData frag = *(shaderData + i + 1);
 
         LoadShader(&db.shaders[i / 2], vert.length, data + vert.data, frag.length, data + frag.data);
+        assert(glIsProgram(db.shaders[i / 2].handle));
     }
 
     LoadMusic(audio, "Assets\\LittleTown.ogg");

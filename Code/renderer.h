@@ -83,3 +83,9 @@ struct Camera
 static void LoadShader(Shader* shader, int vertLength, char* vertCode, int fragLength, char* fragCode);
 static Texture LoadTexture(int width, int height, uint8_t* pixels);
 static Texture LoadTextureArray(TextureArrayData& data, char* assetData);
+
+static inline void SetUniform(GLint loc, GLfloat f);
+static inline void SetUniform(GLint loc, vec2 v);
+static inline void SetUniform(GLint loc, vec3 v);
+static inline void SetUniform(GLint loc, vec4 v);
+static inline void SetUniform(GLint loc, mat4 m);

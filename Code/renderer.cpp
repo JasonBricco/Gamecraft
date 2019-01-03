@@ -2,6 +2,31 @@
 // Jason Bricco
 //
 
+static inline void SetUniform(GLint loc, GLfloat f)
+{
+    glUniform1f(loc, f);
+}
+
+static inline void SetUniform(GLint loc, vec2 v)
+{
+    glUniform2f(loc, v.x, v.y);
+}
+
+static inline void SetUniform(GLint loc, vec3 v)
+{
+    glUniform3f(loc, v.x, v.y, v.z);
+}
+
+static inline void SetUniform(GLint loc, vec4 v)
+{
+    glUniform4f(loc, v.x, v.y, v.z, v.w);
+}
+
+static inline void SetUniform(GLint loc, mat4 m)
+{
+    glUniformMatrix4fv(loc, 1, GL_FALSE, value_ptr(m));
+}
+
 static inline void UseShader(Shader* shader)
 {
     glUseProgram(shader->handle);
@@ -123,6 +148,19 @@ static void OnOpenGLMessage(GLenum, GLenum type, GLuint, GLenum severity, GLsize
 	DebugBreak();
 }
 
+static void ListUniforms(Shader* shader)
+{
+	GLint count;
+	glGetProgramiv(shader->handle, GL_ACTIVE_UNIFORMS, &count);
+
+	for (int i = 0; i < count; i++) 
+	{
+	    char name[100];
+	    glGetActiveUniformName(shader->handle, i, sizeof(name), (GLsizei*)NULL, name);
+	   	Print("%s\n", name);
+	}
+}
+
 static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int screenHeight)
 {
 	state->ambient = 1.0f;
@@ -179,7 +217,6 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
     fade->fadeColor = glGetUniformLocation(fade->handle, "inColor");
 
     Shader* particle = &db.shaders[SHADER_PARTICLE];
-    particle->model = glGetUniformLocation(particle->model, "model");
     particle->view = glGetUniformLocation(particle->handle, "view");
     particle->proj = glGetUniformLocation(particle->handle, "projection");
 

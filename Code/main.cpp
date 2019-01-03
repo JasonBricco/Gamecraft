@@ -61,7 +61,6 @@ static bool g_paused;
 #include "assetbuilder.h"
 #include "assets.h"
 #include "input.h"
-#include "uniforms.h"
 #include "mesh.h"
 #include "block.h"
 #include "world.h"
