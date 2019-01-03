@@ -9,6 +9,6 @@ void main()
 {
 	outColor = texture(tex, uv); 
 	
-	if (outColor.a < 0.2f)
+	if (outColor.a < 0.2)
 		discard;
 }

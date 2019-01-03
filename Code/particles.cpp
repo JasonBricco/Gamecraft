@@ -7,25 +7,57 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	emitter.spawnCount = spawnCount;
 	emitter.radius = radius;
 
-	Mesh* mesh = CreateMesh(16, 6);
+	float vertices[] = 
+	{
+        0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
 
-	SetMeshIndices(mesh, 4);
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
+ 
+        -0.5f, -0.5f, 0.5f, 0.0f, 1.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 1.0f,
+  
+        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, 0.5f, -0.5f, 0.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, 1.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
+  
+        0.5f, -0.5f, 0.5f, 0.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
+  
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.5f, 1.0f, 1.0f
+	};
 
-	SetMeshVertex(mesh, 1.0f, 0.0f, 0.0f, 1.0f);
-	SetMeshVertex(mesh, 1.0f, 1.0f, 0.0f, 0.0f);
-	SetMeshVertex(mesh, 0.0f, 1.0f, 1.0f, 0.0f);
-	SetMeshVertex(mesh, 0.0f, 0.0f, 1.0f, 1.0f);
+	int indices[] = 
+	{ 
+		2, 1, 0,
+		3, 2, 0
+	};
+
+	GLuint vb, ib, va;
 	
-	glGenVertexArrays(1, &mesh->va);
-	glBindVertexArray(mesh->va);
+	glGenVertexArrays(1, &va);
+	glBindVertexArray(va);
 
-	glGenBuffers(1, &mesh->vb);
-	glBindBuffer(GL_ARRAY_BUFFER, mesh->vb);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * mesh->vertCount, mesh->vertices, GL_STATIC_DRAW);
+	glGenBuffers(1, &vb);
+	glBindBuffer(GL_ARRAY_BUFFER, vb);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * ArrayLength(vertices), vertices, GL_STATIC_DRAW);
 
-	glGenBuffers(1, &mesh->ib);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_STATIC_DRAW);
+	glGenBuffers(1, &ib);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * ArrayLength(indices), indices, GL_STATIC_DRAW);
 
 	int stride = 8;
 
@@ -36,24 +68,17 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	glEnableVertexAttribArray(1);
 
 	glGenBuffers(1, &emitter.positions);
-
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride * sizeof(GLfloat), (GLvoid*)(5 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(2);
 	glVertexAttribDivisor(2, 1);
 
-	free(mesh->vertices);
-	free(mesh->indices);
-
-	mesh->vertices = nullptr;
-	mesh->indices = nullptr;
-
-	emitter.mesh = mesh;
+	emitter.mesh = va;
 }
 
 static void SpawnParticle(ParticleEmitter& emitter, float x, float y, float z, vec3 velocity)
 {
-	int index = emitter.count + 1;
-	assert(index + 1 < MAX_PARTICLES);
+	int index = emitter.count;
+	assert(index < MAX_PARTICLES);
 	emitter.particlePositions[index] = vec3(x, y, z);
 	emitter.particleVelocity[index] = velocity;
 	emitter.count++;
@@ -61,7 +86,7 @@ static void SpawnParticle(ParticleEmitter& emitter, float x, float y, float z, v
 
 static void DestroyParticle(ParticleEmitter& emitter, int index)
 {
-	int end = index - 1;
+	int end = emitter.count - 1;
 	emitter.particlePositions[index] = emitter.particlePositions[end];
 	emitter.particleVelocity[index] = emitter.particleVelocity[end];
 	emitter.count--;
@@ -110,9 +135,8 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 	SetUniform(shader->view, cam->view);
 	SetUniform(shader->proj, cam->perspective);
 
-	glBindTexture(GL_TEXTURE_2D, GetTexture(state, IMAGE_RAIN).id);
+	glBindTexture(GL_TEXTURE_2D, GetTexture(state, IMAGE_STONE).id);
 
-	Mesh* mesh = emitter.mesh;
-	glBindVertexArray(mesh->va);
-	glDrawElementsInstanced(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0, emitter.count);
+	glBindVertexArray(emitter.mesh);
+	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, emitter.count);
 }

@@ -13,7 +13,7 @@ struct ParticleEmitter
 	int spawnCount;
 	float timer;
 	float radius;
-	Mesh* mesh;
+	GLuint mesh;
 	GLuint positions;
 };
 

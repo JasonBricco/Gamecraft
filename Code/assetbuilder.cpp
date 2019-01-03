@@ -25,8 +25,6 @@ using namespace std;
 #include "memory.h"
 #include "filehelper.h"
 
-#define ArrayLength(array) (sizeof(array) / sizeof((array)[0]))
-
 int main()
 {
 	AssetFileHeader header = {};

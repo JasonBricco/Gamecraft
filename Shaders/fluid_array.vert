@@ -17,10 +17,10 @@ uniform float fogEnd;
 
 void main()
 {
-    gl_Position = projection * view * model * vec4(pos, 1.0f);
+    gl_Position = projection * view * model * vec4(pos, 1.0);
     vertColor = inColor;
     uv = inUv;
-    uv.x += time * 0.2f;
+    uv.x += time * 0.2;
 
     float dist = length(gl_Position.xyz);
 	fogFactor = clamp((fogEnd - dist) / (fogEnd - fogStart), 0.0, 1.0);

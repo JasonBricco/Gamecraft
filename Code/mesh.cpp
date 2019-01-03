@@ -32,20 +32,20 @@ static inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u,
 	mesh->vertices = ExpandIfNeeded(mesh->vertices, 10, mesh->vertCount, mesh->vertMax);
 	int count = mesh->vertCount;
 
-	mesh->vertices[count++] = x;
-	mesh->vertices[count++] = y;
-	mesh->vertices[count++] = z;
+	mesh->vertices[count] = x;
+	mesh->vertices[count + 1] = y;
+	mesh->vertices[count + 2] = z;
 
-	mesh->vertices[count++] = u;
-	mesh->vertices[count++] = v;
-	mesh->vertices[count++] = tex;
+	mesh->vertices[count + 3] = u;
+	mesh->vertices[count + 4] = v;
+	mesh->vertices[count + 5] = tex;
 
-	mesh->vertices[count++] = c.r;
-	mesh->vertices[count++] = c.g;
-	mesh->vertices[count++] = c.b;
-	mesh->vertices[count++] = c.a;
+	mesh->vertices[count + 6] = c.r;
+	mesh->vertices[count + 7] = c.g;
+	mesh->vertices[count + 8] = c.b;
+	mesh->vertices[count + 9] = c.a;
 
-	mesh->vertCount = count;
+	mesh->vertCount += 10;
 }
 
 static inline void SetMeshVertex(Mesh* mesh, float x, float y, float u, float v)
@@ -53,12 +53,12 @@ static inline void SetMeshVertex(Mesh* mesh, float x, float y, float u, float v)
 	mesh->vertices = ExpandIfNeeded(mesh->vertices, 4, mesh->vertCount, mesh->vertMax);
 	int count = mesh->vertCount;
 
-	mesh->vertices[count++] = x;
-	mesh->vertices[count++] = y;
-	mesh->vertices[count++] = u;
-	mesh->vertices[count++] = v;
+	mesh->vertices[count] = x;
+	mesh->vertices[count + 1] = y;
+	mesh->vertices[count + 2] = u;
+	mesh->vertices[count + 3] = v;
 	
-	mesh->vertCount = count;
+	mesh->vertCount += 4;
 }
 
 static inline void SetMeshVertex(Mesh* mesh, float x, float y)
@@ -66,10 +66,10 @@ static inline void SetMeshVertex(Mesh* mesh, float x, float y)
 	mesh->vertices = ExpandIfNeeded(mesh->vertices, 2, mesh->vertCount, mesh->vertMax);
 	int count = mesh->vertCount;
 
-	mesh->vertices[count++] = x;
-	mesh->vertices[count++] = y;
+	mesh->vertices[count] = x;
+	mesh->vertices[count + 1] = y;
 
-	mesh->vertCount = count;
+	mesh->vertCount += 2;
 }
 
 static inline void SetMeshIndices(Mesh* mesh, int params)
@@ -78,15 +78,15 @@ static inline void SetMeshIndices(Mesh* mesh, int params)
 	int offset = mesh->vertCount / params;
 	int count = mesh->indexCount;
 
-	mesh->indices[count++] = offset + 2;
-	mesh->indices[count++] = offset + 1;
-	mesh->indices[count++] = offset;
+	mesh->indices[count] = offset + 2;
+	mesh->indices[count + 1] = offset + 1;
+	mesh->indices[count + 2] = offset;
 
-	mesh->indices[count++] = offset + 3;
-	mesh->indices[count++] = offset + 2;
-	mesh->indices[count++] = offset;
+	mesh->indices[count + 3] = offset + 3;
+	mesh->indices[count + 4] = offset + 2;
+	mesh->indices[count + 5] = offset;
 
-	mesh->indexCount = count;
+	mesh->indexCount += 6;
 }
 
 static inline void FillMeshData(Mesh* mesh, GLenum type, VertexSpec spec)
