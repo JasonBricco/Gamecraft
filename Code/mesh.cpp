@@ -27,6 +27,21 @@ static inline T* ExpandIfNeeded(T* data, int adding, int count, int& max)
 	return data;
 }
 
+static inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v)
+{
+	mesh->vertices = ExpandIfNeeded(mesh->vertices, 5, mesh->vertCount, mesh->vertMax);
+	int count = mesh->vertCount;
+
+	mesh->vertices[count] = x;
+	mesh->vertices[count + 1] = y;
+	mesh->vertices[count + 2] = z;
+
+	mesh->vertices[count + 3] = u;
+	mesh->vertices[count + 4] = v;
+
+	mesh->vertCount += 5;
+}
+
 static inline void SetMeshVertex(Mesh* mesh, float x, float y, float z, float u, float v, float tex, Color c)
 {
 	mesh->vertices = ExpandIfNeeded(mesh->vertices, 10, mesh->vertCount, mesh->vertMax);

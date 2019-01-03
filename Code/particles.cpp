@@ -7,57 +7,54 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	emitter.spawnCount = spawnCount;
 	emitter.radius = radius;
 
-	float vertices[] = 
-	{
-        0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-        0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
-        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-        -0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+	Mesh* mesh = CreateMesh(120, 36);
 
-        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-        0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
- 
-        -0.5f, -0.5f, 0.5f, 0.0f, 1.0f,
-        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-        0.5f, -0.5f, 0.5f, 1.0f, 1.0f,
+	SetMeshIndices(mesh, 5);
+	SetMeshVertex(mesh, 0.5f, 0.5f, -0.5f, 0.0f, 1.0f);
+	SetMeshVertex(mesh, 0.5f, 0.5f, 0.5f, 0.0f, 0.0f);
+	SetMeshVertex(mesh, -0.5f, 0.5f, 0.5f, 1.0f, 0.0f);
+	SetMeshVertex(mesh, -0.5f, 0.5f, -0.5f, 1.0f, 1.0f);
   
-        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        0.5f, 0.5f, -0.5f, 0.0f, 0.0f,
-        -0.5f, 0.5f, -0.5f, 1.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
+	SetMeshIndices(mesh, 5);
+	SetMeshVertex(mesh, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f);
+	SetMeshVertex(mesh, -0.5f, -0.5f, 0.5f, 0.0f, 0.0f);
+	SetMeshVertex(mesh, 0.5f, -0.5f, 0.5f, 1.0f, 0.0f);
+	SetMeshVertex(mesh, 0.5f, -0.5f, -0.5f, 1.0f, 1.0f);
   
-        0.5f, -0.5f, 0.5f, 0.0f, 1.0f,
-        0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
-        0.5f, 0.5f, -0.5f, 1.0f, 0.0f,
-        0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
-  
-        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        -0.5f, 0.5f, -0.5f, 0.0f, 0.0f,
-        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.5f, 1.0f, 1.0f
-	};
+	SetMeshIndices(mesh, 5);
+	SetMeshVertex(mesh, -0.5f, -0.5f, 0.5f, 0.0f, 1.0f);
+	SetMeshVertex(mesh, -0.5f, 0.5f, 0.5f, 0.0f, 0.0f);
+	SetMeshVertex(mesh, 0.5f, 0.5f, 0.5f, 1.0f, 0.0f);
+	SetMeshVertex(mesh, 0.5f, -0.5f, 0.5f, 1.0f, 1.0f);
 
-	int indices[] = 
-	{ 
-		2, 1, 0,
-		3, 2, 0
-	};
+	SetMeshIndices(mesh, 5);
+	SetMeshVertex(mesh, 0.5f, -0.5f, -0.5f, 0.0f, 1.0f);
+	SetMeshVertex(mesh, 0.5f, 0.5f, -0.5f, 0.0f, 0.0f);
+	SetMeshVertex(mesh, -0.5f, 0.5f, -0.5f, 1.0f, 0.0f);
+	SetMeshVertex(mesh, -0.5f, -0.5f, -0.5f, 1.0f, 1.0f);
 
-	GLuint vb, ib, va;
-	
-	glGenVertexArrays(1, &va);
-	glBindVertexArray(va);
+	SetMeshIndices(mesh, 5);
+	SetMeshVertex(mesh, 0.5f, -0.5f, 0.5f, 0.0f, 1.0f);
+	SetMeshVertex(mesh, 0.5f, 0.5f, 0.5f, 0.0f, 0.0f);
+	SetMeshVertex(mesh, 0.5f, 0.5f, -0.5f, 1.0f, 0.0f);
+	SetMeshVertex(mesh, 0.5f, -0.5f, -0.5f, 1.0f, 1.0f);
 
-	glGenBuffers(1, &vb);
-	glBindBuffer(GL_ARRAY_BUFFER, vb);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * ArrayLength(vertices), vertices, GL_STATIC_DRAW);
+	SetMeshIndices(mesh, 5);
+	SetMeshVertex(mesh, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f);
+	SetMeshVertex(mesh, -0.5f, 0.5f, -0.5f, 0.0f, 0.0f);
+	SetMeshVertex(mesh, -0.5f, 0.5f, 0.5f, 1.0f, 0.0f);
+	SetMeshVertex(mesh, -0.5f, -0.5f, 0.5f, 1.0f, 1.0f);
 
-	glGenBuffers(1, &ib);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * ArrayLength(indices), indices, GL_STATIC_DRAW);
+	glGenVertexArrays(1, &mesh->va);
+	glBindVertexArray(mesh->va);
+
+	glGenBuffers(1, &mesh->vb);
+	glBindBuffer(GL_ARRAY_BUFFER, mesh->vb);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * mesh->vertCount, mesh->vertices, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &mesh->ib);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_STATIC_DRAW);
 
 	int stride = 8;
 
@@ -72,7 +69,7 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	glEnableVertexAttribArray(2);
 	glVertexAttribDivisor(2, 1);
 
-	emitter.mesh = va;
+	emitter.mesh = mesh;
 }
 
 static void SpawnParticle(ParticleEmitter& emitter, float x, float y, float z, vec3 velocity)
@@ -137,6 +134,6 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 
 	glBindTexture(GL_TEXTURE_2D, GetTexture(state, IMAGE_STONE).id);
 
-	glBindVertexArray(emitter.mesh);
-	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, emitter.count);
+	glBindVertexArray(emitter.mesh->va);
+	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh->indexCount, GL_UNSIGNED_INT, 0, emitter.count);
 }
