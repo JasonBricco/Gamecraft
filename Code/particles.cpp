@@ -124,7 +124,7 @@ static void UpdateParticles(ParticleEmitter& emitter, World* world, float deltaT
 static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* cam)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, emitter.positions);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * emitter.count, &emitter.particlePositions[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * emitter.count, emitter.particlePositions, GL_STATIC_DRAW);
 
 	Shader* shader = GetShader(state, SHADER_PARTICLE);
 

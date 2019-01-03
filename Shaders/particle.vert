@@ -11,11 +11,9 @@ uniform mat4 projection;
 
 void main()
 {
-	mat4 model = mat4(vec4(1.0, 0.0, 0.0, 0.0),
-        		vec4(0.0, 1.0, 0.0, 0.0),
-        		vec4(0.0, 0.0, 1.0, 0.0),
-        		vec4(offset.x, offset.y, offset.z, 1.0));
-	
+	mat4 model = mat4(1.0);
+	model[3] = model[0] * offset[0] + model[1] * offset[1] + model[2] * offset[2] + model[3];
+
 	gl_Position = projection * view * model * vec4(pos, 1.0);
 	uv = inUv;
 }
