@@ -177,6 +177,10 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
     Shader& fade = db.shaders[SHADER_FADE];
     fade.fadeColor = glGetUniformLocation(fade.handle, "inColor");
 
+    Shader& particle = db.shaders[SHADER_PARTICLE];
+    particle.view = glGetUniformLocation(particle.handle, "view");
+    particle.proj = glGetUniformLocation(particle.handle, "projection");
+
 	Graphic* graphic = CreateGraphic(GetShader(state, SHADER_CROSSHAIR), GetTexture(state, IMAGE_CROSSHAIR));
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
 	
