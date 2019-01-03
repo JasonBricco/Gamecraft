@@ -174,6 +174,7 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 
 #if _DEBUG
 	glEnable(GL_DEBUG_OUTPUT);
+	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	glDebugMessageCallback((GLDEBUGPROC)OnOpenGLMessage, 0);
 #endif
 
