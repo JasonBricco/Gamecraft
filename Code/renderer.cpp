@@ -120,6 +120,7 @@ static void OnOpenGLMessage(GLenum, GLenum type, GLuint, GLenum severity, GLsize
 		return;
 
 	Print("GL CALLBACK: type = 0x%x, severity = 0x%x, message = %s\n", type, severity, msg);
+	DebugBreak();
 }
 
 static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int screenHeight)
@@ -170,16 +171,17 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
     SetUniform(fluidArray->fogEnd, fogEnd);
     SetUniform(fluidArray->fogColor, clearColor);
 
-    Shader& crosshair = db.shaders[SHADER_CROSSHAIR];
-    crosshair.model = glGetUniformLocation(crosshair.handle, "model");
-    crosshair.proj = glGetUniformLocation(crosshair.handle, "projection");
+    Shader* crosshair = &db.shaders[SHADER_CROSSHAIR];
+    crosshair->model = glGetUniformLocation(crosshair->handle, "model");
+    crosshair->proj = glGetUniformLocation(crosshair->handle, "projection");
 
-    Shader& fade = db.shaders[SHADER_FADE];
-    fade.fadeColor = glGetUniformLocation(fade.handle, "inColor");
+    Shader* fade = &db.shaders[SHADER_FADE];
+    fade->fadeColor = glGetUniformLocation(fade->handle, "inColor");
 
-    Shader& particle = db.shaders[SHADER_PARTICLE];
-    particle.view = glGetUniformLocation(particle.handle, "view");
-    particle.proj = glGetUniformLocation(particle.handle, "projection");
+    Shader* particle = &db.shaders[SHADER_PARTICLE];
+    particle->model = glGetUniformLocation(particle->model, "model");
+    particle->view = glGetUniformLocation(particle->handle, "view");
+    particle->proj = glGetUniformLocation(particle->handle, "projection");
 
 	Graphic* graphic = CreateGraphic(GetShader(state, SHADER_CROSSHAIR), GetTexture(state, IMAGE_CROSSHAIR));
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
