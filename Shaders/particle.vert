@@ -14,6 +14,6 @@ void main()
 	mat4 model = mat4(1.0);
 	model[3] = model[0] * offset[0] + model[1] * offset[1] + model[2] * offset[2] + model[3];
 
-	gl_Position = projection * view * model * vec4(pos, 1.0);
+	gl_Position = projection * view * vec4(pos, 1.0);
 	uv = inUv;
 }

@@ -7,43 +7,13 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	emitter.spawnCount = spawnCount;
 	emitter.radius = radius;
 
-	Mesh* mesh = CreateMesh(120, 36);
+	Mesh* mesh = CreateMesh(20, 6);
 
-	SetMeshIndices(mesh, 5);
-	SetMeshVertex(mesh, 0.5f, 0.5f, -0.5f, 0.0f, 1.0f);
-	SetMeshVertex(mesh, 0.5f, 0.5f, 0.5f, 0.0f, 0.0f);
-	SetMeshVertex(mesh, -0.5f, 0.5f, 0.5f, 1.0f, 0.0f);
-	SetMeshVertex(mesh, -0.5f, 0.5f, -0.5f, 1.0f, 1.0f);
-  
-	SetMeshIndices(mesh, 5);
-	SetMeshVertex(mesh, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f);
-	SetMeshVertex(mesh, -0.5f, -0.5f, 0.5f, 0.0f, 0.0f);
-	SetMeshVertex(mesh, 0.5f, -0.5f, 0.5f, 1.0f, 0.0f);
-	SetMeshVertex(mesh, 0.5f, -0.5f, -0.5f, 1.0f, 1.0f);
-  
 	SetMeshIndices(mesh, 5);
 	SetMeshVertex(mesh, -0.5f, -0.5f, 0.5f, 0.0f, 1.0f);
 	SetMeshVertex(mesh, -0.5f, 0.5f, 0.5f, 0.0f, 0.0f);
 	SetMeshVertex(mesh, 0.5f, 0.5f, 0.5f, 1.0f, 0.0f);
 	SetMeshVertex(mesh, 0.5f, -0.5f, 0.5f, 1.0f, 1.0f);
-
-	SetMeshIndices(mesh, 5);
-	SetMeshVertex(mesh, 0.5f, -0.5f, -0.5f, 0.0f, 1.0f);
-	SetMeshVertex(mesh, 0.5f, 0.5f, -0.5f, 0.0f, 0.0f);
-	SetMeshVertex(mesh, -0.5f, 0.5f, -0.5f, 1.0f, 0.0f);
-	SetMeshVertex(mesh, -0.5f, -0.5f, -0.5f, 1.0f, 1.0f);
-
-	SetMeshIndices(mesh, 5);
-	SetMeshVertex(mesh, 0.5f, -0.5f, 0.5f, 0.0f, 1.0f);
-	SetMeshVertex(mesh, 0.5f, 0.5f, 0.5f, 0.0f, 0.0f);
-	SetMeshVertex(mesh, 0.5f, 0.5f, -0.5f, 1.0f, 0.0f);
-	SetMeshVertex(mesh, 0.5f, -0.5f, -0.5f, 1.0f, 1.0f);
-
-	SetMeshIndices(mesh, 5);
-	SetMeshVertex(mesh, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f);
-	SetMeshVertex(mesh, -0.5f, 0.5f, -0.5f, 0.0f, 0.0f);
-	SetMeshVertex(mesh, -0.5f, 0.5f, 0.5f, 1.0f, 0.0f);
-	SetMeshVertex(mesh, -0.5f, -0.5f, 0.5f, 1.0f, 1.0f);
 
 	glGenVertexArrays(1, &mesh->va);
 	glBindVertexArray(mesh->va);
@@ -56,16 +26,19 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_STATIC_DRAW);
 
-	int stride = 8;
+	glGenBuffers(1, &emitter.positions);
+	glBindBuffer(GL_ARRAY_BUFFER, emitter.positions);
+	glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 3 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride * sizeof(GLfloat), NULL);
+	int stride = 8 * sizeof(GLfloat);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, NULL);
 	glEnableVertexAttribArray(0);
 
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat))); 
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (GLvoid*)(3 * sizeof(GLfloat))); 
 	glEnableVertexAttribArray(1);
 
-	glGenBuffers(1, &emitter.positions);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride * sizeof(GLfloat), (GLvoid*)(5 * sizeof(GLfloat)));
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, (GLvoid*)(5 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(2);
 	glVertexAttribDivisor(2, 1);
 
@@ -124,7 +97,9 @@ static void UpdateParticles(ParticleEmitter& emitter, World* world, float deltaT
 static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* cam)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, emitter.positions);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * emitter.count, emitter.particlePositions, GL_STATIC_DRAW);
+	
+	glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 3 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, emitter.count * sizeof(GLfloat) * 3, emitter.particlePositions);
 
 	Shader* shader = GetShader(state, SHADER_PARTICLE);
 
