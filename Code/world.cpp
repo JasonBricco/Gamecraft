@@ -81,6 +81,12 @@ static inline bool BlockInsideChunk(RelPos p)
     return BlockInsideChunk(p.x, p.y, p.z);
 }
 
+static inline bool BlockInsideWorld(World* world, int x, int z)
+{
+    int wSize = world->size * CHUNK_SIZE_X;
+    return x >= 0 && z >= 0 && x < wSize && z < wSize;
+}
+
 static inline bool ChunkInsideWorld(World* world, int x, int z)
 {
     return x >= 0 && x < world->size && z >= 0 && z < world->size;
@@ -290,6 +296,8 @@ static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
 {
     if (lwY < 0) return BLOCK_STONE;
     if (lwY >= WORLD_HEIGHT) return BLOCK_AIR;
+
+    assert(BlockInsideWorld(world, lwX, lwZ));
 
     LChunkPos lcPos = LWorldToLChunkPos(lwX, lwZ);
     Chunk* chunk = GetChunk(world, lcPos);

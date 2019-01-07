@@ -50,6 +50,19 @@ using namespace std;
 
 #define Unused(x) ((void)(x))
 
+#define ENABLE_PRINT 0
+
+#if ENABLE_PRINT
+#define Print(...) { \
+    char print_buffer[256]; \
+    snprintf(print_buffer, sizeof(print_buffer), __VA_ARGS__); \
+    OutputDebugString(print_buffer); \
+}
+#else
+#define Print(...)
+#endif
+
+
 static bool g_paused;
 
 #include "memory.h"
@@ -166,10 +179,13 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 		return;
 	}
 
+	if (KeyPressed(input, KEY_T))
+		ToggleFullscreen(glfwGetWin32Window(window));
+
 	UpdateAudio(&state.audio, deltaTime);
 	UpdateWorld(&state, world, state.camera, player);
 
-	if (g_paused) return;
+	if (g_paused || !player->spawned) return;
 
 	if (KeyPressed(input, KEY_EQUAL))
 	{
@@ -178,11 +194,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 		glClearColor(newClear.r, newClear.g, newClear.b, 1.0f);
 	}
 
-	if (KeyPressed(input, KEY_T))
-		ToggleFullscreen(glfwGetWin32Window(window));
-
 	double mouseX, mouseY;
-
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
 	double cX = state.windowWidth / 2.0, cY = state.windowHeight / 2.0f;
@@ -250,7 +262,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPos(window, state.windowWidth / 2.0f, state.windowHeight / 2.0f);
 
-	InitParticleEmitter(state.rain, 1, 10.0f);
+	InitParticleEmitter(state.rain, 6, 20.0f);
 
 	World* world = NewWorld(&state, 13, 1024);
 

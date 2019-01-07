@@ -577,8 +577,6 @@ static bool OverlapsBlock(Player* player, int bX, int bY, int bZ)
 
 static void Simulate(GameState* state, World* world, Player* player, float deltaTime)
 {
-	if (!player->spawned) return;
-
 	Input& input = state->input;
 	Camera* cam = state->camera;
 

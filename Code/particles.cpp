@@ -74,7 +74,7 @@ static void UpdateParticles(ParticleEmitter& emitter, World* world, float deltaT
 			float x = emitter.pos.x + RandRange(-emitter.radius, emitter.radius);
 			float z = emitter.pos.z + RandRange(-emitter.radius, emitter.radius);
 
-			SpawnParticle(emitter, x, emitter.pos.y - 20.0f, z, vec3(0.0f, -15.0f, 0.0f));
+			SpawnParticle(emitter, x, emitter.pos.y, z, vec3(0.0f, -30.0f, 0.0f));
 		}
 
 		emitter.timer = 0.01f;

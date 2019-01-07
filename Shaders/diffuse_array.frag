@@ -12,7 +12,7 @@ uniform vec3 fogColor;
 
 void main()
 {
-	outColor = texture(tex, uv) * 1.5;
+	outColor = texture(tex, uv);
 	vec3 amb = vec3(ambient) * vertColor.rgb;
 	outColor.xyz *= amb;
 	outColor.xyz = mix(fogColor, outColor.xyz, fogFactor);

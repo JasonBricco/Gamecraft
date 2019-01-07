@@ -2,7 +2,7 @@
 // Jason Bricco
 //
 
-#define MAX_PARTICLES 4096
+#define MAX_PARTICLES 2048
 
 struct Particle
 {
