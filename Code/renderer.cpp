@@ -404,11 +404,13 @@ static void RenderScene(GameState* state, Camera* cam)
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
-	if (cam->disableFluidCull) 
-		glEnable(GL_CULL_FACE);
+	// If we didn't already disable culling, disable it now for particle drawing.
+	if (!cam->disableFluidCull)
+		glDisable(GL_CULL_FACE);
 
 	DrawParticles(state, state->rain, cam);
 
+	glEnable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
 
 	if (cam->fadeColor != CLEAR_COLOR)

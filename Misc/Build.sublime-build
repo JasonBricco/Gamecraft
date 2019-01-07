@@ -26,6 +26,10 @@
 		{
 			"name": "Asset Builder (Release)",
 			"shell_cmd": "@echo off && W:/Misc/Build.bat -ar"
+		},
+		{
+			"name": "Build Assets",
+			"shell_cmd": "@echo off && W:/BuildAssets.exe"
 		}
 	]
 }

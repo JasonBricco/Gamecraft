@@ -10,10 +10,10 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	Mesh* mesh = CreateMesh(20, 6);
 
     SetMeshIndices(mesh, 5);
-    SetMeshVertex(mesh, -0.5f, -0.5f, 0.5f, 0.0f, 1.0f); 
-    SetMeshVertex(mesh, -0.5f, 0.5f, 0.5f, 0.0f, 0.0f);
-    SetMeshVertex(mesh, 0.5f, 0.5f, 0.5f, 1.0f, 0.0f);
-    SetMeshVertex(mesh, 0.5f, -0.5f, 0.5f, 1.0f, 1.0f);
+    SetMeshVertex(mesh, -0.015625f, -0.125f, 0.015625f, 0.0f, 1.0f); 
+    SetMeshVertex(mesh, -0.015625f, 0.125f, 0.015625f, 0.0f, 0.0f);
+    SetMeshVertex(mesh, 0.015625f, 0.125f, 0.015625f, 1.0f, 0.0f);
+    SetMeshVertex(mesh, 0.015625f, -0.125f, 0.015625f, 1.0f, 1.0f);
 
 	glGenVertexArrays(1, &mesh->va);
 	glBindVertexArray(mesh->va);
