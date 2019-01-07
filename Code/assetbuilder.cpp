@@ -25,6 +25,8 @@ using namespace std;
 #include "memory.h"
 #include "filehelper.h"
 
+#define ArrayLength(array) (sizeof(array) / sizeof((array)[0]))
+
 int main()
 {
 	AssetFileHeader header = {};
@@ -41,6 +43,7 @@ int main()
 		"W:/Assets/Sand.png",
 		"W:/Assets/Stone.png",
 		"W:/Assets/StoneBrick.png",
+		"W:/Assets/MetalCrate.png",
 		"W:/Assets/Water.png",
 		"W:/Assets/Crosshair.png",
 		"W:/Assets/Rain.png"
@@ -50,7 +53,7 @@ int main()
 	// INT_MAX means the image doesn't belong in an array.
 	int arrayIndices[] =
 	{
-		0, 0, 0, 0, 0, 0, 0, 0, INT_MAX, INT_MAX
+		0, 0, 0, 0, 0, 0, 0, 0, 0, INT_MAX, INT_MAX
 	};
 
 	char* soundPaths[] = 

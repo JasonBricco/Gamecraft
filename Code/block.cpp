@@ -101,4 +101,9 @@ static void CreateBlockData(GameState* state, BlockData* data)
     SetBlockTextures(stoneBrick, IMAGE_STONE_BRICK);
     stoneBrick.buildFunc = BuildBlock;
     stoneBrick.onSetSound = GetSound(state, SOUND_STONE);
+
+    BlockData& metalCrate = data[BLOCK_METAL_CRATE];
+    SetBlockTextures(metalCrate, IMAGE_METAL_CRATE);
+    metalCrate.buildFunc = BuildBlock;
+    metalCrate.onSetSound = GetSound(state, SOUND_STONE);
 }
