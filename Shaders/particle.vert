@@ -2,7 +2,7 @@
 
 layout (location = 0) in vec3 pos;
 layout (location = 1) in vec2 inUv;
-layout (location = 2) in vec3 offset;
+layout (location = 2) in mat4 model;
 
 out vec2 uv;
 
@@ -11,9 +11,12 @@ uniform mat4 projection;
 
 void main()
 {
-	mat4 model = mat4(1.0);
-	model[3] = model[0] * offset[0] + model[1] * offset[1] + model[2] * offset[2] + model[3];
+	mat4 mv = view * model;
 
-	gl_Position = projection * view * vec4(pos, 1.0);
+	mv[0][0] = mv[1][1] = mv[2][2] = 1.0f;
+	mv[0][1] = mv[0][2] = mv[1][2] = 0.0;
+	mv[1][0] = mv[2][0] = mv[2][1] = 0.0;
+
+	gl_Position = projection * mv * vec4(pos, 1.0);
 	uv = inUv;
 }

@@ -250,7 +250,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPos(window, state.windowWidth / 2.0f, state.windowHeight / 2.0f);
 
-	InitParticleEmitter(state.rain, 5, 10.0f);
+	InitParticleEmitter(state.rain, 1, 10.0f);
 
 	World* world = NewWorld(&state, 13, 1024);
 
