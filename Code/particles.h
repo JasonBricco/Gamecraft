@@ -12,6 +12,7 @@ struct Particle
 
 struct ParticleEmitter
 {
+	bool active;
 	vec3 pos;
 	Particle particles[MAX_PARTICLES];
 	int count;

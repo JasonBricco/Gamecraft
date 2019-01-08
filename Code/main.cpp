@@ -182,6 +182,9 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	if (KeyPressed(input, KEY_T))
 		ToggleFullscreen(glfwGetWin32Window(window));
 
+	if (KeyPressed(input, KEY_R))
+		state.rain.active = !state.rain.active;
+
 	UpdateAudio(&state.audio, deltaTime);
 	UpdateWorld(&state, world, state.camera, player);
 

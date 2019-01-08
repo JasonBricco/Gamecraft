@@ -67,7 +67,7 @@ static void UpdateParticles(ParticleEmitter& emitter, World* world, float deltaT
 {
 	emitter.timer -= deltaTime;
 
-	if (emitter.timer <= 0.0f)
+	if (emitter.active && emitter.timer <= 0.0f)
 	{
 		for (int i = 0; i < emitter.spawnCount; i++)
 		{
