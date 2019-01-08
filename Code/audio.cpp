@@ -20,6 +20,7 @@ static void InitAudio(AudioEngine* engine)
 
     engine->pXAudio = pXAudio;
     engine->masteringVoice = masteringVoice;
+    engine->maxMusicVolume = 0.75f;
 }
 
 static WAVEFORMATEX GetFormat(int sampleRate)
@@ -43,6 +44,20 @@ static void ChangeVolume(AudioEngine* engine, float target, float seconds)
 	music->GetVolume(&volume);
 
 	engine->volumeLerp = { volume, target, 0.0f, seconds };
+}
+
+static void ToggleMute(AudioEngine* audio)
+{
+	if (audio->muted)
+	{
+		ChangeVolume(audio, audio->maxMusicVolume, 0.0f);
+		audio->muted = false;
+	}
+	else
+	{
+		ChangeVolume(audio, 0.0f, 0.0f);
+		audio->muted = true;
+	}
 }
 
 static void LoadMusic(AudioEngine* engine, char* path)
@@ -80,7 +95,7 @@ static void LoadMusic(AudioEngine* engine, char* path)
 	hr = source->Start(0);
     CheckForError(hr, "Failed to start playing sound.\n");
 
-    ChangeVolume(engine, 0.75f, 3.0f);
+    ChangeVolume(engine, engine->maxMusicVolume, 3.0f);
 }
 
 static inline int GetMusicSamples(AudioEngine* engine, int count)

@@ -150,6 +150,10 @@ static void OnKey(GLFWwindow* window, int key, int, int action, int mode)
 			SetKey(input, KEY_9, action);
 			break;
 
+		case GLFW_KEY_MINUS:
+			SetKey(input, KEY_MINUS, action);
+			break;
+
 		case GLFW_KEY_EQUAL:
 			SetKey(input, KEY_EQUAL, action);
 			break;

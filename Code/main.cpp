@@ -163,6 +163,9 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 {
 	Input& input = state.input;
 
+	if (KeyPressed(input, KEY_MINUS))
+		ToggleMute(&state.audio);
+
 	if (KeyPressed(input, KEY_ESCAPE))
 	{
 		SaveWorld(world);
