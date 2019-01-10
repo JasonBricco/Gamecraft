@@ -62,7 +62,6 @@ using namespace std;
 #define Print(...)
 #endif
 
-
 static bool g_paused;
 
 #include "memory.h"
@@ -86,6 +85,7 @@ static bool g_paused;
 #include "particles.h"
 #include "gamestate.h"
 
+#include "ui.cpp"
 #include "audio.cpp"
 #include "assets.cpp"
 #include "async.cpp"
