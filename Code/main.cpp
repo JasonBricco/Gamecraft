@@ -19,6 +19,7 @@
 #include "GLFW/glfw3.h"
 #include "GLFW/glfw3native.h"
 #include "FastNoiseSIMD.h"
+#include "imgui.h"
 
 #include "stb_vorbis.h"
 
@@ -68,6 +69,7 @@ static bool g_paused;
 #include "random.h"
 #include "utils.h"
 #include "profiling.h"
+#include "ui.h"
 #include "audio.h"
 #include "filehelper.h"
 #include "assetbuilder.h"
@@ -85,13 +87,16 @@ static bool g_paused;
 #include "particles.h"
 #include "gamestate.h"
 
-#include "ui.cpp"
+static void Pause(GLFWwindow* window, World* world);
+static void Unpause(GLFWwindow* window);
+
 #include "audio.cpp"
 #include "assets.cpp"
 #include "async.cpp"
 #include "input.cpp"
 #include "mesh.cpp"
 #include "renderer.cpp"
+#include "ui.cpp"
 #include "block.cpp"
 #include "world.cpp"
 #include "worldrender.cpp"
@@ -159,6 +164,21 @@ static void ShowFPS(GLFWwindow* window)
 	frameCount++;
 }
 
+static void Pause(GLFWwindow* window, World* world)
+{
+	SaveWorld(world);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	ChangeVolume(&state.audio, 0.25f, 0.5f);
+	g_paused = true;
+}
+
+static void Unpause(GLFWwindow* window)
+{
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	ChangeVolume(&state.audio, 0.75f, 0.5f);
+	g_paused = false;
+}
+
 static void Update(GLFWwindow* window, Player* player, World* world, float deltaTime)
 {
 	Input& input = state.input;
@@ -167,20 +187,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 		ToggleMute(&state.audio);
 
 	if (KeyPressed(input, KEY_ESCAPE))
-	{
-		SaveWorld(world);
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		ChangeVolume(&state.audio, 0.25f, 0.5f);
-		g_paused = true;
-	}
-
-	if (g_paused && MousePressed(input, 0))
-	{
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		ChangeVolume(&state.audio, 0.75f, 0.5f);
-		g_paused = false;
-		return;
-	}
+		Pause(window, world);
 
 	if (KeyPressed(input, KEY_T))
 		ToggleFullscreen(glfwGetWin32Window(window));
@@ -248,6 +255,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	// Set vertical synchronization to the monitor refresh rate.
 	glfwSwapInterval(1);
 
+	InitUI(window, state.ui);
 	InitAudio(&state.audio);
 	
 	CreateThreads(&state);
@@ -286,6 +294,8 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		ResetInput(state.input);
 		glfwPollEvents();
 
+		BeginNewUIFrame(window, state.ui, deltaTime);
+		CreateUI(window);
 		Update(window, player, world, deltaTime);
 		RenderScene(&state, cam);
 

@@ -214,6 +214,9 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
     crosshair->model = glGetUniformLocation(crosshair->handle, "model");
     crosshair->proj = glGetUniformLocation(crosshair->handle, "projection");
 
+    Shader* ui = &db.shaders[SHADER_UI];
+    ui->proj = glGetUniformLocation(ui->handle, "proj");
+
     Shader* fade = &db.shaders[SHADER_FADE];
     fade->fadeColor = glGetUniformLocation(fade->handle, "inColor");
 
@@ -410,7 +413,6 @@ static void RenderScene(GameState* state, Camera* cam)
 
 	DrawParticles(state, state->rain, cam);
 
-	glEnable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
 
 	if (cam->fadeColor != CLEAR_COLOR)
@@ -428,8 +430,10 @@ static void RenderScene(GameState* state, Camera* cam)
 		DrawGraphic(cam, cam->crosshair);
 	}
 
-	glDisable(GL_BLEND);
+	RenderUI(state, cam, state->ui);
 
+	glDisable(GL_BLEND);
+	glEnable(GL_CULL_FACE);
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	END_TIMED_BLOCK(RENDER_SCENE);

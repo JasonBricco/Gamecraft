@@ -73,7 +73,9 @@ int main()
 		"W:/Shaders/fade.vert",
 		"W:/Shaders/fade.frag",
 		"W:/Shaders/particle.vert",
-		"W:/Shaders/particle.frag"
+		"W:/Shaders/particle.frag",
+		"W:/Shaders/ui.vert",
+		"W:/Shaders/ui.frag"
 	};
 
 	const int imageCount = ArrayLength(imagePaths);

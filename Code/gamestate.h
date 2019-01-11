@@ -16,6 +16,7 @@ struct GameState
 	Input input;
 
 	AudioEngine audio;
+	UI ui;
 
 	float ambient;
 	vec3 clearColor;

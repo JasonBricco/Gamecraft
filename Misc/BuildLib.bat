@@ -7,9 +7,6 @@ set flags=-c -I W:\Common\Include -MD -Oi -O2 -nologo -fp:fast -Gm- -GR- -EHa- -
 set def=-D_CRT_SECURE_NO_WARNINGS=1 -DNDEBUG -D_HAS_EXCEPTIONS=0
 set dir=W:\Common\Lib
 
-set glfw_files=context.c egl_context.c init.c input.c monitor.c vulkan.c wgl_context.c win32_init.c win32_joystick.c win32_monitor.c win32_time.c win32_tls.c win32_window.c window.c xkb_unicode.c
-set glfw_obj=context.obj egl_context.obj init.obj input.obj monitor.obj vulkan.obj wgl_context.obj win32_init.obj win32_joystick.obj win32_monitor.obj win32_time.obj win32_tls.obj win32_window.obj window.obj xkb_unicode.obj
-
 IF "%~1" == "fastnoisesimd" (
 	pushd ..\Common\Source\FastNoiseSIMD
 	GOTO fastnoisesimd
@@ -44,11 +41,11 @@ REM ------------------------------------- FAST NOISE SIMD ----------------------
 
 cl %flags% %def% FastNoiseSIMD.cpp FastNoiseSIMD_internal.cpp FastNoiseSIMD_sse2.cpp FastNoiseSIMD_sse41.cpp
 cl %flags% %def% -arch:AVX FastNoiseSIMD_avx2.cpp FastNoiseSIMD_avx512.cpp
-lib /NOLOGO /OUT:%dir%\noise.lib FastNoiseSIMD.obj FastNoiseSIMD_internal.obj FastNoiseSIMD_sse2.obj FastNoiseSIMD_sse41.obj FastNoiseSIMD_avx2.obj FastNoiseSIMD_avx512.obj
+lib /NOLOGO /OUT:%dir%\noise.lib *.obj
 
 cl %flags_d% %def_d% FastNoiseSIMD.cpp FastNoiseSIMD_internal.cpp FastNoiseSIMD_sse2.cpp FastNoiseSIMD_sse41.cpp
 cl %flags_d% %def_d% -arch:AVX FastNoiseSIMD_avx2.cpp FastNoiseSIMD_avx512.cpp
-lib /NOLOGO /OUT:%dir%\noise-d.lib FastNoiseSIMD.obj FastNoiseSIMD_internal.obj FastNoiseSIMD_sse2.obj FastNoiseSIMD_sse41.obj FastNoiseSIMD_avx2.obj FastNoiseSIMD_avx512.obj
+lib /NOLOGO /OUT:%dir%\noise-d.lib *.obj
 
 GOTO end
 
@@ -56,11 +53,11 @@ REM ------------------------------------- GLEW ---------------------------------
 
 :glew
 
-cl %flags% -DGLEW_STATIC %def% glew.c glewinfo.c
-lib /NOLOGO /LTCG /OUT:%dir%\glew.lib glew.obj glewinfo.obj
+cl %flags% -DGLEW_STATIC %def% *.c
+lib /NOLOGO /LTCG /OUT:%dir%\glew.lib *.obj
 
-cl %flags_d% -DGLEW_STATIC %def_d% glew.c glewinfo.c
-lib /NOLOGO /OUT:%dir%\glew-d.lib glew.obj glewinfo.obj
+cl %flags_d% -DGLEW_STATIC %def_d% *.c
+lib /NOLOGO /OUT:%dir%\glew-d.lib *.obj
 
 GOTO end
 
@@ -68,11 +65,11 @@ REM ------------------------------------- GLFW ---------------------------------
 
 :glfw
 
-cl %flags% -D_GLFW_WIN32 %def% %glfw_files%
-lib /NOLOGO /LTCG /OUT:%dir%\glfw.lib %glfw_obj%
+cl %flags% -D_GLFW_WIN32 %def% *.c
+lib /NOLOGO /LTCG /OUT:%dir%\glfw.lib *.obj
 
-cl %flags_d% -D_GLFW_WIN32 %def_d% %glfw_files%
-lib /NOLOGO /OUT:%dir%\glfw-d.lib %glfw_obj%
+cl %flags_d% -D_GLFW_WIN32 %def_d% *.c
+lib /NOLOGO /OUT:%dir%\glfw-d.lib *.obj
 
 GOTO end
 
@@ -92,11 +89,11 @@ REM ------------------------------------- IMGUI --------------------------------
 
 :imgui
 
-cl %flags% %def% imgui.cpp imgui_draw.cpp imgui_widgets.cpp
-lib /NOLOGO /LTCG /OUT:%dir%\imgui.lib imgui.obj imgui_draw.obj imgui_widgets.obj
+cl %flags% %def% *.cpp
+lib /NOLOGO /LTCG /OUT:%dir%\imgui.lib *.obj
 
-cl %flags_d% %def_d% imgui.cpp imgui_draw.cpp imgui_widgets.cpp
-lib /NOLOGO /OUT:%dir%\imgui-d.lib imgui.obj imgui_draw.obj imgui_widgets.obj
+cl %flags_d% %def_d% *.cpp
+lib /NOLOGO /OUT:%dir%\imgui-d.lib *.obj
 
 GOTO end;
 

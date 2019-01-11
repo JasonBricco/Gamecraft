@@ -17,7 +17,7 @@ REM Release mode build.
 
 set f=-MD -Oi -O2 -Zi
 set def=-D_CRT_SECURE_NO_WARNINGS=1 -DNDEBUG -D_HAS_EXCEPTIONS=0
-set lb=glew.lib glfw.lib noise.lib stb_vorbis.lib
+set lb=glew.lib glfw.lib noise.lib stb_vorbis.lib imgui.lib
 set link=/LIBPATH:W:\Common\Lib /SUBSYSTEM:WINDOWS
 
 GOTO compile
@@ -27,7 +27,7 @@ REM Debug mode build.
 
 set f=-MDd -Oi- -Od -Zi
 set def=-D_DEBUG=1 -D_CRT_SECURE_NO_WARNINGS=1 -D_HAS_EXCEPTIONS=0
-set lb=glew-d.lib glfw-d.lib noise-d.lib stb_vorbis-d.lib
+set lb=glew-d.lib glfw-d.lib noise-d.lib stb_vorbis-d.lib imgui-d.lib
 set link=/LIBPATH:W:\Common\Lib /ignore:4099 /SUBSYSTEM:WINDOWS
 
 REM Compile the engine.
