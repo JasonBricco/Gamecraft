@@ -152,24 +152,51 @@ static void BeginNewUIFrame(GLFWwindow* window, UI& ui, float deltaTime)
     ImGui::NewFrame();
 }
 
-static void CreateUI(GLFWwindow* window)
+static void CreateUI(GLFWwindow* window, GameState* state)
 {
     ImGuiIO& io = ImGui::GetIO();
     ImVec2 size = io.DisplaySize;
 
     if (g_paused)
     {
-        ImVec2 panelSize = ImVec2(200.0f, 400.0f);
+        ImVec2 panelSize = ImVec2(175.0f, 180.0f);
 
         ImGui::SetNextWindowSize(panelSize);
         ImGui::SetNextWindowPos(ImVec2(size.x * 0.5f - (panelSize.x * 0.5f), size.y * 0.5f - (panelSize.y * 0.5f)));
 
-        ImGui::Begin("Paused");
+        ImGui::Begin("Paused", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 
-        if (ImGui::Button("Continue"))
+        ImVec2 btnSize = ImVec2(100.0f, 30.0f);
+        ImVec2 btnPos = ImVec2(panelSize.x * 0.5f - (btnSize.x * 0.5f), 30.0f);
+
+        ImGui::SetCursorPos(btnPos);
+
+        if (ImGui::Button("Continue", btnSize))
             Unpause(window);
 
-        if (ImGui::Button("Quit"))
+        btnPos.y += 35.0f;
+        ImGui::SetCursorPos(btnPos);
+
+        bool raining = state->rain.active;
+
+        if (ImGui::Button(raining ? "Disable Rain" : "Enable Rain", btnSize))
+        {
+            state->rain.active = !raining;
+            Unpause(window);
+        }
+
+        btnPos.y += 35.0f;
+        ImGui::SetCursorPos(btnPos);
+
+        bool muted = state->audio.muted;
+
+        if (ImGui::Button(muted ? "Unmute Audio" : "Mute Audio", btnSize))
+            ToggleMute(&state->audio);
+
+        btnPos.y += 35.0f;
+        ImGui::SetCursorPos(btnPos);
+
+        if (ImGui::Button("Quit", btnSize))
             glfwSetWindowShouldClose(window, GLFW_TRUE);
 
         ImGui::End();

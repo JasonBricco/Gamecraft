@@ -418,7 +418,6 @@ static void RenderScene(GameState* state, Camera* cam)
 	if (cam->fadeColor != CLEAR_COLOR)
 	{
 		shader = cam->fadeShader;
-
 		UseShader(shader);
 		SetUniform(shader->fadeColor, cam->fadeColor);
 		DrawMesh(cam->fadeMesh);

@@ -96,7 +96,6 @@ static void Unpause(GLFWwindow* window);
 #include "input.cpp"
 #include "mesh.cpp"
 #include "renderer.cpp"
-#include "ui.cpp"
 #include "block.cpp"
 #include "world.cpp"
 #include "worldrender.cpp"
@@ -104,6 +103,7 @@ static void Unpause(GLFWwindow* window);
 #include "worldio.cpp"
 #include "simulation.cpp"
 #include "particles.cpp"
+#include "ui.cpp"
 
 #if _DEBUG
 static char* buildType = "DEBUG";
@@ -169,6 +169,8 @@ static void Pause(GLFWwindow* window, World* world)
 	SaveWorld(world);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	ChangeVolume(&state.audio, 0.25f, 0.5f);
+	Camera* cam = state.camera;
+	cam->fadeColor.a = cam->fadeColor.a > 0.5f ? 0.9f : 0.75f;
 	g_paused = true;
 }
 
@@ -176,6 +178,9 @@ static void Unpause(GLFWwindow* window)
 {
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	ChangeVolume(&state.audio, 0.75f, 0.5f);
+	Camera* cam = state.camera;
+	cam->fadeColor.a = 0.0f;
+	glfwSetCursorPos(window, state.windowWidth * 0.5f, state.windowHeight * 0.5f);
 	g_paused = false;
 }
 
@@ -183,17 +188,11 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 {
 	Input& input = state.input;
 
-	if (KeyPressed(input, KEY_MINUS))
-		ToggleMute(&state.audio);
-
 	if (KeyPressed(input, KEY_ESCAPE))
 		Pause(window, world);
 
 	if (KeyPressed(input, KEY_T))
 		ToggleFullscreen(glfwGetWin32Window(window));
-
-	if (KeyPressed(input, KEY_R))
-		state.rain.active = !state.rain.active;
 
 	UpdateAudio(&state.audio, deltaTime);
 	UpdateWorld(&state, world, state.camera, player);
@@ -210,8 +209,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	double mouseX, mouseY;
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
-	double cX = state.windowWidth / 2.0, cY = state.windowHeight / 2.0f;
-
+	double cX = state.windowWidth * 0.5f, cY = state.windowHeight * 0.5f;
 	Camera* cam = state.camera;
 
 	float rotX = (float)(cX - mouseX) * cam->sensitivity;
@@ -295,7 +293,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		glfwPollEvents();
 
 		BeginNewUIFrame(window, state.ui, deltaTime);
-		CreateUI(window);
+		CreateUI(window, &state);
 		Update(window, player, world, deltaTime);
 		RenderScene(&state, cam);
 

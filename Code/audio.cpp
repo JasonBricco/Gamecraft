@@ -46,20 +46,6 @@ static void ChangeVolume(AudioEngine* engine, float target, float seconds)
 	engine->volumeLerp = { volume, target, 0.0f, seconds };
 }
 
-static void ToggleMute(AudioEngine* audio)
-{
-	if (audio->muted)
-	{
-		ChangeVolume(audio, audio->maxMusicVolume, 0.0f);
-		audio->muted = false;
-	}
-	else
-	{
-		ChangeVolume(audio, 0.0f, 0.0f);
-		audio->muted = true;
-	}
-}
-
 static void LoadMusic(AudioEngine* engine, char* path)
 {
 	path = PathToExe(path);
@@ -138,9 +124,30 @@ void SoundCallback::OnStreamEnd()
 	pool.push(source);
 }
 
+static void ToggleMute(AudioEngine* audio)
+{
+	IXAudio2SourceVoice* music = audio->musicSource;
+
+    if (audio->muted)
+    {
+    	music->SetVolume(audio->lastMusicVolume);
+        audio->muted = false;
+    }
+    else
+    {
+    	music->GetVolume(&audio->lastMusicVolume);
+        music->SetVolume(0.0f);
+        audio->muted = true;
+    }
+}
+
 static void PlaySound(Sound sound)
 {
 	AudioEngine* engine = sound.engine;
+
+	if (engine->muted)
+		return;
+
 	auto& pool = engine->voicePool;
 	IXAudio2SourceVoice* source;
 	HRESULT hr;
@@ -175,6 +182,8 @@ static void PlaySound(Sound sound)
 
 static void UpdateAudio(AudioEngine* engine, float deltaTime)
 {
+	if (engine->muted) return;
+
 	IXAudio2SourceVoice* music = engine->musicSource;
 	LerpData& lData = engine->volumeLerp;
 

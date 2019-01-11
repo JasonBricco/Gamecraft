@@ -27,7 +27,7 @@ struct AudioEngine : public IXAudio2VoiceCallback
 	// Stores sound callbacks so they can be freed if needed.
 	vector<SoundCallback*> callbacks;
 
-	float maxMusicVolume;
+	float maxMusicVolume, lastMusicVolume;
 	bool muted;
 
 	LerpData volumeLerp;
