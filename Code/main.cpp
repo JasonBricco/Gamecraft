@@ -51,7 +51,7 @@ using namespace std;
 
 #define Unused(x) ((void)(x))
 
-#define ENABLE_PRINT 0
+#define ENABLE_PRINT 1
 
 #if ENABLE_PRINT
 #define Print(...) { \
@@ -306,7 +306,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
-		cam->animTime = fmodf(cam->animTime + deltaTime, 100.0f);
+		cam->animTime = fmodf(cam->animTime + (deltaTime * 0.5f), 1.0f);
 		lastTime = endTime;
 	}
 

@@ -393,6 +393,7 @@ static void RenderScene(GameState* state, Camera* cam)
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);
 	SetUniform(shader->proj, cam->perspective);
+	assert(cam->animTime >= 0.0f && cam->animTime < 1.0f);
 	SetUniform(shader->time, cam->animTime);
 	SetUniform(shader->ambient, state->ambient);
 
@@ -530,14 +531,14 @@ static void LoadShader(Shader* shader, int vertLength, char* vertCode, int fragL
     glCompileShader(vS);
     
     if (ShaderHasErrors(vS, VERTEX_SHADER))
-       	Error("Failed to compile the vertex shader->\n");
+       	Error("Failed to compile the vertex shader.\n");
 
     GLuint fS = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fS, 1, &fragCode, &fragLength);
     glCompileShader(fS);
     
     if (ShaderHasErrors(fS, FRAGMENT_SHADER))
-        Error("Failed to compile the fragment shader->\n");
+        Error("Failed to compile the fragment shader.\n");
 
     GLuint program = glCreateProgram();
     glAttachShader(program, vS);
