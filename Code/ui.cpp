@@ -159,7 +159,7 @@ static void CreateUI(GLFWwindow* window, GameState* state)
 
     if (g_paused)
     {
-        ImVec2 panelSize = ImVec2(175.0f, 180.0f);
+        ImVec2 panelSize = ImVec2(175.0f, 185.0f);
 
         ImGui::SetNextWindowSize(panelSize);
         ImGui::SetNextWindowPos(ImVec2(size.x * 0.5f - (panelSize.x * 0.5f), size.y * 0.5f - (panelSize.y * 0.5f)));
@@ -174,7 +174,7 @@ static void CreateUI(GLFWwindow* window, GameState* state)
         ImGui::Text("Paused");
 
         ImVec2 btnSize = ImVec2(100.0f, 30.0f);
-        cursorPos = ImVec2(panelSize.x * 0.5f - (btnSize.x * 0.5f), 30.0f);
+        cursorPos = ImVec2(panelSize.x * 0.5f - (btnSize.x * 0.5f), 35.0f);
 
         ImGui::SetCursorPos(cursorPos);
 

@@ -111,7 +111,7 @@ static char* buildType = "DEBUG";
 static char* buildType = "RELEASE";
 #endif
 
-static char* buildID = "136";
+static char* buildID = "148";
 
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT windowPos = { sizeof(windowPos) };
@@ -188,7 +188,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 {
 	Input& input = state.input;
 
-	if (KeyPressed(input, KEY_ESCAPE))
+	if (!g_paused && KeyPressed(input, KEY_ESCAPE))
 		Pause(window, world);
 
 	if (KeyPressed(input, KEY_T))
