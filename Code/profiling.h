@@ -2,7 +2,7 @@
 // Jason Bricco
 // 
 
-#define PROFILING 1
+#define PROFILING 0
 
 #if PROFILING
 
