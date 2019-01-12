@@ -230,9 +230,26 @@ static void RenderUI(GameState* state, Camera* cam, UI& ui)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_SCISSOR_TEST);
 
+    float L = data->DisplayPos.x;
+    float R = data->DisplayPos.x + data->DisplaySize.x;
+    float T = data->DisplayPos.y;
+    float B = data->DisplayPos.y + data->DisplaySize.y;
+
+    mat4 proj = ortho(L, R, B, T);
+
+    if (!g_paused)
+    {
+        glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
+        Graphic* crosshair = cam->crosshair;
+        Shader* shader = crosshair->shader;
+        UseShader(shader);
+        SetUniform(shader->proj, proj);
+        DrawGraphic(crosshair, shader);
+    }
+
     Shader* shader = GetShader(state, SHADER_UI);
     UseShader(shader);
-    SetUniform(shader->proj, cam->ortho);
+    SetUniform(shader->proj, proj);
 
     glBindVertexArray(ui.va);
     ImVec2 pos = data->DisplayPos;

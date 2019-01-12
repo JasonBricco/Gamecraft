@@ -54,12 +54,8 @@ static Graphic* CreateGraphic(Shader* shader, Texture texture)
 	return graphic;
 }
 
-static void DrawGraphic(Camera* cam, Graphic* graphic)
+static void DrawGraphic(Graphic* graphic, Shader* shader)
 {
-	Shader* shader = graphic->shader;
-	UseShader(shader);
-	SetUniform(shader->proj, cam->ortho);
-
 	glBindTexture(GL_TEXTURE_2D, graphic->texture.id);
 	DrawMesh(graphic->mesh, shader, graphic->pos);
 }
@@ -88,7 +84,6 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 	cam->farW = cam->farH * ratio;
 
 	cam->perspective = perspective(fov, ratio, cam->nearDist, cam->farDist);
-	cam->ortho = ortho(0.0f, (float)width, (float)height, 0.0f);
 
 	if (cam->crosshair != nullptr)
 		SetCrosshairPos(cam->crosshair, width, height);
@@ -420,12 +415,6 @@ static void RenderScene(GameState* state, Camera* cam)
 		UseShader(shader);
 		SetUniform(shader->fadeColor, cam->fadeColor);
 		DrawMesh(cam->fadeMesh);
-	}
-
-	if (!g_paused)
-	{
-		glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
-		DrawGraphic(cam, cam->crosshair);
 	}
 
 	RenderUI(state, cam, state->ui);

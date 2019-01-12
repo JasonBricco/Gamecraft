@@ -62,7 +62,7 @@ struct Camera
     GLint view_0, model_0, proj_0;
     GLint view_1, model_1, proj_1, time_1;
 
-    mat4 perspective, ortho, view;
+    mat4 perspective, view;
 
     vector<ChunkMesh> meshLists[CHUNK_MESH_COUNT];
 
