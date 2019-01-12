@@ -16,7 +16,7 @@ REM Release mode build.
 :build_release
 
 set f=-MD -Oi -O2 -Zi
-set def=-D_CRT_SECURE_NO_WARNINGS=1 -DNDEBUG -D_HAS_EXCEPTIONS=0
+set def=-D_CRT_SECURE_NO_WARNINGS=1 -DNDEBUG=1 -D_HAS_EXCEPTIONS=0
 set lb=glew.lib glfw.lib noise.lib stb_vorbis.lib imgui.lib
 set link=/LIBPATH:W:\Common\Lib /SUBSYSTEM:WINDOWS
 

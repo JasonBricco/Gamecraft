@@ -2,26 +2,13 @@
 // Jason Bricco
 // 
 
-#define PROFILING 0
-
-static void EndMeasurement(char* id, uint64_t start)
-{
-    uint64_t elapsed = __rdtsc() - start;
-    char print_buffer[256];
-    sprintf(print_buffer, "%s: %llu\n", id, elapsed);
-    OutputDebugString(print_buffer);
-}
-
-#define MEASURE_START(id) uint64_t startCount##id = __rdtsc();
-#define MEASURE_END(id) EndMeasurement(#id, startCount##id)
+#define PROFILING 1
 
 #if PROFILING
 
 enum MeasureSection
 {
     MEASURE_GAME_LOOP,
-    MEASURE_RENDER_SCENE,
-    MEASURE_FILL_MESH,
     MEASURE_COUNT
 };
 
@@ -30,7 +17,6 @@ struct CycleCounter
     char* label;
     uint64_t cycles;
     uint64_t calls;
-    uint64_t lowest = UINT_MAX;
 };
 
 static CycleCounter g_counters[MEASURE_COUNT];
@@ -41,7 +27,17 @@ static void FlushCounters()
 
     if (profilingEnabled)
     {
-        OutputDebugString("CYCLE COUNTS:\n");
+        bool doPrint = false;
+
+        for (int i = 0; i < MEASURE_COUNT; i++)
+        {
+            if (g_counters[i].calls > 0)
+                doPrint = true;
+        }
+
+        if (doPrint)
+            OutputDebugString("CYCLE COUNTS:\n");
+        else return;
 
         for (int i = 0; i < MEASURE_COUNT; i++)
         {
@@ -52,12 +48,8 @@ static void FlushCounters()
                 uint64_t cycles = g_counters[i].cycles;
                 uint64_t cyclesPerCall = cycles / calls;
 
-                if (cycles < g_counters[i].lowest)
-                    g_counters[i].lowest = cycles;
-
                 char buffer[128];
-                sprintf(buffer, "%s: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u, Lowest: %I64u\n", 
-                    g_counters[i].label, cycles, calls, cyclesPerCall, g_counters[i].lowest);
+                sprintf(buffer, "%s: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u\n", g_counters[i].label, cycles, calls, cyclesPerCall);
                 OutputDebugString(buffer);
 
                 g_counters[i].cycles = 0;

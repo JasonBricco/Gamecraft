@@ -360,8 +360,6 @@ static inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 
 static void RenderScene(GameState* state, Camera* cam)
 {
-	BEGIN_TIMED_BLOCK(RENDER_SCENE);
-
 	glClear(GL_COLOR_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
@@ -435,8 +433,6 @@ static void RenderScene(GameState* state, Camera* cam)
 	glDisable(GL_BLEND);
 	glEnable(GL_CULL_FACE);
 	glClear(GL_DEPTH_BUFFER_BIT);
-
-	END_TIMED_BLOCK(RENDER_SCENE);
 }
 
 static Texture LoadTexture(int width, int height, uint8_t* pixels)
