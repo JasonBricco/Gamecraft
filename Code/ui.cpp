@@ -164,18 +164,25 @@ static void CreateUI(GLFWwindow* window, GameState* state)
         ImGui::SetNextWindowSize(panelSize);
         ImGui::SetNextWindowPos(ImVec2(size.x * 0.5f - (panelSize.x * 0.5f), size.y * 0.5f - (panelSize.y * 0.5f)));
 
-        ImGui::Begin("Paused", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+        ImGui::Begin("Paused", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
+
+        ImVec2 textSize = ImGui::CalcTextSize("Paused");
+
+        ImVec2 cursorPos = ImVec2(panelSize.x * 0.5f - (textSize.x * 0.5f), 10.0f);
+        ImGui::SetCursorPos(cursorPos);
+
+        ImGui::Text("Paused");
 
         ImVec2 btnSize = ImVec2(100.0f, 30.0f);
-        ImVec2 btnPos = ImVec2(panelSize.x * 0.5f - (btnSize.x * 0.5f), 30.0f);
+        cursorPos = ImVec2(panelSize.x * 0.5f - (btnSize.x * 0.5f), 30.0f);
 
-        ImGui::SetCursorPos(btnPos);
+        ImGui::SetCursorPos(cursorPos);
 
         if (ImGui::Button("Continue", btnSize))
             Unpause(window);
 
-        btnPos.y += 35.0f;
-        ImGui::SetCursorPos(btnPos);
+        cursorPos.y += 35.0f;
+        ImGui::SetCursorPos(cursorPos);
 
         bool raining = state->rain.active;
 
@@ -185,16 +192,16 @@ static void CreateUI(GLFWwindow* window, GameState* state)
             Unpause(window);
         }
 
-        btnPos.y += 35.0f;
-        ImGui::SetCursorPos(btnPos);
+        cursorPos.y += 35.0f;
+        ImGui::SetCursorPos(cursorPos);
 
         bool muted = state->audio.muted;
 
         if (ImGui::Button(muted ? "Unmute Audio" : "Mute Audio", btnSize))
             ToggleMute(&state->audio);
 
-        btnPos.y += 35.0f;
-        ImGui::SetCursorPos(btnPos);
+        cursorPos.y += 35.0f;
+        ImGui::SetCursorPos(cursorPos);
 
         if (ImGui::Button("Quit", btnSize))
             glfwSetWindowShouldClose(window, GLFW_TRUE);

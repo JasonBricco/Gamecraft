@@ -587,9 +587,6 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 	if (KeyHeld(input, KEY_LEFT)) accel += GetXZ(-cam->right);
 	if (KeyHeld(input, KEY_RIGHT)) accel += GetXZ(cam->right);
 
-	if (KeyPressed(input, KEY_F1))
-		player->pos.y = 75.0f;
-
 	if (accel != vec3(0.0f))
 		accel = normalize(accel);
 
