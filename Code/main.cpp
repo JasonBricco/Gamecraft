@@ -63,7 +63,14 @@ using namespace std;
 #define Print(...)
 #endif
 
-static bool g_paused;
+enum PauseState
+{
+	PLAYING,
+	PAUSED,
+	SELECTING_BLOCK
+};
+
+static PauseState g_pauseState;
 
 #include "memory.h"
 #include "random.h"
@@ -87,7 +94,7 @@ static bool g_paused;
 #include "particles.h"
 #include "gamestate.h"
 
-static void Pause(GLFWwindow* window, World* world);
+static void Pause(GLFWwindow* window, World* world, PauseState pauseState);
 static void Unpause(GLFWwindow* window);
 
 #include "audio.cpp"
@@ -164,14 +171,14 @@ static void ShowFPS(GLFWwindow* window)
 	frameCount++;
 }
 
-static void Pause(GLFWwindow* window, World* world)
+static void Pause(GLFWwindow* window, World* world, PauseState pauseState)
 {
 	SaveWorld(world);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	ChangeVolume(&state.audio, 0.25f, 0.5f);
 	Camera* cam = state.camera;
 	cam->fadeColor.a = cam->fadeColor.a > 0.5f ? 0.9f : 0.75f;
-	g_paused = true;
+	g_pauseState = pauseState;
 }
 
 static void Unpause(GLFWwindow* window)
@@ -181,7 +188,7 @@ static void Unpause(GLFWwindow* window)
 	Camera* cam = state.camera;
 	cam->fadeColor.a = 0.0f;
 	glfwSetCursorPos(window, state.windowWidth * 0.5f, state.windowHeight * 0.5f);
-	g_paused = false;
+	g_pauseState = PLAYING;
 }
 
 static void Update(GLFWwindow* window, Player* player, World* world, float deltaTime)
@@ -190,9 +197,16 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 	if (KeyPressed(input, KEY_ESCAPE))
 	{
-		if (g_paused)
+		if (g_pauseState == PAUSED)
 			Unpause(window);
-		else Pause(window, world);
+		else Pause(window, world, PAUSED);
+	}
+
+	if (KeyPressed(input, KEY_E))
+	{
+		if (g_pauseState == SELECTING_BLOCK)
+			Unpause(window);
+		else Pause(window, world, SELECTING_BLOCK);
 	}
 
 	if (KeyPressed(input, KEY_T))
@@ -201,7 +215,7 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	UpdateAudio(&state.audio, deltaTime);
 	UpdateWorld(&state, world, state.camera, player);
 
-	if (g_paused || !player->spawned) return;
+	if (g_pauseState != PLAYING || !player->spawned) return;
 
 	if (KeyPressed(input, KEY_EQUAL))
 	{
@@ -297,7 +311,18 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		glfwPollEvents();
 
 		BeginNewUIFrame(window, state.ui, deltaTime);
-		CreateUI(window, &state);
+
+		switch (g_pauseState)
+	    {
+	        case PAUSED:
+	            CreatePauseUI(&state, window);
+	            break;
+
+	        case SELECTING_BLOCK:
+	            CreateBlockUI(window, world, &state);
+	            break;
+	    }
+
 		Update(window, player, world, deltaTime);
 		RenderScene(&state, cam);
 

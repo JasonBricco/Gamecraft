@@ -37,6 +37,11 @@ static inline bool IsTransparent(World* world, Block block)
     return GetCullType(world, block) != CULL_OPAQUE;
 }
 
+static inline char* GetBlockName(World* world, Block block)
+{
+    return world->blockData[block].name;
+}
+
 static inline void SetBlockTextures(BlockData& data, float top, float bottom, float front, float back, float right, float left)
 {
     data.textures[FACE_TOP] = top;
@@ -63,21 +68,25 @@ static void CreateBlockData(GameState* state, BlockData* data)
     air.cull = CULL_ALL;
     air.passable = true;
     air.onSetSound = GetSound(state, SOUND_LEAVES);
+    air.name = "Air";
 
     BlockData& grass = data[BLOCK_GRASS];
     SetBlockTextures(grass, IMAGE_GRASS, IMAGE_DIRT, IMAGE_GRASS_SIDE);
     grass.buildFunc = BuildBlock;
     grass.onSetSound = GetSound(state, SOUND_STONE);
+    grass.name = "Grass";
     
     BlockData& dirt = data[BLOCK_DIRT];
     SetBlockTextures(dirt, IMAGE_DIRT);
     dirt.buildFunc = BuildBlock;
     dirt.onSetSound = GetSound(state, SOUND_STONE);
+    dirt.name = "Dirt";
 
     BlockData& stone = data[BLOCK_STONE];
     SetBlockTextures(stone, IMAGE_STONE);
     stone.buildFunc = BuildBlock;
     stone.onSetSound = GetSound(state, SOUND_STONE);
+    stone.name = "Stone";
 
     BlockData& water = data[BLOCK_WATER];
     SetBlockTextures(water, IMAGE_WATER);
@@ -86,24 +95,29 @@ static void CreateBlockData(GameState* state, BlockData* data)
     water.cull = CULL_TRANSPARENT;
     water.passable = true;
     water.onSetSound = GetSound(state, SOUND_STONE);
+    water.name = "Water";
 
     BlockData& sand = data[BLOCK_SAND];
     SetBlockTextures(sand, IMAGE_SAND);
     sand.buildFunc = BuildBlock;
     sand.onSetSound = GetSound(state, SOUND_STONE);
+    sand.name = "Sand";
 
     BlockData& crate = data[BLOCK_CRATE];
     SetBlockTextures(crate, IMAGE_CRATE);
     crate.buildFunc = BuildBlock;
     crate.onSetSound = GetSound(state, SOUND_STONE);
+    crate.name = "Crate";
 
-    BlockData& stoneBrick = data[BLOCK_STONEBRICK];
+    BlockData& stoneBrick = data[BLOCK_STONE_BRICK];
     SetBlockTextures(stoneBrick, IMAGE_STONE_BRICK);
     stoneBrick.buildFunc = BuildBlock;
     stoneBrick.onSetSound = GetSound(state, SOUND_STONE);
+    stoneBrick.name = "Stone Brick";
 
     BlockData& metalCrate = data[BLOCK_METAL_CRATE];
     SetBlockTextures(metalCrate, IMAGE_METAL_CRATE);
     metalCrate.buildFunc = BuildBlock;
     metalCrate.onSetSound = GetSound(state, SOUND_STONE);
+    metalCrate.name = "Metal Crate";
 }

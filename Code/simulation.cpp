@@ -656,9 +656,8 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 
 			if (op == 0)
 			{
-				int lastNum = LastNumKey(input);
 				setPos = info.adjPos;
-				SetBlock(world, setPos, (Block)(Clamp(lastNum, 1, BLOCK_COUNT - 1)));
+				SetBlock(world, setPos, world->blockToSet);
 			}
 			else
 			{

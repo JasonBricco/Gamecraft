@@ -55,7 +55,8 @@ static void LoadAssets(GameState* state)
 
         if (image.array != INT_MAX)
             arrays[image.array].push_back(image);
-        else db.images[i] = LoadTexture(image.width, image.height, (uint8_t*)(data + image.pixels));
+        
+        db.images[i] = LoadTexture(image.width, image.height, (uint8_t*)(data + image.pixels));
     }
 
     for (uint32_t i = 0; i < header->arrayCount; i++)

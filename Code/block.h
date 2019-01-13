@@ -15,7 +15,7 @@ enum BlockType : Block
     BLOCK_STONE,
     BLOCK_CRATE,
     BLOCK_SAND,
-    BLOCK_STONEBRICK,
+    BLOCK_STONE_BRICK,
     BLOCK_METAL_CRATE,
     BLOCK_WATER,
     BLOCK_COUNT
@@ -48,4 +48,5 @@ struct BlockData
     CullType cull;
     BuildBlockFunc buildFunc;
     Sound onSetSound;
+    char* name;
 };

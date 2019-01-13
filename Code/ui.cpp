@@ -152,62 +152,121 @@ static void BeginNewUIFrame(GLFWwindow* window, UI& ui, float deltaTime)
     ImGui::NewFrame();
 }
 
-static void CreateUI(GLFWwindow* window, GameState* state)
+static inline ImTextureID GetUITexture(GameState* state, ImageID id)
+{
+    return (void*)(intptr_t)GetTexture(state, id).id;
+}
+
+static inline void BlockButton(World* world, GLFWwindow* window, GameState* state, ImageID image, BlockType type, char** name)
+{
+    if (ImGui::ImageButton(GetUITexture(state, image), ImVec2(32.0f, 32.0f)))
+    {
+        world->blockToSet = type;
+        Unpause(window);
+    }
+
+    if (ImGui::IsItemHovered())
+        *name = GetBlockName(world, type);
+}
+
+static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
 {
     ImGuiIO& io = ImGui::GetIO();
-    ImVec2 size = io.DisplaySize;
+    ImVec2 displaySize = io.DisplaySize;
 
-    if (g_paused)
+    ImVec2 panelSize = ImVec2(248.0f, 200.0f);
+    ImGui::SetNextWindowSize(panelSize);
+    ImGui::SetNextWindowPos(ImVec2(displaySize.x * 0.5f - (panelSize.x * 0.5f), displaySize.y * 0.5f - (panelSize.y * 0.5f)));
+
+    char* blockName = NULL;
+
+    ImGui::Begin("2", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.06666f, 0.06666f, 0.06666f, 1.0f));
+
+    BlockButton(world, window, state, IMAGE_CRATE, BLOCK_CRATE, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, window, state, IMAGE_DIRT, BLOCK_DIRT, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, window, state, IMAGE_GRASS_SIDE, BLOCK_GRASS, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, window, state, IMAGE_SAND, BLOCK_SAND, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, window, state, IMAGE_STONE, BLOCK_STONE, &blockName);
+    ImGui::Spacing();
+    BlockButton(world, window, state, IMAGE_STONE_BRICK, BLOCK_STONE_BRICK, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, window, state, IMAGE_METAL_CRATE, BLOCK_METAL_CRATE, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, window, state, IMAGE_WATER, BLOCK_WATER, &blockName);
+ 
+    ImGui::PopStyleColor();
+
+    if (blockName != NULL)
     {
-        ImVec2 panelSize = ImVec2(175.0f, 185.0f);
-
-        ImGui::SetNextWindowSize(panelSize);
-        ImGui::SetNextWindowPos(ImVec2(size.x * 0.5f - (panelSize.x * 0.5f), size.y * 0.5f - (panelSize.y * 0.5f)));
-
-        ImGui::Begin("Paused", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
-
-        ImVec2 textSize = ImGui::CalcTextSize("Paused");
-
-        ImVec2 cursorPos = ImVec2(panelSize.x * 0.5f - (textSize.x * 0.5f), 10.0f);
-        ImGui::SetCursorPos(cursorPos);
-
-        ImGui::Text("Paused");
-
-        ImVec2 btnSize = ImVec2(100.0f, 30.0f);
-        cursorPos = ImVec2(panelSize.x * 0.5f - (btnSize.x * 0.5f), 35.0f);
+        ImVec2 cursor = ImGui::GetCursorPos();
+        ImVec2 textSize = ImGui::CalcTextSize(blockName);
+        ImVec2 cursorPos = ImVec2(panelSize.x * 0.5f - (textSize.x * 0.5f), panelSize.y - 25.0f);
 
         ImGui::SetCursorPos(cursorPos);
-
-        if (ImGui::Button("Continue", btnSize))
-            Unpause(window);
-
-        cursorPos.y += 35.0f;
-        ImGui::SetCursorPos(cursorPos);
-
-        bool raining = state->rain.active;
-
-        if (ImGui::Button(raining ? "Disable Rain" : "Enable Rain", btnSize))
-        {
-            state->rain.active = !raining;
-            Unpause(window);
-        }
-
-        cursorPos.y += 35.0f;
-        ImGui::SetCursorPos(cursorPos);
-
-        bool muted = state->audio.muted;
-
-        if (ImGui::Button(muted ? "Unmute Audio" : "Mute Audio", btnSize))
-            ToggleMute(&state->audio);
-
-        cursorPos.y += 35.0f;
-        ImGui::SetCursorPos(cursorPos);
-
-        if (ImGui::Button("Quit", btnSize))
-            glfwSetWindowShouldClose(window, GLFW_TRUE);
-
-        ImGui::End();
+        ImGui::Text(blockName);
+        ImGui::SetCursorPos(cursor);
     }
+
+    ImGui::End();
+}
+
+static void CreatePauseUI(GameState* state, GLFWwindow* window)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    ImVec2 displaySize = io.DisplaySize;
+
+    ImVec2 panelSize = ImVec2(175.0f, 185.0f);
+    ImGui::SetNextWindowSize(panelSize);
+    ImGui::SetNextWindowPos(ImVec2(displaySize.x * 0.5f - (panelSize.x * 0.5f), displaySize.y * 0.5f - (panelSize.y * 0.5f)));
+
+    ImGui::Begin("1", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
+
+    ImVec2 textSize = ImGui::CalcTextSize("Paused");
+
+    ImVec2 cursorPos = ImVec2(panelSize.x * 0.5f - (textSize.x * 0.5f), 10.0f);
+    ImGui::SetCursorPos(cursorPos);
+
+    ImGui::Text("Paused");
+
+    ImVec2 btnSize = ImVec2(100.0f, 30.0f);
+    cursorPos = ImVec2(panelSize.x * 0.5f - (btnSize.x * 0.5f), 35.0f);
+
+    ImGui::SetCursorPos(cursorPos);
+
+    if (ImGui::Button("Continue", btnSize))
+        Unpause(window);
+
+    cursorPos.y += 35.0f;
+    ImGui::SetCursorPos(cursorPos);
+
+    bool raining = state->rain.active;
+
+    if (ImGui::Button(raining ? "Disable Rain" : "Enable Rain", btnSize))
+    {
+        state->rain.active = !raining;
+        Unpause(window);
+    }
+
+    cursorPos.y += 35.0f;
+    ImGui::SetCursorPos(cursorPos);
+
+    bool muted = state->audio.muted;
+
+    if (ImGui::Button(muted ? "Unmute Audio" : "Mute Audio", btnSize))
+        ToggleMute(&state->audio);
+
+    cursorPos.y += 35.0f;
+    ImGui::SetCursorPos(cursorPos);
+
+    if (ImGui::Button("Quit", btnSize))
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+
+    ImGui::End();
 }
 
 static void RenderUI(GameState* state, Camera* cam, UI& ui)
@@ -237,7 +296,7 @@ static void RenderUI(GameState* state, Camera* cam, UI& ui)
 
     mat4 proj = ortho(L, R, B, T);
 
-    if (!g_paused)
+    if (g_pauseState == PLAYING)
     {
         glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
         Graphic* crosshair = cam->crosshair;

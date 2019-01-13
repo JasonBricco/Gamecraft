@@ -149,6 +149,8 @@ struct World
     int seed;
 
     BlockData blockData[BLOCK_COUNT];
+
+    BlockType blockToSet;
 };
 
 struct RebasedPos
