@@ -67,7 +67,8 @@ enum PauseState
 {
 	PLAYING,
 	PAUSED,
-	SELECTING_BLOCK
+	SELECTING_BLOCK,
+	WORLD_CONFIG
 };
 
 static PauseState g_pauseState;
@@ -118,7 +119,7 @@ static char* buildType = "DEBUG";
 static char* buildType = "RELEASE";
 #endif
 
-static char* buildID = "150";
+static char* buildID = "151";
 
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT windowPos = { sizeof(windowPos) };
@@ -189,6 +190,24 @@ static void Unpause(GLFWwindow* window)
 	cam->fadeColor.a = 0.0f;
 	glfwSetCursorPos(window, state.windowWidth * 0.5f, state.windowHeight * 0.5f);
 	g_pauseState = PLAYING;
+}
+
+static void CreateUI(GLFWwindow* window, World* world, WorldConfig& config)
+{
+	switch (g_pauseState)
+    {
+        case PAUSED:
+            CreatePauseUI(&state, window);
+            break;
+
+        case SELECTING_BLOCK:
+            CreateBlockUI(window, world, &state);
+            break;
+
+        case WORLD_CONFIG:
+        	WorldConfigUI(config, &state.input);
+        	break;
+    }
 }
 
 static void Update(GLFWwindow* window, Player* player, World* world, float deltaTime)
@@ -294,6 +313,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	InitParticleEmitter(state.rain, 6, 20.0f);
 
+	WorldConfig worldConfig = {};
 	World* world = NewWorld(&state, 13, 1024);
 
 	Player* player = NewPlayer();
@@ -312,17 +332,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		BeginNewUIFrame(window, state.ui, deltaTime);
 
-		switch (g_pauseState)
-	    {
-	        case PAUSED:
-	            CreatePauseUI(&state, window);
-	            break;
-
-	        case SELECTING_BLOCK:
-	            CreateBlockUI(window, world, &state);
-	            break;
-	    }
-
+		CreateUI(window, world, worldConfig);
 		Update(window, player, world, deltaTime);
 		RenderScene(&state, cam);
 

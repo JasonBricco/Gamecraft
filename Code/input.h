@@ -22,4 +22,5 @@ struct Input
     bool mouseHeld[2];
     bool keys[KEY_COUNT];
     bool single[KEY_COUNT];
+    int currentKey, currentScanCode;
 };

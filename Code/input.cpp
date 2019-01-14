@@ -39,11 +39,19 @@ inline void ResetInput(Input& input)
 {
 	memset(&input.single, 0, sizeof(input.single));
 	memset(&input.mousePressed, 0, sizeof(input.mousePressed));
+	input.currentKey = 0;
+	input.currentScanCode = 0;
 }
 
-static void OnKey(GLFWwindow* window, int key, int, int action, int mode)
+static void OnKey(GLFWwindow* window, int key, int scanCode, int action, int mode)
 {
 	Input& input = ((GameState*)glfwGetWindowUserPointer(window))->input;
+
+	if (action == GLFW_PRESS)
+	{
+		input.currentKey = key;
+		input.currentScanCode = scanCode;
+	}
 
 	switch (key)
 	{

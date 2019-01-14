@@ -158,3 +158,9 @@ struct RebasedPos
     Chunk* chunk;
     int rX, rZ;
 };
+
+struct WorldConfig
+{
+    char radiusBuffer[10];
+    int radius;
+};

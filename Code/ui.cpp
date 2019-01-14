@@ -169,18 +169,25 @@ static inline void BlockButton(World* world, GLFWwindow* window, GameState* stat
         *name = GetBlockName(world, type);
 }
 
-static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
+static ImVec2 CreateUIWindow(float width, float height)
 {
     ImGuiIO& io = ImGui::GetIO();
     ImVec2 displaySize = io.DisplaySize;
 
-    ImVec2 panelSize = ImVec2(248.0f, 200.0f);
+    ImVec2 panelSize = ImVec2(width, height);
     ImGui::SetNextWindowSize(panelSize);
     ImGui::SetNextWindowPos(ImVec2(displaySize.x * 0.5f - (panelSize.x * 0.5f), displaySize.y * 0.5f - (panelSize.y * 0.5f)));
 
+    return panelSize;
+}
+
+static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
+{
+    ImVec2 size = CreateUIWindow(248.0f, 200.0f);
+
     char* blockName = NULL;
 
-    ImGui::Begin("2", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
+    ImGui::Begin("BlockSelect", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.06666f, 0.06666f, 0.06666f, 1.0f));
 
     BlockButton(world, window, state, IMAGE_CRATE, BLOCK_CRATE, &blockName);
@@ -205,7 +212,7 @@ static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
     {
         ImVec2 cursor = ImGui::GetCursorPos();
         ImVec2 textSize = ImGui::CalcTextSize(blockName);
-        ImVec2 cursorPos = ImVec2(panelSize.x * 0.5f - (textSize.x * 0.5f), panelSize.y - 25.0f);
+        ImVec2 cursorPos = ImVec2(size.x * 0.5f - (textSize.x * 0.5f), size.y - 25.0f);
 
         ImGui::SetCursorPos(cursorPos);
         ImGui::Text(blockName);
@@ -217,29 +224,30 @@ static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
 
 static void CreatePauseUI(GameState* state, GLFWwindow* window)
 {
-    ImGuiIO& io = ImGui::GetIO();
-    ImVec2 displaySize = io.DisplaySize;
+    ImVec2 size = CreateUIWindow(175.0f, 220.0f);
 
-    ImVec2 panelSize = ImVec2(175.0f, 185.0f);
-    ImGui::SetNextWindowSize(panelSize);
-    ImGui::SetNextWindowPos(ImVec2(displaySize.x * 0.5f - (panelSize.x * 0.5f), displaySize.y * 0.5f - (panelSize.y * 0.5f)));
-
-    ImGui::Begin("1", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
+    ImGui::Begin("Pause", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
 
     ImVec2 textSize = ImGui::CalcTextSize("Paused");
 
-    ImVec2 cursorPos = ImVec2(panelSize.x * 0.5f - (textSize.x * 0.5f), 10.0f);
+    ImVec2 cursorPos = ImVec2(size.x * 0.5f - (textSize.x * 0.5f), 10.0f);
     ImGui::SetCursorPos(cursorPos);
 
     ImGui::Text("Paused");
 
     ImVec2 btnSize = ImVec2(100.0f, 30.0f);
-    cursorPos = ImVec2(panelSize.x * 0.5f - (btnSize.x * 0.5f), 35.0f);
+    cursorPos = ImVec2(size.x * 0.5f - (btnSize.x * 0.5f), 35.0f);
 
     ImGui::SetCursorPos(cursorPos);
 
     if (ImGui::Button("Continue", btnSize))
         Unpause(window);
+
+    cursorPos.y += 35.0f;
+    ImGui::SetCursorPos(cursorPos);
+
+    if (ImGui::Button("New Island", btnSize))
+        g_pauseState = WORLD_CONFIG;
 
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
@@ -265,6 +273,32 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
 
     if (ImGui::Button("Quit", btnSize))
         glfwSetWindowShouldClose(window, GLFW_TRUE);
+
+    ImGui::End();
+}
+
+static int TextInputCallback(ImGuiInputTextCallbackData* data)
+{
+    Input* input = (Input*)data->UserData;
+
+    if (input->currentKey != 0)
+    {
+        const char* c = glfwGetKeyName(input->currentKey, input->currentScanCode);
+
+        if (c != NULL)
+            data->InsertChars(data->CursorPos, c);
+    }
+
+    return 0;
+}
+
+static void WorldConfigUI(WorldConfig& config, Input* input)
+{
+    ImVec2 size = CreateUIWindow(300.0f, 100.0f);
+
+    ImGui::Begin("WorldConfig", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
+
+    ImGui::InputText("Radius", config.radiusBuffer, sizeof(config.radiusBuffer), ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CallbackAlways, TextInputCallback, input);
 
     ImGui::End();
 }

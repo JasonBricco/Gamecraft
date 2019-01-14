@@ -665,5 +665,7 @@ static World* NewWorld(GameState* state, int loadRange, int radius)
 
     ShiftWorld(state, world);
 
+    world->blockToSet = BLOCK_GRASS;
+
     return world;
 }
