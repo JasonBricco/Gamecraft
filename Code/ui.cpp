@@ -14,7 +14,7 @@ static const char* GetClipboardText(void* data)
 
 static void InitUI(GLFWwindow* window, UI& ui)
 {
-	IMGUI_CHECKVERSION();
+	IMGUI_CHECKVERSION();   
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
@@ -89,6 +89,12 @@ static void InitUI(GLFWwindow* window, UI& ui)
     glEnableVertexAttribArray(2);
 
     glGenBuffers(1, &ui.ib);
+}
+
+static inline void MultiSpacing(int amount)
+{
+    for (int i = 0; i < amount; i++)
+        ImGui::Spacing();
 }
 
 static void UI_UpdateMouse(GLFWwindow* window, UI& ui)
@@ -277,28 +283,39 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
     ImGui::End();
 }
 
-static int TextInputCallback(ImGuiInputTextCallbackData* data)
+static void WorldConfigUI(WorldConfig& config)
 {
-    Input* input = (Input*)data->UserData;
-
-    if (input->currentKey != 0)
-    {
-        const char* c = glfwGetKeyName(input->currentKey, input->currentScanCode);
-
-        if (c != NULL)
-            data->InsertChars(data->CursorPos, c);
-    }
-
-    return 0;
-}
-
-static void WorldConfigUI(WorldConfig& config, Input* input)
-{
-    ImVec2 size = CreateUIWindow(300.0f, 100.0f);
+    ImVec2 size = CreateUIWindow(300.0f, 110.0f);
 
     ImGui::Begin("WorldConfig", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
 
-    ImGui::InputText("Radius", config.radiusBuffer, sizeof(config.radiusBuffer), ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CallbackAlways, TextInputCallback, input);
+    char* text = "World Settings";
+    ImVec2 textSize = ImGui::CalcTextSize(text);
+
+    ImVec2 cursorPos = ImVec2(size.x * 0.5f - (textSize.x * 0.5f), 10.0f);
+    ImGui::SetCursorPos(cursorPos);
+
+    ImGui::Text("World Settings");
+
+    MultiSpacing(3);
+
+    ImGui::Text("Radius");
+    ImGui::SameLine();
+
+    ImGui::PushItemWidth(130.0f);
+    ImGui::InputText("##hidelabel", config.radiusBuffer, sizeof(config.radiusBuffer), ImGuiInputTextFlags_CharsDecimal);
+    ImGui::PopItemWidth();
+
+    ImGui::SameLine();
+    ImGui::Checkbox("Infinite", &config.infinite);
+
+    ImVec2 btnSize = ImVec2(100.0f, 25.0f);
+    ImGui::SetCursorPos(ImVec2(size.x * 0.5f - (btnSize.x * 0.5f), size.y - 35.0f));
+
+    if (ImGui::Button("Generate", ImVec2(100.0f, 25.0f)))
+    {
+        
+    }
 
     ImGui::End();
 }

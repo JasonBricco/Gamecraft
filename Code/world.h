@@ -163,4 +163,5 @@ struct WorldConfig
 {
     char radiusBuffer[10];
     int radius;
+    bool infinite;
 };

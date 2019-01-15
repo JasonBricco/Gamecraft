@@ -600,72 +600,97 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     }
 }
 
-static World* NewWorld(GameState* state, int loadRange, int radius)
+static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, World* existing = nullptr)
 {
-    World* world = new World();
+    World* world;
 
+    if (existing == nullptr)
+    {
+        world = new World();
+
+        // Load range worth of chunks on each side plus the middle chunk.
+        world->size = (loadRange * 2) + 1;
+
+        world->totalChunks = Square(world->size);
+        world->chunks = (Chunk**)calloc(world->totalChunks, sizeof(Chunk*));
+        world->visibleChunks = (Chunk**)calloc(world->totalChunks, sizeof(Chunk*));
+
+        world->chunksToCreate.reserve(world->totalChunks);
+        world->loadRange = loadRange;
+
+        // Allocate extra chunks for the pool for world shifting. We create new chunks
+        // before we destroy the old ones.
+        int targetPoolSize = world->totalChunks * 2;
+        world->pool = (Chunk**)calloc(targetPoolSize, sizeof(Chunk*));
+        world->poolSize = 0;
+        world->maxPoolSize = targetPoolSize;
+
+        for (int i = 0; i < targetPoolSize; i++)
+        {
+            Chunk* chunk = new Chunk();
+            AddChunkToPool(world, chunk);
+        }
+
+        float min = (float)(loadRange * CHUNK_SIZE_X);
+        float max = min + CHUNK_SIZE_X;
+
+        world->pBounds = NewRect(vec3(min, 0.0f, min), vec3(max, 0.0f, max));
+
+        CreateBlockData(state, world->blockData);
+
+        world->savePath = PathToExe("Saves");
+        CreateDirectory(world->savePath, NULL);
+
+        char path[MAX_PATH];
+        sprintf(path, "%s\\WorldData.txt", world->savePath);
+
+        if (!PathFileExists(path))
+        {
+            srand((uint32_t)time(0));
+            world->seed = rand();
+        }
+        else
+        {
+            int seed;
+            ReadBinary(path, (char*)&seed);
+            world->seed = seed;
+        }
+
+        world->blockToSet = BLOCK_GRASS;
+    }
+    else 
+    {
+        world = existing;
+
+        // The callback method skips saving the chunk if it is modified. 
+        // We don't want to save any chunks here.
+        for (int i = 0; i < world->totalChunks; i++)
+            DestroyChunkCallback(world, world->chunks[i]);
+    }
+
+    int radius = config.infinite ? INT_MAX : config.radius;
     world->sqRadius = Square(radius);
-    world->falloffRadius = Square(radius - (CHUNK_SIZE_X * 2));
-
-    // Load range worth of chunks on each side plus the middle chunk.
-    world->size = (loadRange * 2) + 1;
+    world->falloffRadius = Square(radius - (CHUNK_SIZE_X * 2));;
 
     world->spawnChunk = ivec3(0);
-
-    world->totalChunks = Square(world->size);
-    world->chunks = (Chunk**)calloc(world->totalChunks, sizeof(Chunk*));
-    world->visibleChunks = (Chunk**)calloc(world->totalChunks, sizeof(Chunk*));
-
-    world->chunksToCreate.reserve(world->totalChunks);
-
-    world->loadRange = loadRange;
 
     ivec3 ref;
     ref.x = world->spawnChunk.x - loadRange;
     ref.z = world->spawnChunk.z - loadRange;
     world->ref = ref;
 
-    // Allocate extra chunks for the pool for world shifting. We create new chunks
-    // before we destroy the old ones.
-    int targetPoolSize = world->totalChunks * 2;
-    world->pool = (Chunk**)calloc(targetPoolSize, sizeof(Chunk*));
-    world->poolSize = 0;
-    world->maxPoolSize = targetPoolSize;
-
-    for (int i = 0; i < targetPoolSize; i++)
-    {
-        Chunk* chunk = new Chunk();
-        AddChunkToPool(world, chunk);
-    }
-
-    float min = (float)(loadRange * CHUNK_SIZE_X);
-    float max = min + CHUNK_SIZE_X;
-
-    world->pBounds = NewRect(vec3(min, 0.0f, min), vec3(max, 0.0f, max));
-
-    CreateBlockData(state, world->blockData);
-
-    world->savePath = PathToExe("Saves");
-    CreateDirectory(world->savePath, NULL);
-
-    char path[MAX_PATH];
-    sprintf(path, "%s\\WorldData.txt", world->savePath);
-
-    if (!PathFileExists(path))
-    {
-        srand((uint32_t)time(0));
-        world->seed = rand();
-    }
-    else
-    {
-        int seed;
-        ReadBinary(path, (char*)&seed);
-        world->seed = seed;
-    }
-
     ShiftWorld(state, world);
 
-    world->blockToSet = BLOCK_GRASS;
-
     return world;
+}
+
+static void RegenerateWorld(GameState* state, World* world, WorldConfig& config)
+{
+    world = NewWorld(state, world->loadRange, config, world);
+
+    // TODO: When resetting the world, we must delete all data on the disk.
+    // So we must delete the saves folder, as well as all the region file data.
+    // This includes the allocated serialized chunks in each region.
+
+    // TODO: Think about redoing how we handle memory management.
 }

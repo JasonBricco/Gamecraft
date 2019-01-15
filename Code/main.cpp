@@ -205,7 +205,7 @@ static void CreateUI(GLFWwindow* window, World* world, WorldConfig& config)
             break;
 
         case WORLD_CONFIG:
-        	WorldConfigUI(config, &state.input);
+        	WorldConfigUI(config);
         	break;
     }
 }
@@ -216,20 +216,19 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 
 	if (KeyPressed(input, KEY_ESCAPE))
 	{
-		if (g_pauseState == PAUSED)
+		if (g_pauseState != PLAYING)
 			Unpause(window);
 		else Pause(window, world, PAUSED);
 	}
 
-	if (KeyPressed(input, KEY_E))
+	if (g_pauseState == PLAYING)
 	{
-		if (g_pauseState == SELECTING_BLOCK)
-			Unpause(window);
-		else Pause(window, world, SELECTING_BLOCK);
+		if (KeyPressed(input, KEY_E))
+			Pause(window, world, SELECTING_BLOCK);
+		
+		if (KeyPressed(input, KEY_T))
+			ToggleFullscreen(glfwGetWin32Window(window));
 	}
-
-	if (KeyPressed(input, KEY_T))
-		ToggleFullscreen(glfwGetWin32Window(window));
 
 	UpdateAudio(&state.audio, deltaTime);
 	UpdateWorld(&state, world, state.camera, player);
@@ -307,6 +306,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glfwSetKeyCallback(window, OnKey);
 	glfwSetWindowSizeCallback(window, SetWindowSize);
 	glfwSetMouseButtonCallback(window, OnMouseButton);
+	glfwSetCharCallback(window, InputCharCallback);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPos(window, state.windowWidth / 2.0f, state.windowHeight / 2.0f);
@@ -314,7 +314,9 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	InitParticleEmitter(state.rain, 6, 20.0f);
 
 	WorldConfig worldConfig = {};
-	World* world = NewWorld(&state, 13, 1024);
+	worldConfig.radius = 1024;
+
+	World* world = NewWorld(&state, 13, worldConfig);
 
 	Player* player = NewPlayer();
 	world->player = player;
