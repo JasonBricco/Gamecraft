@@ -283,7 +283,7 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
     ImGui::End();
 }
 
-static void WorldConfigUI(WorldConfig& config)
+static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, WorldConfig& config, Player* player)
 {
     ImVec2 size = CreateUIWindow(300.0f, 110.0f);
 
@@ -302,9 +302,15 @@ static void WorldConfigUI(WorldConfig& config)
     ImGui::Text("Radius");
     ImGui::SameLine();
 
+    if (config.infinite)
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+
     ImGui::PushItemWidth(130.0f);
     ImGui::InputText("##hidelabel", config.radiusBuffer, sizeof(config.radiusBuffer), ImGuiInputTextFlags_CharsDecimal);
     ImGui::PopItemWidth();
+
+    if (config.infinite)
+        ImGui::PopStyleVar();
 
     ImGui::SameLine();
     ImGui::Checkbox("Infinite", &config.infinite);
@@ -314,7 +320,17 @@ static void WorldConfigUI(WorldConfig& config)
 
     if (ImGui::Button("Generate", ImVec2(100.0f, 25.0f)))
     {
-        
+        int radius = atoi(config.radiusBuffer);
+        memset(config.radiusBuffer, 0, sizeof(config.radiusBuffer));
+
+        if (radius >= 32 || config.infinite)
+        {
+            config.radius = radius;
+            RegenerateWorld(state, world, config);
+            player->spawned = false;
+            player->velocity.y = 0.0f;
+            Unpause(window);
+        }
     }
 
     ImGui::End();
@@ -325,7 +341,6 @@ static void RenderUI(GameState* state, Camera* cam, UI& ui)
     ImGui::Render();
 
     ImGuiIO& io = ImGui::GetIO();
-
     ImDrawData* data = ImGui::GetDrawData();
 
     int w = (int)(data->DisplaySize.x * io.DisplayFramebufferScale.x);

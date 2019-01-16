@@ -567,6 +567,11 @@ static void CheckWorld(GameState* state, World* world, Player* player)
 
 static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* player)
 {
+    world->visibleCount = 0;
+
+    for (int i = 0; i < CHUNK_MESH_COUNT; i++)
+        cam->meshLists[i].clear();
+
     RunAsyncCallbacks(state->workQueue);
 
     if (!player->spawned)
@@ -583,7 +588,6 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
         if (world->buildCount == 0)
             CheckWorld(state, world, player);
 
-        world->visibleCount = 0;
         GetCameraPlanes(cam);
         GetVisibleChunks(world, cam);
 
@@ -665,12 +669,16 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         // The callback method skips saving the chunk if it is modified. 
         // We don't want to save any chunks here.
         for (int i = 0; i < world->totalChunks; i++)
+        {
             DestroyChunkCallback(world, world->chunks[i]);
+            world->chunks[i] = nullptr;
+        }
+
+        world->seed = rand();
     }
 
-    int radius = config.infinite ? INT_MAX : config.radius;
-    world->sqRadius = Square(radius);
-    world->falloffRadius = Square(radius - (CHUNK_SIZE_X * 2));;
+    world->radius = config.infinite ? INT_MAX : config.radius;
+    world->falloffRadius = world->radius - (CHUNK_SIZE_X * 2);
 
     world->spawnChunk = ivec3(0);
 
@@ -686,11 +694,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
 static void RegenerateWorld(GameState* state, World* world, WorldConfig& config)
 {
+    DeleteDirectory(world->savePath);
+    DeleteRegions(world);
     world = NewWorld(state, world->loadRange, config, world);
-
-    // TODO: When resetting the world, we must delete all data on the disk.
-    // So we must delete the saves folder, as well as all the region file data.
-    // This includes the allocated serialized chunks in each region.
-
-    // TODO: Think about redoing how we handle memory management.
 }

@@ -97,7 +97,7 @@ struct World
 
     // The radius of the island the terrain generates within and the radius
     // at which the terrain begins falling off into sea.
-    int sqRadius;
+    int radius;
     int falloffRadius;
 
     // Chunk pool to avoid constant allocating/freeing.

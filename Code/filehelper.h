@@ -69,6 +69,27 @@ static inline void ReadBinary(char* path, char* ptr)
     file.close();
 }
 
+static void DeleteDirectory(char* path)
+{
+    string fullPath = string(path) + "\\";
+    vector<string> filesToDelete;
+
+    WIN32_FIND_DATA data;
+    HANDLE handle = FindFirstFile((fullPath + "*.txt").c_str(), &data);
+    filesToDelete.push_back(data.cFileName);
+
+    if (handle != INVALID_HANDLE_VALUE)
+    {
+        while (FindNextFile(handle, &data))
+            filesToDelete.push_back(data.cFileName);
+
+        FindClose(handle);
+    }
+
+    for (int i = 0; i < filesToDelete.size(); i++)
+        DeleteFile((fullPath + string(filesToDelete[i])).c_str());
+}
+
 static string GetLastErrorText()
 {
     DWORD errorMessageID = GetLastError();
@@ -78,7 +99,7 @@ static string GetLastErrorText()
 
     LPSTR messageBuffer = nullptr;
     size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                                 NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+                                NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
 
     string message(messageBuffer, size);
     LocalFree(messageBuffer);

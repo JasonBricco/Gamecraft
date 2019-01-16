@@ -82,9 +82,6 @@ static bool NeighborsHaveState(World* world, Chunk* chunk, ChunkState state)
 
 static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
 {
-    for (int i = 0; i < CHUNK_MESH_COUNT; i++)
-        cam->meshLists[i].clear();
-
     for (int i = 0; i < world->visibleCount; i++)
     {
         Chunk* chunk = world->visibleChunks[i];

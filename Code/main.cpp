@@ -192,7 +192,7 @@ static void Unpause(GLFWwindow* window)
 	g_pauseState = PLAYING;
 }
 
-static void CreateUI(GLFWwindow* window, World* world, WorldConfig& config)
+static void CreateUI(GLFWwindow* window, World* world, WorldConfig& config, Player* player)
 {
 	switch (g_pauseState)
     {
@@ -205,7 +205,7 @@ static void CreateUI(GLFWwindow* window, World* world, WorldConfig& config)
             break;
 
         case WORLD_CONFIG:
-        	WorldConfigUI(config);
+        	WorldConfigUI(window, &state, world, config, player);
         	break;
     }
 }
@@ -334,7 +334,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		BeginNewUIFrame(window, state.ui, deltaTime);
 
-		CreateUI(window, world, worldConfig);
+		CreateUI(window, world, worldConfig, player);
 		Update(window, player, world, deltaTime);
 		RenderScene(&state, cam);
 

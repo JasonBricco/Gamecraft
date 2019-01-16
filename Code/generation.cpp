@@ -61,14 +61,14 @@ static void GenerateChunkTerrain(World* world, Chunk* chunk)
         for (int z = 0; z < CHUNK_SIZE_X; z++)
         {
             // Determine if this column is inside of the island. The world center is assumed to be the origin (0, 0).
-            int valueInCircle = Square(start.x + x) + Square(start.z + z);
+            int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
 
-            if (valueInCircle < world->sqRadius)
+            if (valueInCircle < world->radius)
             {
                 float p = 1.0f;
 
                 if (valueInCircle > world->falloffRadius)
-                    p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->sqRadius - world->falloffRadius));
+                    p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->radius - world->falloffRadius));
 
                 float terrainVal;
                 float biomeVal = GetRawNoiseValue2D(biome, x, z);

@@ -150,6 +150,20 @@ static void SaveRegions(World* world)
     }
 }
 
+static void DeleteRegions(World* world)
+{
+    RegionMap& map = world->regions;
+
+    for (auto it = map.begin(); it != map.end(); it++)
+    {
+        Region region = it->second;
+        assert(region.chunks != nullptr);
+        free(region.chunks);
+    }
+
+    map.clear();
+}
+
 static bool LoadChunkFromDisk(World* world, Chunk* chunk)
 {
     ChunkPos p = chunk->cPos;
