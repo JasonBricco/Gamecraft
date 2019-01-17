@@ -47,22 +47,21 @@ static void LoadAssets(GameState* state)
 
     AssetDatabase& db = state->assets;
 
-    TextureArrayData* arrays = new TextureArrayData[header->arrayCount];
+    ImageData* array = PushTempArray(header->arrayCount, ImageData);
+    int arrayCount = 0;
 
     for (uint32_t i = 0; i < header->imageCount; i++)
     {
         ImageData image = *(imageData + i);
 
         if (image.array != INT_MAX)
-            arrays[image.array].push_back(image);
+            array[arrayCount++] = image;
         
         db.images[i] = LoadTexture(image.width, image.height, (uint8_t*)(data + image.pixels));
     }
 
     for (uint32_t i = 0; i < header->arrayCount; i++)
-        db.imageArrays[i] = LoadTextureArray(arrays[i], data);
-
-    delete[] arrays;
+        db.imageArrays[i] = LoadTextureArray(array, arrayCount, data);
 
     AudioEngine* audio = &state->audio;
     
@@ -82,6 +81,4 @@ static void LoadAssets(GameState* state)
     }
 
     LoadMusic(audio, "Assets\\LittleTown.ogg");
-
-    free(path);
 }

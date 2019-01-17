@@ -224,9 +224,6 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 	
 	cam->crosshair = graphic;
 
-	for (int i = 0; i < CHUNK_MESH_COUNT; i++)
-		cam->meshLists[i].reserve(512);
-
 	cam->fadeMesh = CreateMesh(16, 4);
 	VertexSpec fadeSpec = { true, 2, false, 0, false, 0 };
 
@@ -369,11 +366,11 @@ static void RenderScene(GameState* state, Camera* cam)
 	SetUniform(shader->ambient, state->ambient);
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, GetTextureArray(state, IMAGE_ARRAY_BLOCKS).id);
-	int count = (int)cam->meshLists[MESH_TYPE_OPAQUE].size();
+	int count = cam->meshLists[MESH_TYPE_OPAQUE].count;
 
 	for (int i = 0; i < count; i++)
 	{
-		ChunkMesh cM = cam->meshLists[MESH_TYPE_OPAQUE][i];
+		ChunkMesh cM = cam->meshLists[MESH_TYPE_OPAQUE].meshes[i];
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
@@ -393,11 +390,11 @@ static void RenderScene(GameState* state, Camera* cam)
 	if (cam->disableFluidCull) 
 		glDisable(GL_CULL_FACE);
 
-	count = (int)cam->meshLists[MESH_TYPE_FLUID].size();
+	count = cam->meshLists[MESH_TYPE_FLUID].count;
 
 	for (int i = 0; i < count; i++)
 	{
-		ChunkMesh cM = cam->meshLists[MESH_TYPE_FLUID][i];
+		ChunkMesh cM = cam->meshLists[MESH_TYPE_FLUID].meshes[i];
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
@@ -442,7 +439,7 @@ static Texture LoadTexture(int width, int height, uint8_t* pixels)
     return tex;
 }
 
-static Texture LoadTextureArray(TextureArrayData& data, char* assetData)
+static Texture LoadTextureArray(ImageData* data, int count, char* assetData)
 {
 	Texture tex;
 
@@ -451,9 +448,9 @@ static Texture LoadTextureArray(TextureArrayData& data, char* assetData)
 
     ImageData first = data[0];
     int width = first.width, height = first.height;
-    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 6, GL_RGBA8, width, height, (GLsizei)data.size());
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 6, GL_RGBA8, width, height, count);
 
-	for (int i = 0; i < data.size(); i++)
+	for (int i = 0; i < count; i++)
 		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, assetData + data[i].pixels);
 
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP);

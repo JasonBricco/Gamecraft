@@ -82,6 +82,13 @@ static bool NeighborsHaveState(World* world, Chunk* chunk, ChunkState state)
 
 static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
 {
+    for (int i = 0; i < CHUNK_MESH_COUNT; i++)
+    {
+        ChunkMeshList& list = cam->meshLists[i];
+        list.meshes = PushTempArray(world->visibleCount, ChunkMesh);
+        list.count = 0;
+    }
+
     for (int i = 0; i < world->visibleCount; i++)
     {
         Chunk* chunk = world->visibleChunks[i];
@@ -123,7 +130,8 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
                     if (mesh != nullptr && mesh->vertCount > 0)
                     {
                         ChunkMesh cM = { mesh, (vec3)chunk->lwPos };
-                        cam->meshLists[m].push_back(cM);
+                        ChunkMeshList& list = cam->meshLists[m];
+                        list.meshes[list.count++] = cM;
                     }
                 }
             } break;

@@ -2,6 +2,8 @@
 // Jason Bricco
 //
 
+#define ASSET_BUILDER
+
 #pragma warning(push, 0)
 
 #define WIN32_LEAN_AND_MEAN
@@ -32,7 +34,6 @@ int main()
 	AssetFileHeader header = {};
 	header.code = FORMAT_CODE('g', 'c', 'a', 'f');
 	header.version = 1;
-	header.arrayCount = 1;
 
 	char* imagePaths[] = 
 	{
@@ -58,6 +59,8 @@ int main()
 	{
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, INT_MAX, INT_MAX
 	};
+
+	header.arrayCount = ArrayLength(arrayIndices) - 2;
 
 	char* soundPaths[] = 
 	{

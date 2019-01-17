@@ -22,4 +22,6 @@ struct GameState
 	vec3 clearColor;
 
 	ParticleEmitter rain;
+
+	PauseState pauseState;
 };

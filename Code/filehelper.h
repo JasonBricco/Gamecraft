@@ -2,19 +2,6 @@
 // Jason Bricco
 //
 
-static char* PathToExe(char* fileName)
-{
-    int size = MAX_PATH * 2;
-    char* path = (char*)malloc(size);
-    GetModuleFileName(0, path, size);
-
-    char* pos = strrchr(path, '\\');
-    *(pos + 1) = '\0';
-
-    strcat(path, fileName);
-    return path;
-}
-
 static void* ReadFileData(char* path, uint32_t* sizePtr)
 {
     HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
@@ -27,7 +14,12 @@ static void* ReadFileData(char* path, uint32_t* sizePtr)
             return nullptr;
 
         uint32_t size = (uint32_t)sizeValue.QuadPart;
+
+        #ifdef ASSET_BUILDER
         void* data = malloc(size);
+        #else
+        void* data = PushArray(size, uint8_t);
+        #endif
 
         DWORD bytesRead;
 
@@ -44,6 +36,21 @@ static void* ReadFileData(char* path, uint32_t* sizePtr)
     }
 
     return nullptr;
+}
+
+#ifndef ASSET_BUILDER
+
+static char* PathToExe(char* fileName)
+{
+    int size = MAX_PATH * 2;
+    char* path = PushTempArray(size, char);
+    GetModuleFileName(0, path, size);
+
+    char* pos = strrchr(path, '\\');
+    *(pos + 1) = '\0';
+
+    strcat(path, fileName);
+    return path;
 }
 
 static inline void WriteBinary(char* path, char* data, int length)
@@ -120,4 +127,6 @@ static string GetLastErrorText()
     MessageBox(NULL, error_buffer, NULL, MB_OK | MB_ICONERROR); \
     exit(-1); \
 }
+#endif
+
 #endif

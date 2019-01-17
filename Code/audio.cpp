@@ -56,8 +56,6 @@ static void LoadMusic(AudioEngine* engine, char* path)
 	if (ptr == nullptr) 
 		Error("Couldn't open music at %s. Error: %i\n", path, error);
 
-	free(path);
-
 	stb_vorbis_info info = stb_vorbis_get_info(ptr);
 	int sampleRate = info.sample_rate;
 
@@ -121,7 +119,8 @@ void SoundCallback::OnStreamEnd()
 {
 	auto& pool = engine->voicePool;
 	source->Stop();
-	pool.push(source);
+	pool[engine->voiceCount++] = source;
+	assert(engine->voiceCount < VOICE_POOL_SIZE);
 }
 
 static void ToggleMute(AudioEngine* audio)
@@ -148,14 +147,13 @@ static void PlaySound(Sound sound)
 	if (engine->muted)
 		return;
 
-	auto& pool = engine->voicePool;
 	IXAudio2SourceVoice* source;
 	HRESULT hr;
 
-	if (pool.size() > 0)
+	if (engine->voiceCount > 0)
 	{
-		source = pool.front();
-		pool.pop();
+		source = engine->voicePool[--engine->voiceCount];
+		assert(engine->voiceCount >= 0);
 	}
 	else
 	{
@@ -166,7 +164,6 @@ static void PlaySound(Sound sound)
 
 		callback->engine = engine;
 		callback->source = source;
-		engine->callbacks.push_back(callback);
 	}
 
 	XAUDIO2_BUFFER buffer = {};

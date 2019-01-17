@@ -39,6 +39,12 @@ struct ChunkMesh
     vec3 pos;
 };
 
+struct ChunkMeshList
+{
+    ChunkMesh* meshes;
+    int count, max;
+};
+
 struct Camera
 {
     vec3 pos, target, up;
@@ -64,7 +70,7 @@ struct Camera
 
     mat4 perspective, view;
 
-    vector<ChunkMesh> meshLists[CHUNK_MESH_COUNT];
+    ChunkMeshList meshLists[CHUNK_MESH_COUNT];
 
     Graphic* crosshair;
 
@@ -82,7 +88,7 @@ struct Camera
 
 static void LoadShader(Shader* shader, int vertLength, char* vertCode, int fragLength, char* fragCode);
 static Texture LoadTexture(int width, int height, uint8_t* pixels);
-static Texture LoadTextureArray(TextureArrayData& data, char* assetData);
+static Texture LoadTextureArray(ImageData* data, int count, char* assetData);
 
 static inline void SetUniform(GLint loc, GLfloat f);
 static inline void SetUniform(GLint loc, vec2 v);

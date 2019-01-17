@@ -569,9 +569,6 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
 {
     world->visibleCount = 0;
 
-    for (int i = 0; i < CHUNK_MESH_COUNT; i++)
-        cam->meshLists[i].clear();
-
     RunAsyncCallbacks(state->workQueue);
 
     if (!player->spawned)

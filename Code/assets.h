@@ -45,8 +45,6 @@ enum ShaderID
 	SHADER_COUNT
 };
 
-typedef vector<ImageData> TextureArrayData;
-
 struct Shader
 {
     GLuint handle;

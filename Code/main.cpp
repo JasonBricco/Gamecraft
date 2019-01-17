@@ -71,9 +71,7 @@ enum PauseState
 	WORLD_CONFIG
 };
 
-static PauseState g_pauseState;
-
-#include "memory.h"
+#include "gamememory.h"
 #include "random.h"
 #include "utils.h"
 #include "profiling.h"
@@ -95,8 +93,8 @@ static PauseState g_pauseState;
 #include "particles.h"
 #include "gamestate.h"
 
-static void Pause(GLFWwindow* window, World* world, PauseState pauseState);
-static void Unpause(GLFWwindow* window);
+static void Pause(GameState* state, GLFWwindow* window, World* world, PauseState pauseState);
+static void Unpause(GameState* state, GLFWwindow* window);
 
 #include "audio.cpp"
 #include "assets.cpp"
@@ -123,8 +121,6 @@ static char* buildID = "151";
 
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT windowPos = { sizeof(windowPos) };
-
-static GameState state;
 
 static void ToggleFullscreen(HWND window)
 {
@@ -172,81 +168,81 @@ static void ShowFPS(GLFWwindow* window)
 	frameCount++;
 }
 
-static void Pause(GLFWwindow* window, World* world, PauseState pauseState)
+static void Pause(GameState* state, GLFWwindow* window, World* world, PauseState pauseState)
 {
 	SaveWorld(world);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-	ChangeVolume(&state.audio, 0.25f, 0.5f);
-	Camera* cam = state.camera;
+	ChangeVolume(&state->audio, 0.25f, 0.5f);
+	Camera* cam = state->camera;
 	cam->fadeColor.a = cam->fadeColor.a > 0.5f ? 0.9f : 0.75f;
-	g_pauseState = pauseState;
+	state->pauseState = pauseState;
 }
 
-static void Unpause(GLFWwindow* window)
+static void Unpause(GameState* state, GLFWwindow* window)
 {
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	ChangeVolume(&state.audio, 0.75f, 0.5f);
-	Camera* cam = state.camera;
+	ChangeVolume(&state->audio, 0.75f, 0.5f);
+	Camera* cam = state->camera;
 	cam->fadeColor.a = 0.0f;
-	glfwSetCursorPos(window, state.windowWidth * 0.5f, state.windowHeight * 0.5f);
-	g_pauseState = PLAYING;
+	glfwSetCursorPos(window, state->windowWidth * 0.5f, state->windowHeight * 0.5f);
+	state->pauseState = PLAYING;
 }
 
-static void CreateUI(GLFWwindow* window, World* world, WorldConfig& config, Player* player)
+static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldConfig& config, Player* player)
 {
-	switch (g_pauseState)
+	switch (state->pauseState)
     {
         case PAUSED:
-            CreatePauseUI(&state, window);
+            CreatePauseUI(state, window);
             break;
 
         case SELECTING_BLOCK:
-            CreateBlockUI(window, world, &state);
+            CreateBlockUI(window, world, state);
             break;
 
         case WORLD_CONFIG:
-        	WorldConfigUI(window, &state, world, config, player);
+        	WorldConfigUI(window, state, world, config, player);
         	break;
     }
 }
 
-static void Update(GLFWwindow* window, Player* player, World* world, float deltaTime)
+static void Update(GameState* state, GLFWwindow* window, Player* player, World* world, float deltaTime)
 {
-	Input& input = state.input;
+	Input& input = state->input;
 
 	if (KeyPressed(input, KEY_ESCAPE))
 	{
-		if (g_pauseState != PLAYING)
-			Unpause(window);
-		else Pause(window, world, PAUSED);
+		if (state->pauseState != PLAYING)
+			Unpause(state, window);
+		else Pause(state, window, world, PAUSED);
 	}
 
-	if (g_pauseState == PLAYING)
+	if (state->pauseState == PLAYING)
 	{
 		if (KeyPressed(input, KEY_E))
-			Pause(window, world, SELECTING_BLOCK);
+			Pause(state, window, world, SELECTING_BLOCK);
 		
 		if (KeyPressed(input, KEY_T))
 			ToggleFullscreen(glfwGetWin32Window(window));
 	}
 
-	UpdateAudio(&state.audio, deltaTime);
-	UpdateWorld(&state, world, state.camera, player);
+	UpdateAudio(&state->audio, deltaTime);
+	UpdateWorld(state, world, state->camera, player);
 
-	if (g_pauseState != PLAYING || !player->spawned) return;
+	if (state->pauseState != PLAYING || !player->spawned) return;
 
 	if (KeyPressed(input, KEY_EQUAL))
 	{
-		state.ambient = state.ambient == 0.0f ? 1.0f : 0.0f;
-		vec3 newClear = state.clearColor * state.ambient;
+		state->ambient = state->ambient == 0.0f ? 1.0f : 0.0f;
+		vec3 newClear = state->clearColor * state->ambient;
 		glClearColor(newClear.r, newClear.g, newClear.b, 1.0f);
 	}
 
 	double mouseX, mouseY;
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
-	double cX = state.windowWidth * 0.5f, cY = state.windowHeight * 0.5f;
-	Camera* cam = state.camera;
+	double cX = state->windowWidth * 0.5f, cY = state->windowHeight * 0.5f;
+	Camera* cam = state->camera;
 
 	float rotX = (float)(cX - mouseX) * cam->sensitivity;
 	float rotY = (float)(cY - mouseY) * cam->sensitivity;
@@ -254,10 +250,10 @@ static void Update(GLFWwindow* window, Player* player, World* world, float delta
 	RotateCamera(cam, rotX, rotY);
 	glfwSetCursorPos(window, cX, cY);
 
-	Simulate(&state, world, player, deltaTime);
+	Simulate(state, world, player, deltaTime);
 
-	state.rain.pos = vec3(player->pos.x, player->pos.y + 50.0f, player->pos.z);
-	UpdateParticles(state.rain, world, deltaTime);
+	state->rain.pos = vec3(player->pos.x, player->pos.y + 50.0f, player->pos.z);
+	UpdateParticles(state->rain, world, deltaTime);
 }
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
@@ -289,18 +285,26 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	// Set vertical synchronization to the monitor refresh rate.
 	glfwSwapInterval(1);
 
-	InitUI(window, state.ui);
-	InitAudio(&state.audio);
+	g_memory.size = 2147483648;
+	g_memory.tempLoc = 1610612736;
+	g_memory.tempUsed = g_memory.tempLoc;
+	g_memory.data = (uint8_t*)VirtualAlloc(0, g_memory.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+	GameState* state = PushStruct(GameState);
+	Construct(state, GameState);
+
+	InitUI(window, state->ui);
+	InitAudio(&state->audio);
 	
-	CreateThreads(&state);
-	LoadAssets(&state);
+	CreateThreads(state);
+	LoadAssets(state);
 
 	Camera* cam = NewCamera();
-	state.camera = cam;
+	state->camera = cam;
 
-	InitRenderer(&state, cam, screenWidth, screenHeight);
+	InitRenderer(state, cam, screenWidth, screenHeight);
 
-	glfwSetWindowUserPointer(window, &state);
+	glfwSetWindowUserPointer(window, state);
 	SetWindowSize(window, screenWidth, screenHeight);
 
 	glfwSetKeyCallback(window, OnKey);
@@ -309,14 +313,14 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glfwSetCharCallback(window, InputCharCallback);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetCursorPos(window, state.windowWidth / 2.0f, state.windowHeight / 2.0f);
+	glfwSetCursorPos(window, state->windowWidth / 2.0f, state->windowHeight / 2.0f);
 
-	InitParticleEmitter(state.rain, 6, 20.0f);
+	InitParticleEmitter(state->rain, 6, 20.0f);
 
 	WorldConfig worldConfig = {};
 	worldConfig.radius = 1024;
 
-	World* world = NewWorld(&state, 13, worldConfig);
+	World* world = NewWorld(state, 13, worldConfig);
 
 	Player* player = NewPlayer();
 	world->player = player;
@@ -329,14 +333,16 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	{
 		BEGIN_TIMED_BLOCK(GAME_LOOP);
 
-		ResetInput(state.input);
+		WipeTempMemory();
+
+		ResetInput(state->input);
 		glfwPollEvents();
 
-		BeginNewUIFrame(window, state.ui, deltaTime);
+		BeginNewUIFrame(window, state->ui, deltaTime);
 
-		CreateUI(window, world, worldConfig, player);
-		Update(window, player, world, deltaTime);
-		RenderScene(&state, cam);
+		CreateUI(state, window, world, worldConfig, player);
+		Update(state, window, player, world, deltaTime);
+		RenderScene(state, cam);
 
 		END_TIMED_BLOCK(GAME_LOOP);
 		FLUSH_COUNTERS();

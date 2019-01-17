@@ -81,7 +81,7 @@ static void CreateThreads(GameState* state)
 
 	WorkQueue& queue = state->workQueue;
 	queue.size = 4096;
-	queue.items = (AsyncItem*)calloc(queue.size, sizeof(AsyncItem));
+	queue.items = PushArray(queue.size, AsyncItem);
 
 	for (int i = 0; i < threadCount; i++)
 	{

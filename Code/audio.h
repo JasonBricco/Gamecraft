@@ -22,10 +22,9 @@ struct AudioEngine : public IXAudio2VoiceCallback
 	stb_vorbis* musicPtr;
 
 	// Stores free voices for sound effects.
-	queue<IXAudio2SourceVoice*> voicePool;
-
-	// Stores sound callbacks so they can be freed if needed.
-	vector<SoundCallback*> callbacks;
+	#define VOICE_POOL_SIZE 32
+	int voiceCount;
+	IXAudio2SourceVoice* voicePool[32];
 
 	float maxMusicVolume, lastMusicVolume;
 	bool muted;

@@ -168,7 +168,7 @@ static inline void BlockButton(World* world, GLFWwindow* window, GameState* stat
     if (ImGui::ImageButton(GetUITexture(state, image), ImVec2(32.0f, 32.0f)))
     {
         world->blockToSet = type;
-        Unpause(window);
+        Unpause(state, window);
     }
 
     if (ImGui::IsItemHovered())
@@ -247,13 +247,13 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
     ImGui::SetCursorPos(cursorPos);
 
     if (ImGui::Button("Continue", btnSize))
-        Unpause(window);
+        Unpause(state, window);
 
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
 
     if (ImGui::Button("New Island", btnSize))
-        g_pauseState = WORLD_CONFIG;
+        state->pauseState = WORLD_CONFIG;
 
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
@@ -263,7 +263,7 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
     if (ImGui::Button(raining ? "Disable Rain" : "Enable Rain", btnSize))
     {
         state->rain.active = !raining;
-        Unpause(window);
+        Unpause(state, window);
     }
 
     cursorPos.y += 35.0f;
@@ -329,7 +329,7 @@ static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, Wo
             RegenerateWorld(state, world, config);
             player->spawned = false;
             player->velocity.y = 0.0f;
-            Unpause(window);
+            Unpause(state, window);
         }
     }
 
@@ -362,7 +362,7 @@ static void RenderUI(GameState* state, Camera* cam, UI& ui)
 
     mat4 proj = ortho(L, R, B, T);
 
-    if (g_pauseState == PLAYING)
+    if (state->pauseState == PLAYING)
     {
         glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
         Graphic* crosshair = cam->crosshair;
