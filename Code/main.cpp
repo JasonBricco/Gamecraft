@@ -27,8 +27,6 @@
 #include <fstream>
 #include <atomic>
 #include <string>
-#include <mutex>
-#include <algorithm>
 #include <queue>
 
 #define GLM_FORCE_INLINE

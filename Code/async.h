@@ -32,7 +32,4 @@ struct WorkQueue
     // Stores all work to be done by background threads.
     AsyncItem* items;
     int size;
-
-    mutex callbackMutex;
-    queue<AsyncCallbackItem> callbacks;
 };

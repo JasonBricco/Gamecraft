@@ -19,14 +19,6 @@ static inline bool DoNextAsync(WorkQueue& queue)
         {
             AsyncItem item = queue.items[originalRead];
             item.func(item.world, item.chunk);
-
-            if (item.callback != nullptr)
-            {
-            	queue.callbackMutex.lock();
-            	AsyncCallbackItem cbi = { item.callback, item.world, item.chunk };
-            	queue.callbacks.push(cbi);
-            	queue.callbackMutex.unlock();
-            }
         }
     }
     else sleep = true;
@@ -78,15 +70,5 @@ static void CreateThreads(GameState* state)
 		DWORD threadID; 
 		HANDLE handle = CreateThread(NULL, NULL, ThreadProc, state, NULL, &threadID);
         CloseHandle(handle);
-	}
-}
-
-static void RunAsyncCallbacks(WorkQueue& queue)
-{
-	while (queue.callbacks.size() > 0)
-	{
-		AsyncCallbackItem cbi = queue.callbacks.front();
-		queue.callbacks.pop();
-		cbi.callback(cbi.world, cbi.chunk);
 	}
 }

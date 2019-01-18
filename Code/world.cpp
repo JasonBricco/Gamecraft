@@ -571,8 +571,6 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
 {
     world->visibleCount = 0;
 
-    RunAsyncCallbacks(state->workQueue);
-
     if (!player->spawned)
     {
         Chunk* spawnChunk = GetChunk(world, ChunkToLChunkPos(world->spawnChunk, world->ref));
