@@ -40,17 +40,15 @@ static void* ReadFileData(char* path, uint32_t* sizePtr)
 
 #ifndef ASSET_BUILDER
 
-static char* PathToExe(char* fileName)
+static char* PathToExe(char* fileName, char* buffer, int size)
 {
-    int size = MAX_PATH * 2;
-    char* path = PushTempArray(size, char);
-    GetModuleFileName(0, path, size);
+    GetModuleFileName(0, buffer, size);
 
-    char* pos = strrchr(path, '\\');
+    char* pos = strrchr(buffer, '\\');
     *(pos + 1) = '\0';
 
-    strcat(path, fileName);
-    return path;
+    strcat(buffer, fileName);
+    return buffer;
 }
 
 static inline void WriteBinary(char* path, char* data, int length)

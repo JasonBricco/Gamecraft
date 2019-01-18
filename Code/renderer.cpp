@@ -35,18 +35,18 @@ static inline void UseShader(Shader* shader)
 static Graphic* CreateGraphic(Shader* shader, Texture texture)
 {
 	Graphic* graphic = new Graphic();
-	graphic->mesh = CreateMesh(16, 6);
+	MeshData* data = CreateTempMeshData(16, 6);
 
 	VertexSpec spec = { true, 2, true, 2, false, 0 };
 
-	SetMeshIndices(graphic->mesh, 4);
+	SetMeshIndices(data, 4);
 
-	SetMeshVertex(graphic->mesh, 32.0f, 0.0f, 0.0f, 1.0f);
-	SetMeshVertex(graphic->mesh, 32.0f, 32.0f, 0.0f, 0.0f);
-	SetMeshVertex(graphic->mesh, 0.0f, 32.0f, 1.0f, 0.0f);
-	SetMeshVertex(graphic->mesh, 0.0f, 0.0f, 1.0f, 1.0f);
+	SetMeshVertex(data, 32.0f, 0.0f, 0.0f, 1.0f);
+	SetMeshVertex(data, 32.0f, 32.0f, 0.0f, 0.0f);
+	SetMeshVertex(data, 0.0f, 32.0f, 1.0f, 0.0f);
+	SetMeshVertex(data, 0.0f, 0.0f, 1.0f, 1.0f);
 	
-	FillMeshData(graphic->mesh, GL_STATIC_DRAW, spec);
+	FillMeshData(graphic->mesh, data, GL_STATIC_DRAW, spec);
 
 	graphic->shader = shader;
 	graphic->texture = texture;
@@ -91,7 +91,7 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 
 static Camera* NewCamera()
 {
-	Camera* cam = new Camera();
+	Camera* cam = PushStruct(Camera);
 	cam->nearDist = 0.1f;
 	cam->farDist = 512.0f;
 	cam->sensitivity = 0.05f;
@@ -224,17 +224,17 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 	
 	cam->crosshair = graphic;
 
-	cam->fadeMesh = CreateMesh(16, 4);
+	MeshData* data = CreateTempMeshData(16, 4);
 	VertexSpec fadeSpec = { true, 2, false, 0, false, 0 };
 
-	SetMeshIndices(cam->fadeMesh, 4);
+	SetMeshIndices(data, 4);
 
-	SetMeshVertex(cam->fadeMesh, -1.0f, 1.0f);
-	SetMeshVertex(cam->fadeMesh, 1.0f, 1.0f);
-	SetMeshVertex(cam->fadeMesh, 1.0f, -1.0f);
-	SetMeshVertex(cam->fadeMesh, -1.0f, -1.0f);
+	SetMeshVertex(data, -1.0f, 1.0f);
+	SetMeshVertex(data, 1.0f, 1.0f);
+	SetMeshVertex(data, 1.0f, -1.0f);
+	SetMeshVertex(data, -1.0f, -1.0f);
 	
-	FillMeshData(cam->fadeMesh, GL_STATIC_DRAW, fadeSpec);
+	FillMeshData(cam->fadeMesh, data, GL_STATIC_DRAW, fadeSpec);
 
 	cam->fadeShader = GetShader(state, SHADER_FADE);
 	cam->fadeColor = CLEAR_COLOR;

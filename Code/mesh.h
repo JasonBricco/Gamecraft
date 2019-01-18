@@ -13,12 +13,16 @@ enum BlockMeshType
 struct Mesh
 {
     GLuint vb, ib, va;
+    int vertCount, indexCount;
+};
 
+struct MeshData
+{
     float* vertices;
     int* indices;
 
-    int vertMax, indexMax;
     int vertCount, indexCount;
+    int vertMax, indexMax;
 };
 
 struct VertexSpec

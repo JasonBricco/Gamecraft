@@ -2,16 +2,6 @@
 // Jason Bricco
 //
 
-static inline void SemaphoreWait(HANDLE semaphore)
-{
-	WaitForSingleObject(semaphore, INFINITE);
-}
-
-static inline void SemaphoreSignal(HANDLE semaphore, int32_t count)
-{
-	ReleaseSemaphore(semaphore, count, NULL);
-}
-
 static inline bool DoNextAsync(WorkQueue& queue)
 {
     bool sleep = false;
@@ -51,7 +41,7 @@ static DWORD WINAPI ThreadProc(LPVOID ptr)
 	while (true)
 	{
 		if (DoNextAsync(state->workQueue)) 
-			SemaphoreWait(state->semaphore);
+			WaitForSingleObject(state->semaphore, INFINITE);
     }
 }
 
@@ -66,7 +56,7 @@ static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, Ch
 	item->chunk = chunk;
 	item->callback = callback;
 	queue.write = nextWrite;
-	SemaphoreSignal(state->semaphore, 1);
+	ReleaseSemaphore(state->semaphore, 1, NULL);
 }
 
 static void CreateThreads(GameState* state)

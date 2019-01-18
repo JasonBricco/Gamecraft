@@ -169,8 +169,7 @@ static bool LoadChunkFromDisk(World* world, Chunk* chunk)
     ChunkPos p = chunk->cPos;
     RegionPos regionP = ChunkToRegionPos(p);
 
-    world->regionMutex.lock();
-
+    WaitForSingleObject(world->regionMutex, INFINITE);
     auto it = world->regions.find(regionP);
 
     if (it == world->regions.end())
@@ -185,7 +184,7 @@ static bool LoadChunkFromDisk(World* world, Chunk* chunk)
         }
     }
 
-    world->regionMutex.unlock();
+    ReleaseMutex(world->regionMutex);
 
     Region region = it->second;
     assert(RegionIsValid(region));

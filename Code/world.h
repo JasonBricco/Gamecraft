@@ -64,7 +64,9 @@ struct Chunk
     LWorldPos lwPos;
 
     Block blocks[CHUNK_SIZE_3];
-    Mesh* meshes[CHUNK_MESH_COUNT];
+
+    Mesh meshes[CHUNK_MESH_COUNT];
+    MeshData* meshData[CHUNK_MESH_COUNT];
 
     bool pendingUpdate;
 
@@ -139,7 +141,7 @@ struct World
     RegionMap regions;
 
     // Used to ensure blocking when loading a region file.
-    mutex regionMutex;
+    HANDLE regionMutex;
 
     Player* player;
 
@@ -151,6 +153,10 @@ struct World
     BlockData blockData[BLOCK_COUNT];
 
     BlockType blockToSet;
+
+    #define MESH_POOL_CAPACITY 256
+    MeshData meshData[MESH_POOL_CAPACITY];
+    volatile uint32_t meshDataCount;
 };
 
 struct RebasedPos

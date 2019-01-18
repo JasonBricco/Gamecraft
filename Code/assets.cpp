@@ -24,7 +24,7 @@ static Shader* GetShader(GameState* state, ShaderID id)
 
 static void LoadAssets(GameState* state)
 {
-    char* path = PathToExe("Assets/Assets.gca");
+    char* path = PathToExe("Assets/Assets.gca", PushTempArray(MAX_PATH, char), MAX_PATH);
 
     uint32_t size;
     void* dataPtr = ReadFileData(path, &size);

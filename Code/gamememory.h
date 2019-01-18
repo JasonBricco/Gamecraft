@@ -37,4 +37,5 @@ static inline void WipeTempMemory()
 
 #define PushArray(count, item) (item*)_PushMemory(count * sizeof(item))
 
+#define PushTempStruct(item) (item*)_PushTemp(sizeof(item))
 #define PushTempArray(count, item) (item*)_PushTemp(count * sizeof(item))

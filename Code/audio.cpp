@@ -48,7 +48,7 @@ static void ChangeVolume(AudioEngine* engine, float target, float seconds)
 
 static void LoadMusic(AudioEngine* engine, char* path)
 {
-	path = PathToExe(path);
+	path = PathToExe(path, PushTempArray(MAX_PATH, char), MAX_PATH);
 
 	int error;
 	stb_vorbis* ptr = stb_vorbis_open_filename(path, &error, nullptr);

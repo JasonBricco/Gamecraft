@@ -443,7 +443,9 @@ static Chunk* CreateChunk(GameState* state, World* world, int lcX, int lcZ, Chun
 
 static void DestroyChunkCallback(World* world, Chunk* chunk)
 {
-    DestroyChunkMeshes(chunk);
+    for (int i = 0; i < CHUNK_MESH_COUNT; i++)
+       DestroyMesh(chunk->meshes[i]);
+
     AddChunkToPool(world, chunk);
 }
 
@@ -607,7 +609,8 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
     if (existing == nullptr)
     {
-        world = new World();
+        world = PushStruct(World);
+        Construct(world, World);
 
         // Load range worth of chunks on each side plus the middle chunk.
         world->size = (loadRange * 2) + 1;
@@ -639,7 +642,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
         CreateBlockData(state, world->blockData);
 
-        world->savePath = PathToExe("Saves");
+        world->savePath = PathToExe("Saves", PushArray(MAX_PATH, char), MAX_PATH);
         CreateDirectory(world->savePath, NULL);
 
         char path[MAX_PATH];
@@ -657,7 +660,13 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
             world->seed = seed;
         }
 
+        for (int i = 0; i < MESH_POOL_CAPACITY; i++)
+            AllocMeshData(&world->meshData[i], 131072, 32768);
+
+        world->meshDataCount = MESH_POOL_CAPACITY;
         world->blockToSet = BLOCK_GRASS;
+
+        world->regionMutex = CreateMutex(NULL, FALSE, NULL);
     }
     else 
     {

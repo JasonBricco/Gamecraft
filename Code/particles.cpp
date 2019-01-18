@@ -7,24 +7,26 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	emitter.spawnCount = spawnCount;
 	emitter.radius = radius;
 
-	Mesh* mesh = CreateMesh(20, 6);
+	MeshData* data = CreateTempMeshData(20, 6); 
 
-    SetMeshIndices(mesh, 5);
-    SetMeshVertex(mesh, -0.015625f, -0.125f, 0.015625f, 0.0f, 1.0f); 
-    SetMeshVertex(mesh, -0.015625f, 0.125f, 0.015625f, 0.0f, 0.0f);
-    SetMeshVertex(mesh, 0.015625f, 0.125f, 0.015625f, 1.0f, 0.0f);
-    SetMeshVertex(mesh, 0.015625f, -0.125f, 0.015625f, 1.0f, 1.0f);
+    SetMeshIndices(data, 5);
+    SetMeshVertex(data, -0.015625f, -0.125f, 0.015625f, 0.0f, 1.0f); 
+    SetMeshVertex(data, -0.015625f, 0.125f, 0.015625f, 0.0f, 0.0f);
+    SetMeshVertex(data, 0.015625f, 0.125f, 0.015625f, 1.0f, 0.0f);
+    SetMeshVertex(data, 0.015625f, -0.125f, 0.015625f, 1.0f, 1.0f);
 
-	glGenVertexArrays(1, &mesh->va);
-	glBindVertexArray(mesh->va);
+    Mesh mesh = {};
 
-	glGenBuffers(1, &mesh->vb);
-	glBindBuffer(GL_ARRAY_BUFFER, mesh->vb);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * mesh->vertCount, mesh->vertices, GL_STATIC_DRAW);
+	glGenVertexArrays(1, &mesh.va);
+	glBindVertexArray(mesh.va);
 
-	glGenBuffers(1, &mesh->ib);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indices, GL_STATIC_DRAW);
+	glGenBuffers(1, &mesh.vb);
+	glBindBuffer(GL_ARRAY_BUFFER, mesh.vb);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * data->vertCount, data->vertices, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &mesh.ib);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ib);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * data->indexCount, data->indices, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), NULL);
 	glEnableVertexAttribArray(0);
@@ -44,6 +46,8 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 		glVertexAttribDivisor(2 + i, 1);
 	}
 
+	mesh.vertCount = data->vertCount;
+	mesh.indexCount = data->indexCount;
 	emitter.mesh = mesh;
 }
 
@@ -116,6 +120,6 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 
 	glBindTexture(GL_TEXTURE_2D, GetTexture(state, IMAGE_RAIN).id);
 
-	glBindVertexArray(emitter.mesh->va);
-	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh->indexCount, GL_UNSIGNED_INT, 0, emitter.count);
+	glBindVertexArray(emitter.mesh.va);
+	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh.indexCount, GL_UNSIGNED_INT, 0, emitter.count);
 }

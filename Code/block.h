@@ -38,7 +38,7 @@ enum CullType
     CULL_ALL
 };
 
-using BuildBlockFunc = void(*)(World*, Chunk*, Mesh*, int, int, int, Block);
+using BuildBlockFunc = void(*)(World*, Chunk*, MeshData*, int, int, int, Block);
 
 struct BlockData
 {
