@@ -154,9 +154,9 @@ struct World
 
     BlockType blockToSet;
 
-    #define MESH_POOL_CAPACITY 256
+    #define MESH_POOL_CAPACITY 24
     MeshData* meshData[MESH_POOL_CAPACITY];
-    volatile uint32_t meshDataCount;
+    uint32_t meshDataCount;
 };
 
 struct RebasedPos

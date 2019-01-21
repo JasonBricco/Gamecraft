@@ -663,7 +663,6 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
         world->meshDataCount = MESH_POOL_CAPACITY;
         world->blockToSet = BLOCK_GRASS;
-
         world->regionMutex = CreateMutex(NULL, FALSE, NULL);
     }
     else 

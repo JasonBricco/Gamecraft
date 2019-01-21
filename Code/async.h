@@ -26,7 +26,7 @@ struct WorkQueue
     // from the queue. Write should write ahead while read stays behind. If read 
     // catches up to write, then it has run out of work to do. If write catches up to 
     // read, then we will overwrite work in the queue that hasn't been completed yet.
-    atomic<uint32_t> read;
+    uint32_t read;
     uint32_t write;
 
     // Stores all work to be done by background threads.

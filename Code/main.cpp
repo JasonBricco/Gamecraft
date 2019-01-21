@@ -25,7 +25,6 @@
 
 #include <unordered_map>
 #include <fstream>
-#include <atomic>
 #include <string>
 #include <queue>
 

@@ -8,20 +8,20 @@ static inline bool DoNextAsync(WorkQueue& queue)
  
     uint32_t originalRead = queue.read;
     uint32_t nextRead = (originalRead + 1) & (queue.size - 1);
- 
+
     // If read and write are equal, then we have run out of work to do. Write is the location
     // where the next item will be placed - it isn't placed yet.
     if (originalRead != queue.write)
     {
-        // Increments the work queue's next value only if it matches our expected next value. 
+    	// Increments the work queue's next value only if it matches our expected next value. 
         // This prevents problems caused by multiple threads running this code.
-        if (atomic_compare_exchange_weak(&queue.read, &originalRead, nextRead))
-        {
-            AsyncItem item = queue.items[originalRead];
+    	if (InterlockedCompareExchange(&queue.read, nextRead, originalRead) == originalRead)
+	    {
+	    	AsyncItem item = queue.items[originalRead];
             item.func(item.world, item.chunk);
-        }
+	    }
     }
-    else sleep = true;
+ 	else sleep = true;
  
     return sleep;
 }
