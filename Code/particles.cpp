@@ -59,6 +59,7 @@ static void SpawnParticle(ParticleEmitter& emitter, float x, float y, float z, v
 	emitter.particles[index] = particle;
 	emitter.count++;
 }
+
 static void DestroyParticle(ParticleEmitter& emitter, int index)
 {
 	int end = emitter.count - 1;

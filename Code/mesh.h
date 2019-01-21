@@ -23,6 +23,8 @@ struct MeshData
 
     int vertCount, indexCount;
     int vertMax, indexMax;
+
+    bool valid;
 };
 
 struct VertexSpec

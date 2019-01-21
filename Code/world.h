@@ -155,7 +155,7 @@ struct World
     BlockType blockToSet;
 
     #define MESH_POOL_CAPACITY 256
-    MeshData meshData[MESH_POOL_CAPACITY];
+    MeshData* meshData[MESH_POOL_CAPACITY];
     volatile uint32_t meshDataCount;
 };
 

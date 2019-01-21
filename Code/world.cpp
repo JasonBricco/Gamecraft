@@ -659,7 +659,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         }
 
         for (int i = 0; i < MESH_POOL_CAPACITY; i++)
-            AllocMeshData(&world->meshData[i], 131072, 32768);
+            world->meshData[i] = CreateMeshData(131072, 65536);
 
         world->meshDataCount = MESH_POOL_CAPACITY;
         world->blockToSet = BLOCK_GRASS;

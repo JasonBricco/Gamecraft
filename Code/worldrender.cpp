@@ -6,7 +6,8 @@ static inline MeshData* GetChunkMeshData(World* world)
 {
     int index = InterlockedDecrement(&world->meshDataCount);
     assert(index >= 0 && index <= MESH_POOL_CAPACITY);
-    MeshData* data = &world->meshData[index];
+    MeshData* data = world->meshData[index];
+    data->valid = true;
     return data;
 }
 
@@ -14,7 +15,9 @@ static inline void ReturnChunkMeshData(World* world, MeshData* data)
 {
     data->vertCount = 0;
     data->indexCount = 0;
-    world->meshData[world->meshDataCount++] = *data;
+    int index = world->meshDataCount++;
+    assert(index >= 0 && index <= MESH_POOL_CAPACITY);
+    world->meshData[index] = data;
 }
 
 // Builds mesh data for the chunk.
@@ -36,8 +39,8 @@ static void BuildChunk(World* world, Chunk* chunk)
                     if (data == nullptr)
                     {
                         data = GetChunkMeshData(world);
-                        assert(data->vertCount == 0);
-                        assert(data->indexCount == 0);
+                        assert(data->vertCount == 0 && data->vertMax == 131072);
+                        assert(data->indexCount == 0 && data->indexMax == 65536);
                         chunk->meshData[type] = data;
                     }
 
@@ -57,11 +60,11 @@ static inline void FillChunkMeshes(World* world, Chunk* chunk)
     for (int i = 0; i < CHUNK_MESH_COUNT; i++)
     {
         MeshData* data = chunk->meshData[i];
-
+ 
         if (data == nullptr) 
             continue;
     
-        if (data->vertCount > 0)
+        if (data->valid && data->vertCount > 0)
             FillMeshData(chunk->meshes[i], data, GL_DYNAMIC_DRAW, spec);
 
         ReturnChunkMeshData(world, data);
@@ -119,8 +122,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
                 {
                     chunk->state = CHUNK_BUILDING;
                     world->buildCount++;
-                    //QueueAsync(state, BuildChunk, world, chunk);
-                    BuildChunk(world, chunk);
+                    QueueAsync(state, BuildChunk, world, chunk);
                 }
             } break;
 
