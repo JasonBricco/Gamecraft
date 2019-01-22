@@ -2,14 +2,22 @@
 // Jason Bricco
 //
 
-static inline MeshData* GetChunkMeshData(World* world)
+static inline bool SetChunkMeshData(World* world, Chunk* chunk)
 {
-    MeshData* data = world->meshData[--world->meshDataCount];
-    data->valid = true;
-    return data;
+    if (world->meshDataCount < CHUNK_MESH_COUNT)
+        return false;
+
+    for (int c = 0; c < CHUNK_MESH_COUNT; c++)
+    {
+        MeshData* data = world->meshData[--world->meshDataCount];
+        data->valid = true;
+        chunk->meshData[c] = data;
+    }
+
+    return true;
 }
 
-static inline void ReturnChunkMeshData(World* world, MeshData* data)
+static inline void UnsetChunkMeshData(World* world, MeshData* data)
 {
     data->vertCount = 0;
     data->indexCount = 0;
@@ -54,15 +62,19 @@ static inline void FillChunkMeshes(World* world, Chunk* chunk)
         }
         else MessageBox(NULL, "Chunk mesh contains too many vertices!\n", NULL, MB_OK | MB_ICONWARNING);
 
-        ReturnChunkMeshData(world, data);
+        UnsetChunkMeshData(world, data);
     }
 }
 
 static inline void BuildChunkNow(World* world, Chunk* chunk)
 {
+    if (!SetChunkMeshData(world, chunk))
+        return;
+
     BuildChunk(world, chunk);
     FillChunkMeshes(world, chunk);
     chunk->state = CHUNK_BUILT;
+    chunk->pendingUpdate = false;
 }
 
 static bool NeighborsHaveState(World* world, Chunk* chunk, ChunkState state)
@@ -110,11 +122,8 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
             {
                 if (NeighborsHaveState(world, chunk, CHUNK_LOADED))
                 {
-                    if (world->meshDataCount < CHUNK_MESH_COUNT)
+                    if (!SetChunkMeshData(world, chunk))
                         continue;
-
-                    for (int c = 0; c < CHUNK_MESH_COUNT; c++)
-                        chunk->meshData[c] = GetChunkMeshData(world);
 
                     chunk->state = CHUNK_BUILDING;
                     world->buildCount++;
@@ -132,10 +141,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
             case CHUNK_BUILT:
             {
                 if (chunk->pendingUpdate)
-                {
                     BuildChunkNow(world, chunk);
-                    chunk->pendingUpdate = false;
-                }
 
                 for (int m = 0; m < CHUNK_MESH_COUNT; m++)
                 {
