@@ -469,12 +469,11 @@ static void OutputShaderError(GLuint shader, char* mode)
 	GLint length = 0;
 	glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
 
-    GLchar* errorLog = (GLchar*)calloc(length, sizeof(GLchar));
+    GLchar* errorLog = PushTempArray(length, GLchar);
     glGetProgramInfoLog(shader, length, NULL, errorLog);
     
    	Print("Error! Shader program failed to %s. Log: %s\n", mode, length == 0 ? "No error given." : errorLog);
    	
-    free(errorLog);
     Unused(mode);
 }
 

@@ -46,9 +46,13 @@ static inline void FillChunkMeshes(World* world, Chunk* chunk)
     for (int i = 0; i < CHUNK_MESH_COUNT; i++)
     {
         MeshData* data = chunk->meshData[i];
-    
-        if (data->valid && data->vertCount > 0)
-            FillMeshData(chunk->meshes[i], data, GL_DYNAMIC_DRAW, spec);
+
+        if (data->valid)
+        {
+            if (data->vertCount > 0)
+                FillMeshData(chunk->meshes[i], data, GL_DYNAMIC_DRAW, spec);
+        }
+        else MessageBox(NULL, "Chunk mesh contains too many vertices!\n", NULL, MB_OK | MB_ICONWARNING);
 
         ReturnChunkMeshData(world, data);
     }
@@ -85,6 +89,15 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
         list.meshes = PushTempArray(world->visibleCount, ChunkMesh);
         list.count = 0;
     }
+
+    vec2 playerChunk = vec2(world->loadRange, world->loadRange);
+
+    sort(world->visibleChunks, world->visibleChunks + world->visibleCount, [playerChunk](auto a, auto b) 
+    { 
+        float distA = distance2(vec2(a->lcPos.x, a->lcPos.z), playerChunk);
+        float distB = distance2(vec2(b->lcPos.x, b->lcPos.z), playerChunk);
+        return distA < distB;
+    });
 
     for (int i = 0; i < world->visibleCount; i++)
     {

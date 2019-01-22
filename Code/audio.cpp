@@ -68,7 +68,7 @@ static void LoadMusic(AudioEngine* engine, char* path)
 	source->SetVolume(0.0f);
 
 	int bufferSize = sampleRate * 2;
-	engine->musicSamples = (int16_t*)malloc(bufferSize);
+	engine->musicSamples = PushRaw(bufferSize, int16_t);
 	engine->bufferSize = bufferSize;
 	engine->sampleCount = bufferSize / format.nChannels;
 

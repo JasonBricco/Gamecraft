@@ -25,8 +25,7 @@
 
 #include <unordered_map>
 #include <fstream>
-#include <string>
-#include <queue>
+#include <algorithm>
 
 #define GLM_FORCE_INLINE
 #define GLM_FORCE_NO_CTOR_INIT

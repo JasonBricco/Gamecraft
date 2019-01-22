@@ -468,6 +468,9 @@ static void ShiftWorld(GameState* state, World* world)
 		world->chunks[i] = nullptr;
 	}
 
+    ivec4* chunksToCreate = PushTempArray(world->totalChunks, ivec4);
+    int createCount = 0;
+
     // Any existing chunks that still belong in the active area will be pulled in to their
     // new position. Any that don't exist in the hash table will be created.
 	for (int z = 0; z < world->size; z++)
@@ -480,7 +483,7 @@ static void ShiftWorld(GameState* state, World* world)
 			Chunk* chunk = ChunkFromHash(world, wX, wZ);
 
 			if (chunk == nullptr)
-                world->chunksToCreate.push_back(ivec4(x, z, wX, wZ));
+                chunksToCreate[createCount++] = ivec4(x, z, wX, wZ);
 			else 
 			{
 				chunk->lcPos = ivec3(x, 0, z);
@@ -490,24 +493,21 @@ static void ShiftWorld(GameState* state, World* world)
 		}
 	}
 
-    float pCoord = (float)(world->loadRange * CHUNK_SIZE_X);
-    vec2 playerChunk = vec2(pCoord, pCoord);
+    vec2 playerChunk = vec2(world->loadRange, world->loadRange);
 
-    sort(world->chunksToCreate.begin(), world->chunksToCreate.end(), [playerChunk](auto a, auto b) 
+    sort(chunksToCreate, chunksToCreate + createCount, [playerChunk](auto a, auto b) 
     { 
         float distA = distance2(vec2(a.x, a.y), playerChunk);
         float distB = distance2(vec2(b.x, b.y), playerChunk);
         return distA < distB;
     });
 
-    for (int i = 0; i < world->chunksToCreate.size(); i++)
+    for (int i = 0; i < createCount; i++)
     {
         // Encoded ivec4 values as x, y = local x, z and z, w = world x, z.
-        ivec4 p = world->chunksToCreate[i];
+        ivec4 p = chunksToCreate[i];
         CreateChunk(state, world, p.x, p.y, ivec3(p.z, 0, p.w));
     }
-
-    world->chunksToCreate.clear();
 
     // Any remaining chunks in the hash table are outside of the loaded area range
     // and should be returned to the pool.
@@ -614,16 +614,15 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         world->size = (loadRange * 2) + 1;
 
         world->totalChunks = Square(world->size);
-        world->chunks = (Chunk**)calloc(world->totalChunks, sizeof(Chunk*));
-        world->visibleChunks = (Chunk**)calloc(world->totalChunks, sizeof(Chunk*));
+        world->chunks = PushArray(world->totalChunks, Chunk*);
+        world->visibleChunks = PushArray(world->totalChunks, Chunk*);
 
-        world->chunksToCreate.reserve(world->totalChunks);
         world->loadRange = loadRange;
 
         // Allocate extra chunks for the pool for world shifting. We create new chunks
         // before we destroy the old ones.
         int targetPoolSize = world->totalChunks * 2;
-        world->pool = (Chunk**)calloc(targetPoolSize, sizeof(Chunk*));
+        world->pool = PushArray(targetPoolSize, Chunk*);
         world->poolSize = 0;
         world->maxPoolSize = targetPoolSize;
 
@@ -659,7 +658,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         }
 
         for (int i = 0; i < MESH_POOL_CAPACITY; i++)
-            world->meshData[i] = CreateMeshData(131072, 65536);
+            world->meshData[i] = CreateMeshData(1048576, 524288);
 
         world->meshDataCount = MESH_POOL_CAPACITY;
         world->blockToSet = BLOCK_GRASS;

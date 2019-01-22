@@ -118,8 +118,6 @@ struct World
     // while background work is being done.
     int buildCount;
 
-    vector<ivec4> chunksToCreate;
-
     // Chunk hash table to store chunks that need to transition.
     Chunk* chunkHash[CHUNK_HASH_SIZE];
 
