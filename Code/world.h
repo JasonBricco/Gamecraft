@@ -74,6 +74,10 @@ struct Chunk
 
     bool active, modified;
 
+    // Whether the chunk requires a large mesh. This is for memory
+    // efficiency reasons as most chunks can get away with less space.
+    bool largeMesh;
+
     Chunk* next;
 };
 
@@ -152,9 +156,8 @@ struct World
 
     BlockType blockToSet;
 
-    #define MESH_POOL_CAPACITY 24
-    MeshData* meshData[MESH_POOL_CAPACITY];
-    uint32_t meshDataCount;
+    MeshDataPool meshData;
+    MeshDataPool largeMeshData;
 };
 
 struct RebasedPos

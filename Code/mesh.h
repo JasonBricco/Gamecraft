@@ -27,6 +27,12 @@ struct MeshData
     bool valid;
 };
 
+struct MeshDataPool
+{
+    int capacity, count;
+    MeshData** data;
+};
+
 struct VertexSpec
 {
     bool position;

@@ -4,12 +4,14 @@
 
 static inline bool SetChunkMeshData(World* world, Chunk* chunk)
 {
-    if (world->meshDataCount < CHUNK_MESH_COUNT)
+    MeshDataPool& pool = chunk->largeMesh ? world->largeMeshData : world->meshData;
+
+    if (pool.count < CHUNK_MESH_COUNT)
         return false;
 
     for (int c = 0; c < CHUNK_MESH_COUNT; c++)
     {
-        MeshData* data = world->meshData[--world->meshDataCount];
+        MeshData* data = pool.data[--pool.count];
         data->valid = true;
         chunk->meshData[c] = data;
     }
@@ -17,11 +19,12 @@ static inline bool SetChunkMeshData(World* world, Chunk* chunk)
     return true;
 }
 
-static inline void UnsetChunkMeshData(World* world, MeshData* data)
+static inline void UnsetChunkMeshData(World* world, Chunk* chunk, MeshData* data)
 {
     data->vertCount = 0;
     data->indexCount = 0;
-    world->meshData[world->meshDataCount++] = data;
+    MeshDataPool& pool = chunk->largeMesh ? world->largeMeshData : world->meshData;
+    pool.data[pool.count++] = data;
 }
 
 // Builds mesh data for the chunk.
@@ -51,6 +54,8 @@ static inline void FillChunkMeshes(World* world, Chunk* chunk)
 {
     VertexSpec spec = { true, 3, true, 3, true, 4 };
 
+    bool valid = true;
+
     for (int i = 0; i < CHUNK_MESH_COUNT; i++)
     {
         MeshData* data = chunk->meshData[i];
@@ -60,9 +65,22 @@ static inline void FillChunkMeshes(World* world, Chunk* chunk)
             if (data->vertCount > 0)
                 FillMeshData(chunk->meshes[i], data, GL_DYNAMIC_DRAW, spec);
         }
-        else MessageBox(NULL, "Chunk mesh contains too many vertices!\n", NULL, MB_OK | MB_ICONWARNING);
+        else valid = false;
 
-        UnsetChunkMeshData(world, data);
+        UnsetChunkMeshData(world, chunk, data);
+    }
+
+    if (valid)
+    {
+        chunk->state = CHUNK_BUILT;
+        world->buildCount--;
+    }
+    else
+    {
+        // Mesh data is invalid. We must reset the state and allow the
+        // chunk to rebuild with a larger mesh data object.
+        chunk->largeMesh = true;
+        chunk->state = CHUNK_LOADED;
     }
 }
 
@@ -132,11 +150,8 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
             } break;
 
             case CHUNK_NEEDS_FILL:
-            {
                 FillChunkMeshes(world, chunk);
-                chunk->state = CHUNK_BUILT;
-                world->buildCount--;
-            }
+                break;
 
             case CHUNK_BUILT:
             {

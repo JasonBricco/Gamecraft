@@ -12,6 +12,16 @@ static MeshData* CreateMeshData(int verts, int indices)
 	return data;
 }
 
+static void CreateMeshDataPool(MeshDataPool& pool, int capacity, int verts, int indices)
+{
+	pool.capacity = capacity;
+	pool.count = capacity;
+    pool.data = PushArray(capacity, MeshData*);
+
+    for (int i = 0; i < capacity; i++)
+        pool.data[i] = CreateMeshData(verts, indices);
+}
+
 static MeshData* CreateTempMeshData(int verts, int indices)
 {
 	MeshData* data = PushTempStruct(MeshData);

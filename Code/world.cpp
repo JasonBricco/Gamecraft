@@ -392,22 +392,14 @@ static void FillChunk(World* world, Chunk* chunk, Block block)
 
 static inline void AddChunkToPool(World* world, Chunk* chunk)
 {
-    if (world->poolSize + 1 > world->maxPoolSize)
-    {
-        int newMax = world->maxPoolSize + (world->totalChunks / 2);
-        world->pool = (Chunk**)realloc(world->pool, newMax * sizeof(Chunk*));
-        world->maxPoolSize = newMax;
-    }
-
+    assert(world->poolSize + 1 <= world->maxPoolSize);
 	memset(chunk, 0, sizeof(Chunk));
 	world->pool[world->poolSize++] = chunk;
 }
 
 static inline Chunk* ChunkFromPool(World* world)
 {
-	if (world->poolSize == 0)
-        return new Chunk();
-
+    assert(world->poolSize > 0);
 	Chunk* chunk = world->pool[world->poolSize - 1];
 	world->poolSize--;
 	return chunk;
@@ -628,7 +620,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
         for (int i = 0; i < targetPoolSize; i++)
         {
-            Chunk* chunk = new Chunk();
+            Chunk* chunk = PushStruct(Chunk);
             AddChunkToPool(world, chunk);
         }
 
@@ -657,10 +649,9 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
             world->seed = seed;
         }
 
-        for (int i = 0; i < MESH_POOL_CAPACITY; i++)
-            world->meshData[i] = CreateMeshData(1048576, 524288);
+        CreateMeshDataPool(world->meshData, 24, 1048576, 262144);
+        CreateMeshDataPool(world->largeMeshData, 4, 7864320, 1179648);
 
-        world->meshDataCount = MESH_POOL_CAPACITY;
         world->blockToSet = BLOCK_GRASS;
         world->regionMutex = CreateMutex(NULL, FALSE, NULL);
     }

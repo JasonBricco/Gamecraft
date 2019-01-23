@@ -671,7 +671,9 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 // Creates and spawns the player. The player is spawned within the center local space chunk.
 static Player* NewPlayer()
 {
-	Player* player = new Player;
+	Player* player = PushStruct(Player);
+	Construct(player, Player);
+	
 	player->collider = Capsule(0.3f, 1.2f);
 	player->velocity = vec3(0.0f);
 	player->speed = 50.0f;
