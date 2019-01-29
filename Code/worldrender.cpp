@@ -21,7 +21,7 @@ static inline bool SetChunkMeshData(World* world, Chunk* chunk)
 
 static inline void UnsetChunkMeshData(World* world, Chunk* chunk, MeshData* data)
 {
-    data->vertCount = 0;
+    data->vertexCount = 0;
     data->indexCount = 0;
     MeshDataPool& pool = chunk->largeMesh ? world->largeMeshData : world->meshData;
     pool.data[pool.count++] = data;
@@ -52,8 +52,6 @@ static void BuildChunk(World* world, Chunk* chunk)
 
 static inline void FillChunkMeshes(World* world, Chunk* chunk)
 {
-    VertexSpec spec = { true, 3, true, 3, true, 4 };
-
     bool valid = true;
 
     for (int i = 0; i < CHUNK_MESH_COUNT; i++)
@@ -62,8 +60,8 @@ static inline void FillChunkMeshes(World* world, Chunk* chunk)
 
         if (data->valid)
         {
-            if (data->vertCount > 0)
-                FillMeshData(chunk->meshes[i], data, GL_DYNAMIC_DRAW, spec);
+            if (data->vertexCount > 0)
+                FillMeshData(chunk->meshes[i], data, GL_DYNAMIC_DRAW);
         }
         else valid = false;
 
@@ -162,7 +160,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
                 {
                     Mesh mesh = chunk->meshes[m];
 
-                    if (mesh.vertCount > 0)
+                    if (mesh.indexCount > 0)
                     {
                         ChunkMesh cM = { mesh, (vec3)chunk->lwPos };
                         ChunkMeshList& list = cam->meshLists[m];
@@ -265,6 +263,12 @@ static inline Color VertexLight(World* world, Chunk* chunk, Axis axis, RelPos po
 
 #define LIGHT(a, o1, o2, o3) VertexLight(world, chunk, AXIS_##a, rP, o1, o2, o3)
 
+static inline void SetFaceVertexData(MeshData* data, int index, float x, float y, float z, Color c)
+{
+    data->positions[index] = vec3(x, y, z);
+    data->colors[index] = c;
+}
+
 // Builds mesh data for a single block. x, y, and z are relative to the
 // chunk in local world space.
 static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int yi, int zi, Block block)
@@ -278,61 +282,109 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
 
     if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi, yi + 1, zi)))
     {
-        float tex = textures[FACE_TOP];
-        SetMeshIndices(data, 10);
-        SetMeshVertex(data, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 1.0f, tex, LIGHT(Y, 1, 1, -1));
-        SetMeshVertex(data, x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, LIGHT(Y, 1, 1, 1));
-        SetMeshVertex(data, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, LIGHT(Y, -1, 1, 1));
-        SetMeshVertex(data, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 1.0f, tex, LIGHT(Y, -1, 1, -1));
+        int count = data->vertexCount;
+
+        if (MeshDataInBounds(data, 4, count, data->vertexMax))
+        {
+            SetIndices(data);
+            SetUVs(data, textures[FACE_TOP]);
+
+            SetFaceVertexData(data, count, x + 0.5f, y + 0.5f, z - 0.5f, LIGHT(Y, 1, 1, -1));
+            SetFaceVertexData(data, count + 1, x + 0.5f, y + 0.5f, z + 0.5f, LIGHT(Y, 1, 1, 1));
+            SetFaceVertexData(data, count + 2, x - 0.5f, y + 0.5f, z + 0.5f, LIGHT(Y, -1, 1, 1));
+            SetFaceVertexData(data, count + 3, x - 0.5f, y + 0.5f, z - 0.5f, LIGHT(Y, -1, 1, -1));
+
+            data->vertexCount += 4;
+        }
     }
 
     if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi, yi - 1, zi)))
     {
-        float tex = textures[FACE_BOTTOM];
-        SetMeshIndices(data, 10);
-        SetMeshVertex(data, x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, LIGHT(Y, -1, -1, -1));
-        SetMeshVertex(data, x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 0.0f, tex, LIGHT(Y, -1, -1, 1));
-        SetMeshVertex(data, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 0.0f, tex, LIGHT(Y, 1, -1, 1));
-        SetMeshVertex(data, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, LIGHT(Y, 1, -1, -1));
+        int count = data->vertexCount;
+
+        if (MeshDataInBounds(data, 4, count, data->vertexMax))
+        {
+            SetIndices(data);
+            SetUVs(data, textures[FACE_BOTTOM]);
+
+            SetFaceVertexData(data, count, x - 0.5f, y - 0.5f, z - 0.5f, LIGHT(Y, -1, -1, -1));
+            SetFaceVertexData(data, count + 1, x - 0.5f, y - 0.5f, z + 0.5f, LIGHT(Y, -1, -1, 1));
+            SetFaceVertexData(data, count + 2, x + 0.5f, y - 0.5f, z + 0.5f, LIGHT(Y, 1, -1, 1));
+            SetFaceVertexData(data, count + 3, x + 0.5f, y - 0.5f, z - 0.5f, LIGHT(Y, 1, -1, -1));
+
+            data->vertexCount += 4;
+        }
     }
 
     if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi, yi, zi + 1)))
     {
-        float tex = textures[FACE_FRONT];
-        SetMeshIndices(data, 10);
-        SetMeshVertex(data, x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f, tex, LIGHT(Z, -1, -1, 1)); 
-        SetMeshVertex(data, x - 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, LIGHT(Z, -1, 1, 1));
-        SetMeshVertex(data, x + 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, LIGHT(Z, 1, 1, 1));
-        SetMeshVertex(data, x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, LIGHT(Z, 1, -1, 1));
+        int count = data->vertexCount;
+
+        if (MeshDataInBounds(data, 4, count, data->vertexMax))
+        {
+            SetIndices(data);
+            SetUVs(data, textures[FACE_BOTTOM]);
+
+            SetFaceVertexData(data, count, x - 0.5f, y - 0.5f, z + 0.5f, LIGHT(Z, -1, -1, 1)); 
+            SetFaceVertexData(data, count + 1, x - 0.5f, y + 0.5f, z + 0.5f, LIGHT(Z, -1, 1, 1));
+            SetFaceVertexData(data, count + 2, x + 0.5f, y + 0.5f, z + 0.5f, LIGHT(Z, 1, 1, 1));
+            SetFaceVertexData(data, count + 3, x + 0.5f, y - 0.5f, z + 0.5f, LIGHT(Z, 1, -1, 1));
+
+            data->vertexCount += 4;
+        }
     }
 
     if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi, yi, zi - 1)))
     {
-        float tex = textures[FACE_BACK];
-        SetMeshIndices(data, 10);
-        SetMeshVertex(data, x + 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, LIGHT(Z, 1, -1, -1));
-        SetMeshVertex(data, x + 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, tex, LIGHT(Z, 1, 1, -1));
-        SetMeshVertex(data, x - 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, tex, LIGHT(Z, -1, 1, -1));
-        SetMeshVertex(data, x - 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, LIGHT(Z, -1, -1, -1)); 
+        int count = data->vertexCount;
+
+        if (MeshDataInBounds(data, 4, count, data->vertexMax))
+        {
+            SetIndices(data);
+            SetUVs(data, textures[FACE_BOTTOM]);
+
+            SetFaceVertexData(data, count, x + 0.5f, y - 0.5f, z - 0.5f, LIGHT(Z, 1, -1, -1));
+            SetFaceVertexData(data, count + 1, x + 0.5f, y + 0.5f, z - 0.5f, LIGHT(Z, 1, 1, -1));
+            SetFaceVertexData(data, count + 2, x - 0.5f, y + 0.5f, z - 0.5f, LIGHT(Z, -1, 1, -1));
+            SetFaceVertexData(data, count + 3, x - 0.5f, y - 0.5f, z - 0.5f, LIGHT(Z, -1, -1, -1)); 
+
+            data->vertexCount += 4;
+        }
     }
 
     if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi + 1, yi, zi)))
     {
-        float tex = textures[FACE_RIGHT];
-        SetMeshIndices(data, 10);
-        SetMeshVertex(data, x + 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f, tex, LIGHT(X, 1, -1, 1));
-        SetMeshVertex(data, x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f, tex, LIGHT(X, 1, 1, 1));
-        SetMeshVertex(data, x + 0.5f, y + 0.5f, z - 0.5f, 1.0f, 0.0f, tex, LIGHT(X, 1, 1, -1));
-        SetMeshVertex(data, x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 1.0f, tex, LIGHT(X, 1, -1, -1));
+        int count = data->vertexCount;
+
+        if (MeshDataInBounds(data, 4, count, data->vertexMax))
+        {
+            SetIndices(data);
+            SetUVs(data, textures[FACE_BOTTOM]);
+
+            SetFaceVertexData(data, count, x + 0.5f, y - 0.5f, z + 0.5f, LIGHT(X, 1, -1, 1));
+            SetFaceVertexData(data, count + 1, x + 0.5f, y + 0.5f, z + 0.5f, LIGHT(X, 1, 1, 1));
+            SetFaceVertexData(data, count + 2, x + 0.5f, y + 0.5f, z - 0.5f, LIGHT(X, 1, 1, -1));
+            SetFaceVertexData(data, count + 3, x + 0.5f, y - 0.5f, z - 0.5f, LIGHT(X, 1, -1, -1));
+
+            data->vertexCount += 4;
+        }
     }
 
     if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi - 1, yi, zi)))
     {
-        float tex = textures[FACE_LEFT];
-        SetMeshIndices(data, 10);
-        SetMeshVertex(data, x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f, tex, LIGHT(X, -1, -1, -1));
-        SetMeshVertex(data, x - 0.5f, y + 0.5f, z - 0.5f, 0.0f, 0.0f, tex, LIGHT(X, -1, 1, -1));
-        SetMeshVertex(data, x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f, tex, LIGHT(X, -1, 1, 1));
-        SetMeshVertex(data, x - 0.5f, y - 0.5f, z + 0.5f, 1.0f, 1.0f, tex, LIGHT(X, -1, -1, 1));
+        int count = data->vertexCount;
+
+        if (MeshDataInBounds(data, 4, count, data->vertexMax))
+        {
+            SetIndices(data);
+            SetUVs(data, textures[FACE_BOTTOM]);
+
+            SetFaceVertexData(data, count, x - 0.5f, y - 0.5f, z - 0.5f, LIGHT(X, -1, -1, -1));
+            SetFaceVertexData(data, count + 1, x - 0.5f, y + 0.5f, z - 0.5f, LIGHT(X, -1, 1, -1));
+            SetFaceVertexData(data, count + 2, x - 0.5f, y + 0.5f, z + 0.5f, LIGHT(X, -1, 1, 1));
+            SetFaceVertexData(data, count + 3, x - 0.5f, y - 0.5f, z + 0.5f, LIGHT(X, -1, -1, 1));
+
+            data->vertexCount += 4;
+        }
     }
 }

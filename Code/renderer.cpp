@@ -35,18 +35,19 @@ static inline void UseShader(Shader* shader)
 static Graphic* CreateGraphic(Shader* shader, Texture texture)
 {
 	Graphic* graphic = PushStruct(Graphic);
-	MeshData* data = CreateTempMeshData(16, 6);
+	MeshData* data = CreateTempMeshData(4, 6);
 
-	VertexSpec spec = { true, 2, true, 2, false, 0 };
+	SetIndices(data);
+	SetUVs(data, 0.0f);
 
-	SetMeshIndices(data, 4);
-
-	SetMeshVertex(data, 32.0f, 0.0f, 0.0f, 1.0f);
-	SetMeshVertex(data, 32.0f, 32.0f, 0.0f, 0.0f);
-	SetMeshVertex(data, 0.0f, 32.0f, 1.0f, 0.0f);
-	SetMeshVertex(data, 0.0f, 0.0f, 1.0f, 1.0f);
+	data->positions[0] = vec3(32.0f, 0.0f, 0.0f);
+	data->positions[1] = vec3(32.0f, 32.0f, 0.0f);
+	data->positions[2] = vec3(0.0f, 32.0f, 0.0f);
+	data->positions[3] = vec3(0.0f, 0.0f, 0.0f);
+	data->vertexCount = 4;
 	
-	FillMeshData(graphic->mesh, data, GL_STATIC_DRAW, spec);
+	SetMeshFlags(graphic->mesh, MESH_NO_COLORS);
+	FillMeshData(graphic->mesh, data, GL_STATIC_DRAW);
 
 	graphic->shader = shader;
 	graphic->texture = texture;
@@ -224,17 +225,17 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 	
 	cam->crosshair = graphic;
 
-	MeshData* data = CreateTempMeshData(16, 4);
-	VertexSpec fadeSpec = { true, 2, false, 0, false, 0 };
+	MeshData* data = CreateTempMeshData(4, 6);
+	SetIndices(data);
 
-	SetMeshIndices(data, 4);
-
-	SetMeshVertex(data, -1.0f, 1.0f);
-	SetMeshVertex(data, 1.0f, 1.0f);
-	SetMeshVertex(data, 1.0f, -1.0f);
-	SetMeshVertex(data, -1.0f, -1.0f);
+	data->positions[0] = vec3(-1.0f, 1.0f, 0.0f);
+	data->positions[1] = vec3(1.0f, 1.0f, 0.0f);
+	data->positions[2] = vec3(1.0f, -1.0f, 0.0f);
+	data->positions[3] = vec3(-1.0f, -1.0f, 0.0f);
+	data->vertexCount = 4;
 	
-	FillMeshData(cam->fadeMesh, data, GL_STATIC_DRAW, fadeSpec);
+	SetMeshFlags(cam->fadeMesh, MESH_NO_UVS | MESH_NO_COLORS);
+	FillMeshData(cam->fadeMesh, data, GL_STATIC_DRAW);
 
 	cam->fadeShader = GetShader(state, SHADER_FADE);
 	cam->fadeColor = CLEAR_COLOR;

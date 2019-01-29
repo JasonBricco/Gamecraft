@@ -10,19 +10,32 @@ enum BlockMeshType
     MESH_TYPE_FLUID
 };
 
+enum MeshFlags
+{
+    MESH_NO_FLAGS = 0,
+    MESH_NO_UVS = 1,
+    MESH_NO_COLORS = 2
+};
+
 struct Mesh
 {
-    GLuint vb, ib, va;
-    int vertCount, indexCount;
+    GLuint va;
+    GLuint positions, texCoords, colors;
+    GLuint indices;
+
+    int32_t flags;
+    int indexCount;
 };
 
 struct MeshData
 {
-    float* vertices;
+    vec3* positions;
+    vec3* texCoords;
+    Color* colors;
     int* indices;
 
-    int vertCount, indexCount;
-    int vertMax, indexMax;
+    int vertexCount, vertexMax;
+    int indexCount, indexMax;
 
     bool valid;
 };
@@ -31,16 +44,4 @@ struct MeshDataPool
 {
     int capacity, count;
     MeshData** data;
-};
-
-struct VertexSpec
-{
-    bool position;
-    int numPositions;
-
-    bool texture;
-    int numUvs;
-
-    bool color;
-    int numColors;
 };

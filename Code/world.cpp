@@ -649,8 +649,8 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
             world->seed = seed;
         }
 
-        CreateMeshDataPool(world->meshData, 24, 1048576, 262144);
-        CreateMeshDataPool(world->largeMeshData, 4, 7864320, 1179648);
+        CreateMeshDataPool(world->meshData, 24, 131072, 196608);
+        CreateMeshDataPool(world->largeMeshData, 4, 786432, 1179648);
 
         world->blockToSet = BLOCK_GRASS;
         world->regionMutex = CreateMutex(NULL, FALSE, NULL);

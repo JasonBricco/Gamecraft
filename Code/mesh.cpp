@@ -2,32 +2,46 @@
 // Jason Bricco
 //
 
-static MeshData* CreateMeshData(int verts, int indices)
+static inline void SetMeshFlags(Mesh& mesh, int32_t flags)
+{
+	mesh.flags |= flags;
+}
+
+static inline bool MeshHasFlag(Mesh& mesh, int32_t flag)
+{
+	return mesh.flags & flag;
+}
+
+static MeshData* CreateMeshData(int vertices, int indices)
 {
 	MeshData* data = PushStruct(MeshData);
-	data->vertices = PushArray(verts, float);
+	data->positions = PushArray(vertices, vec3);
+	data->texCoords = PushArray(vertices, vec3);
+	data->colors = PushArray(vertices, Color);
 	data->indices = PushArray(indices, int);
-	data->vertMax = verts;
+	data->vertexMax = vertices;
 	data->indexMax = indices;
 	return data;
 }
 
-static void CreateMeshDataPool(MeshDataPool& pool, int capacity, int verts, int indices)
+static void CreateMeshDataPool(MeshDataPool& pool, int capacity, int vertices, int indices)
 {
 	pool.capacity = capacity;
 	pool.count = capacity;
     pool.data = PushArray(capacity, MeshData*);
 
     for (int i = 0; i < capacity; i++)
-        pool.data[i] = CreateMeshData(verts, indices);
+        pool.data[i] = CreateMeshData(vertices, indices);
 }
 
-static MeshData* CreateTempMeshData(int verts, int indices)
+static MeshData* CreateTempMeshData(int vertices, int indices)
 {
 	MeshData* data = PushTempStruct(MeshData);
-	data->vertices = PushTempArray(verts, float);
-	data->indices = PushTempArray(indices, int);
-	data->vertMax = verts;
+	data->positions = PushTempArray(vertices, vec3);
+	data->texCoords = PushTempArray(vertices, vec3);
+	data->colors = PushTempArray(vertices, Color);
+	data->indices = PushTempArray(indices, int);;
+	data->vertexMax = vertices;
 	data->indexMax = indices;
 	return data;
 }
@@ -43,132 +57,75 @@ static inline bool MeshDataInBounds(MeshData* data, int inc, int count, int max)
 	return true;
 }
 
-static inline void SetMeshVertex(MeshData* data, float x, float y, float z, float u, float v)
+static inline void SetIndices(MeshData* data)
 {
-	int count = data->vertCount;
-
-	if (MeshDataInBounds(data, 5, count, data->vertMax))
-	{
-		data->vertices[count] = x;
-		data->vertices[count + 1] = y;
-		data->vertices[count + 2] = z;
-
-		data->vertices[count + 3] = u;
-		data->vertices[count + 4] = v;
-
-		data->vertCount += 5;
-	}
-}
-
-static inline void SetMeshVertex(MeshData* data, float x, float y, float z, float u, float v, float tex, Color c)
-{
-	int count = data->vertCount;
-
-	if (MeshDataInBounds(data, 10, count, data->vertMax))
-	{
-		data->vertices[count] = x;
-		data->vertices[count + 1] = y;
-		data->vertices[count + 2] = z;
-
-		data->vertices[count + 3] = u;
-		data->vertices[count + 4] = v;
-		data->vertices[count + 5] = tex;
-
-		data->vertices[count + 6] = c.r;
-		data->vertices[count + 7] = c.g;
-		data->vertices[count + 8] = c.b;
-		data->vertices[count + 9] = c.a;
-
-		data->vertCount += 10;
-	}
-}
-
-static inline void SetMeshVertex(MeshData* data, float x, float y, float u, float v)
-{
-	int count = data->vertCount;
-
-	if (MeshDataInBounds(data, 4, count, data->vertMax))
-	{
-		data->vertices[count] = x;
-		data->vertices[count + 1] = y;
-		data->vertices[count + 2] = u;
-		data->vertices[count + 3] = v;
-		
-		data->vertCount += 4;
-	}
-}
-
-static inline void SetMeshVertex(MeshData* data, float x, float y)
-{
-	int count = data->vertCount;
-
-	if (MeshDataInBounds(data, 2, count, data->vertMax))
-	{
-		data->vertices[count] = x;
-		data->vertices[count + 1] = y;
-
-		data->vertCount += 2;
-	}
-}
-
-static inline void SetMeshIndices(MeshData* data, int params)
-{
-	int offset = data->vertCount / params;
+	int offset = data->vertexCount;
 	int count = data->indexCount;
 
-	if (MeshDataInBounds(data, 6, count, data->indexMax))
-	{
-		data->indices[count] = offset + 2;
-		data->indices[count + 1] = offset + 1;
-		data->indices[count + 2] = offset;
+	assert(MeshDataInBounds(data, 6, count, data->indexMax));
 
-		data->indices[count + 3] = offset + 3;
-		data->indices[count + 4] = offset + 2;
-		data->indices[count + 5] = offset;
+	data->indices[count] = offset + 2;
+	data->indices[count + 1] = offset + 1;
+	data->indices[count + 2] = offset;
 
-		data->indexCount += 6;
-	}
+	data->indices[count + 3] = offset + 3;
+	data->indices[count + 4] = offset + 2;
+	data->indices[count + 5] = offset;
+
+	data->indexCount += 6;
 }
 
-static inline void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, VertexSpec spec)
+static inline void SetUVs(MeshData* data, float w)
+{
+	int count = data->vertexCount;
+	data->texCoords[count] = vec3(0.0f, 1.0f, w);
+    data->texCoords[count + 1] = vec3(0.0f, 0.0f, w);
+    data->texCoords[count + 2] = vec3(1.0f, 0.0f, w);
+    data->texCoords[count + 3] = vec3(1.0f, 1.0f, w);
+}
+
+static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type)
 {
 	glGenVertexArrays(1, &mesh.va);
 	glBindVertexArray(mesh.va);
 
-	// Vertex buffer.
-	glGenBuffers(1, &mesh.vb);
-	glBindBuffer(GL_ARRAY_BUFFER, mesh.vb);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * meshData->vertCount, meshData->vertices, type);
+	int id = 0;
 
-	// Index buffer.
-	glGenBuffers(1, &mesh.ib);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ib);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * meshData->indexCount, meshData->indices, type);
+	// Vertex position buffer.
+	glGenBuffers(1, &mesh.positions);
+	glBindBuffer(GL_ARRAY_BUFFER, mesh.positions);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * meshData->vertexCount, meshData->positions, type);
 
-	int params = spec.numPositions + spec.numUvs + spec.numColors;
-	int id = 0, offset = 0;
+	glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(id++);
 
-	if (spec.position)
+	if (!MeshHasFlag(mesh, MESH_NO_UVS))
 	{
-		glVertexAttribPointer(id, spec.numPositions, GL_FLOAT, GL_FALSE, params * sizeof(GLfloat), NULL);
+		// Vertex texture coordinates buffer.
+		glGenBuffers(1, &mesh.texCoords);
+		glBindBuffer(GL_ARRAY_BUFFER, mesh.texCoords);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * meshData->vertexCount, meshData->texCoords, type);
+
+		glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, 0, NULL); 
 		glEnableVertexAttribArray(id++);
-		offset += spec.numPositions;
 	}
 
-	if (spec.texture)
+	if (!MeshHasFlag(mesh, MESH_NO_COLORS))
 	{
-		glVertexAttribPointer(id, spec.numUvs, GL_FLOAT, GL_FALSE, params * sizeof(GLfloat), (GLvoid*)(offset * sizeof(GLfloat))); 
-		glEnableVertexAttribArray(id++);
-		offset += spec.numUvs;
-	}
+		// Colors buffer.
+		glGenBuffers(1, &mesh.colors);
+		glBindBuffer(GL_ARRAY_BUFFER, mesh.colors);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(Color) * meshData->vertexCount, meshData->colors, type);
 
-	if (spec.color)
-	{
-		glVertexAttribPointer(id, 4, GL_FLOAT, GL_FALSE, params * sizeof(GLfloat), (GLvoid*)(offset * sizeof(GLfloat)));
+		glVertexAttribPointer(id, 4, GL_FLOAT, GL_FALSE, 0, NULL);
 		glEnableVertexAttribArray(id);
 	}
 
-	mesh.vertCount = meshData->vertCount;
+	// Index buffer.
+	glGenBuffers(1, &mesh.indices);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indices);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * meshData->indexCount, meshData->indices, type);
+
 	mesh.indexCount = meshData->indexCount;
 }
 
@@ -187,13 +144,18 @@ static inline void DrawMesh(Mesh& mesh, Shader* shader, vec3 pos)
 
 static void DestroyMesh(Mesh& mesh)
 {
-    if (mesh.vertCount > 0)
-    {
-        glDeleteBuffers(1, &mesh.vb);
-        glDeleteBuffers(1, &mesh.ib);
-        glDeleteVertexArrays(1, &mesh.va);
+	if (mesh.indexCount > 0)
+	{
+		glDeleteBuffers(1, &mesh.positions);
 
-        mesh.vertCount = 0;
-        mesh.indexCount = 0;
-    }
+		if (!MeshHasFlag(mesh, MESH_NO_UVS))
+			glDeleteBuffers(1, &mesh.texCoords);
+
+		if (!MeshHasFlag(mesh, MESH_NO_COLORS))
+			glDeleteBuffers(1, &mesh.colors);
+
+		glDeleteBuffers(1, &mesh.indices);
+		glDeleteBuffers(1, &mesh.va);
+		mesh.indexCount = 0;
+	}
 }
