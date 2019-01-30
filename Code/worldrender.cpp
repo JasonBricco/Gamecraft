@@ -211,7 +211,7 @@ static inline bool CanDrawFace(World* world, CullType cur, Block adjBlock)
 
 #define BLOCK_TRANSPARENT(pos) GetCullType(world, GetBlockSafe(world, chunk, pos)) >= CULL_TRANSPARENT
 
-static inline Color VertexLight(World* world, Chunk* chunk, Axis axis, RelPos pos, int dx, int dy, int dz)
+static inline Colori VertexLight(World* world, Chunk* chunk, Axis axis, RelPos pos, int dx, int dy, int dz)
 {
     RelPos a, b, c, d;
 
@@ -244,26 +244,26 @@ static inline Color VertexLight(World* world, Chunk* chunk, Axis axis, RelPos po
 
     if (t1 || t2) 
     {
-        Color c1 = BLOCK_TRANSPARENT(a) ? vec4(1.0f) : vec4(0.25f);
-        Color c2 = BLOCK_TRANSPARENT(b) ? vec4(1.0f) : vec4(0.25f);
-        Color c3 = BLOCK_TRANSPARENT(c) ? vec4(1.0f) : vec4(0.25f);
-        Color c4 = BLOCK_TRANSPARENT(d) ? vec4(1.0f) : vec4(0.25f);
+        Colori c1 = BLOCK_TRANSPARENT(a) ? NewColori(255) : NewColori(65);
+        Colori c2 = BLOCK_TRANSPARENT(b) ? NewColori(255) : NewColori(65);
+        Colori c3 = BLOCK_TRANSPARENT(c) ? NewColori(255) : NewColori(65);
+        Colori c4 = BLOCK_TRANSPARENT(d) ? NewColori(255) : NewColori(65);
 
-        return Average(c1, c2, c3, c4);
+        return AverageColor(c1, c2, c3, c4);
     }
     else 
     {
-        Color c1 = BLOCK_TRANSPARENT(a) ? vec4(1.0f) : vec4(0.25f);
-        Color c2 = BLOCK_TRANSPARENT(b) ? vec4(1.0f) : vec4(0.25f);
-        Color c3 = BLOCK_TRANSPARENT(c) ? vec4(1.0f) : vec4(0.25f);
+        Colori c1 = BLOCK_TRANSPARENT(a) ? NewColori(255) : NewColori(65);
+        Colori c2 = BLOCK_TRANSPARENT(b) ? NewColori(255) : NewColori(65);
+        Colori c3 = BLOCK_TRANSPARENT(c) ? NewColori(255) : NewColori(65);
 
-        return Average(c1, c2, c3);
+        return AverageColor(c1, c2, c3);
     }
 }
 
 #define LIGHT(a, o1, o2, o3) VertexLight(world, chunk, AXIS_##a, rP, o1, o2, o3)
 
-static inline void SetFaceVertexData(MeshData* data, int index, float x, float y, float z, Color c)
+static inline void SetFaceVertexData(MeshData* data, int index, float x, float y, float z, Colori c)
 {
     data->positions[index] = vec3(x, y, z);
     data->colors[index] = c;

@@ -31,7 +31,7 @@ struct MeshData
 {
     vec3* positions;
     vec3* texCoords;
-    Color* colors;
+    Colori* colors;
     int* indices;
 
     int vertexCount, vertexMax;

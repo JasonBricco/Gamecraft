@@ -17,7 +17,7 @@ static MeshData* CreateMeshData(int vertices, int indices)
 	MeshData* data = PushStruct(MeshData);
 	data->positions = PushArray(vertices, vec3);
 	data->texCoords = PushArray(vertices, vec3);
-	data->colors = PushArray(vertices, Color);
+	data->colors = PushArray(vertices, Colori);
 	data->indices = PushArray(indices, int);
 	data->vertexMax = vertices;
 	data->indexMax = indices;
@@ -39,7 +39,7 @@ static MeshData* CreateTempMeshData(int vertices, int indices)
 	MeshData* data = PushTempStruct(MeshData);
 	data->positions = PushTempArray(vertices, vec3);
 	data->texCoords = PushTempArray(vertices, vec3);
-	data->colors = PushTempArray(vertices, Color);
+	data->colors = PushTempArray(vertices, Colori);
 	data->indices = PushTempArray(indices, int);;
 	data->vertexMax = vertices;
 	data->indexMax = indices;
@@ -115,9 +115,9 @@ static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type)
 		// Colors buffer.
 		glGenBuffers(1, &mesh.colors);
 		glBindBuffer(GL_ARRAY_BUFFER, mesh.colors);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(Color) * meshData->vertexCount, meshData->colors, type);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(Colori) * meshData->vertexCount, meshData->colors, type);
 
-		glVertexAttribPointer(id, 4, GL_FLOAT, GL_FALSE, 0, NULL);
+		glVertexAttribPointer(id, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
 		glEnableVertexAttribArray(id);
 	}
 
