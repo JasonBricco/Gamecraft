@@ -2,18 +2,6 @@
 // Jason Bricco
 //
 
-// Represents block data to be written to disk.
-union SerializedBlock
-{
-    int32_t value;
-
-    struct
-    {
-        Block block;
-        uint8_t light, sunlight;
-    };
-};
-
 struct SerializedChunk
 {
     int size, maxSize;

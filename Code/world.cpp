@@ -576,20 +576,20 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
 
         if (world->buildCount == 0)
             CheckWorld(state, world, player);
+    }
 
-        GetCameraPlanes(cam);
-        GetVisibleChunks(world, cam);
+    GetCameraPlanes(cam);
+    GetVisibleChunks(world, cam);
 
-        ProcessVisibleChunks(state, world, cam);
+    ProcessVisibleChunks(state, world, cam);
 
-        while (world->destroyQueue.count > 0)
-        {
-            Chunk* chunk = DequeueChunk(world->destroyQueue);
+    while (world->destroyQueue.count > 0)
+    {
+        Chunk* chunk = DequeueChunk(world->destroyQueue);
 
-            if (chunk->state != CHUNK_LOADING)
-                DestroyChunk(state, world, chunk);
-            else EnqueueChunk(world->destroyQueue, chunk);
-        }
+        if (chunk->state != CHUNK_LOADING)
+            DestroyChunk(state, world, chunk);
+        else EnqueueChunk(world->destroyQueue, chunk);
     }
 }
 
