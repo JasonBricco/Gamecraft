@@ -16,12 +16,6 @@
 #define CHUNK_HASH_SIZE 4096
 #define SEA_LEVEL 12
 
-// Number of chunks on each dimensions in a region file.
-#define REGION_SIZE 16
-#define REGION_SIZE_3 256
-#define REGION_SHIFT 4
-#define REGION_MASK 15
-
 #define WORLD_HEIGHT 256
 
 // The position of the chunk in local space around the player.
@@ -74,10 +68,6 @@ struct Chunk
 
     bool active, modified;
 
-    // Whether the chunk requires a large mesh. This is for memory
-    // efficiency reasons as most chunks can get away with less space.
-    bool largeMesh;
-
     Chunk* next;
 };
 
@@ -90,8 +80,6 @@ struct ChunkQueue
 
 struct Player;
 struct Region;
-
-typedef unordered_map<RegionPos, Region, ivec3Key, ivec3Key> RegionMap;
 
 struct World
 {
@@ -139,8 +127,9 @@ struct World
     // Path to the world saves folder.
     char* savePath;
 
-    // Maps a region position with the grid of chunks that exist within it.
-    RegionMap regions;
+    // Doubly-linked list of loaded regions.
+    Region* firstRegion;
+    int regionCount;
 
     // Used to ensure blocking when loading a region file.
     HANDLE regionMutex;
@@ -155,9 +144,6 @@ struct World
     BlockData blockData[BLOCK_COUNT];
 
     BlockType blockToSet;
-
-    MeshDataPool meshData;
-    MeshDataPool largeMeshData;
 };
 
 struct RebasedPos

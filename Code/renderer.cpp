@@ -34,8 +34,8 @@ static inline void UseShader(Shader* shader)
 
 static Graphic* CreateGraphic(Shader* shader, Texture texture)
 {
-	Graphic* graphic = PushStruct(Graphic);
-	MeshData* data = CreateTempMeshData(4, 6);
+	Graphic* graphic = (Graphic*)calloc(1, sizeof(Graphic));
+	MeshData* data = CreateMeshData(4, 6);
 
 	SetIndices(data);
 	SetUVs(data, 0.0f);
@@ -44,10 +44,12 @@ static Graphic* CreateGraphic(Shader* shader, Texture texture)
 	data->positions[1] = vec3(32.0f, 32.0f, 0.0f);
 	data->positions[2] = vec3(0.0f, 32.0f, 0.0f);
 	data->positions[3] = vec3(0.0f, 0.0f, 0.0f);
-	data->vertexCount = 4;
+	data->vertCount = 4;
 	
 	SetMeshFlags(graphic->mesh, MESH_NO_COLORS);
 	FillMeshData(graphic->mesh, data, GL_STATIC_DRAW);
+
+	DestroyMeshData(data);
 
 	graphic->shader = shader;
 	graphic->texture = texture;
@@ -92,7 +94,7 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 
 static Camera* NewCamera()
 {
-	Camera* cam = PushStruct(Camera);
+	Camera* cam = (Camera*)calloc(1, sizeof(Camera));
 	cam->nearDist = 0.1f;
 	cam->farDist = 512.0f;
 	cam->sensitivity = 0.05f;
@@ -225,17 +227,19 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 	
 	cam->crosshair = graphic;
 
-	MeshData* data = CreateTempMeshData(4, 6);
+	MeshData* data = CreateMeshData(4, 6);
 	SetIndices(data);
 
 	data->positions[0] = vec3(-1.0f, 1.0f, 0.0f);
 	data->positions[1] = vec3(1.0f, 1.0f, 0.0f);
 	data->positions[2] = vec3(1.0f, -1.0f, 0.0f);
 	data->positions[3] = vec3(-1.0f, -1.0f, 0.0f);
-	data->vertexCount = 4;
+	data->vertCount = 4;
 	
 	SetMeshFlags(cam->fadeMesh, MESH_NO_UVS | MESH_NO_COLORS);
 	FillMeshData(cam->fadeMesh, data, GL_STATIC_DRAW);
+
+	DestroyMeshData(data);
 
 	cam->fadeShader = GetShader(state, SHADER_FADE);
 	cam->fadeColor = CLEAR_COLOR;
@@ -470,7 +474,7 @@ static void OutputShaderError(GLuint shader, char* mode)
 	GLint length = 0;
 	glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
 
-    GLchar* errorLog = PushTempArray(length, GLchar);
+    GLchar* errorLog = (GLchar*)calloc(length, sizeof(GLchar));
     glGetProgramInfoLog(shader, length, NULL, errorLog);
     
    	Print("Error! Shader program failed to %s. Log: %s\n", mode, length == 0 ? "No error given." : errorLog);

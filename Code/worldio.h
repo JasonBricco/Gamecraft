@@ -2,6 +2,13 @@
 // Jason Bricco
 //
 
+// Number of chunks on each dimensions in a region file.
+#define REGION_SIZE 16
+#define REGION_SIZE_3 256
+#define REGION_SHIFT 4
+#define REGION_MASK 15
+#define MAX_REGIONS 8
+
 struct SerializedChunk
 {
     int size, maxSize;
@@ -34,8 +41,11 @@ struct SerializedChunk
 
 struct Region
 {
-    SerializedChunk* chunks;
-    bool hasData;
+    RegionPos pos;
+    SerializedChunk chunks[REGION_SIZE_3];
+    bool hasData, modified;
+    Region* next;
+    Region* prev;
 };
 
 static bool LoadChunkFromDisk(World* world, Chunk* chunk);

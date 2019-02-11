@@ -48,7 +48,8 @@ static void ChangeVolume(AudioEngine* engine, float target, float seconds)
 
 static void LoadMusic(AudioEngine* engine, char* path)
 {
-	path = PathToExe(path, PushTempArray(MAX_PATH, char), MAX_PATH);
+	char* buffer = AllocTempArray(MAX_PATH, char);
+	path = PathToExe(path, buffer, MAX_PATH);
 
 	int error;
 	stb_vorbis* ptr = stb_vorbis_open_filename(path, &error, nullptr);
@@ -68,7 +69,7 @@ static void LoadMusic(AudioEngine* engine, char* path)
 	source->SetVolume(0.0f);
 
 	int bufferSize = sampleRate * 2;
-	engine->musicSamples = PushRaw(bufferSize, int16_t);
+	engine->musicSamples = (int16_t*)malloc(bufferSize * sizeof(int16_t));
 	engine->bufferSize = bufferSize;
 	engine->sampleCount = bufferSize / format.nChannels;
 
@@ -157,8 +158,7 @@ static void PlaySound(Sound sound)
 	}
 	else
 	{
-		SoundCallback* callback = PushStruct(SoundCallback);
-		Construct(callback, SoundCallback);
+		SoundCallback* callback = new SoundCallback();
 		
 		WAVEFORMATEX format = GetFormat(sound.sampleRate);
 		hr = engine->pXAudio->CreateSourceVoice(&source, &format, 0, 2.0f, callback);

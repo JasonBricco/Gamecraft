@@ -14,13 +14,8 @@ static void* ReadFileData(char* path, uint32_t* sizePtr)
             return nullptr;
 
         uint32_t size = (uint32_t)sizeValue.QuadPart;
-
-        #ifdef ASSET_BUILDER
         void* data = malloc(size);
-        #else
-        void* data = PushArray(size, uint8_t);
-        #endif
-
+        
         DWORD bytesRead;
 
         if (ReadFile(file, data, size, &bytesRead, 0) && (size == bytesRead))

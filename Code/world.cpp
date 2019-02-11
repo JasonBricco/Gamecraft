@@ -2,56 +2,6 @@
 // Jason Bricco
 //
 
-#if _DEBUG
-
-static bool ChunkIsValid(World* world, Chunk* chunk)
-{
-    if (chunk == nullptr) return true;
-
-    LChunkPos lP = chunk->lcPos;
-
-    int lim = world->size;
-
-    if (lP.x < 0 || lP.y < 0 || lP.x >= lim || lP.y >= lim)
-        return false;
-
-    if (chunk->state < 0 || chunk->state >= CHUNK_STATE_COUNT)
-        return false;
-
-    for (int i = 0; i < CHUNK_SIZE_3; i++)
-    {
-        Block block = chunk->blocks[i];
-
-        if (block < 0 || block >= BLOCK_COUNT)
-            return false;
-    }
-
-    return true;
-}
-
-static bool RegionIsValid(Region region)
-{
-    for (int i = 0; i < REGION_SIZE_3; i++)
-    {
-        SerializedChunk* chunk = region.chunks + i;
-
-        if (chunk->size > chunk->maxSize)
-            return false;
-
-        if (chunk->size < 0 || chunk->maxSize < 0 || chunk->size > 40000 || chunk->maxSize > 40000)
-            return false;
-    }
-
-    return true;
-}
-
-#else
-
-#define ChunkIsValid(world, chunk)
-#define RegionIsValid(region)
-
-#endif
-
 static inline void EnqueueChunk(ChunkQueue& queue, Chunk* chunk)
 {
     if (queue.front == nullptr)
@@ -410,7 +360,6 @@ static void LoadChunk(World* world, Chunk* chunk)
     if (!LoadChunkFromDisk(world, chunk))
         GenerateChunkTerrain(world, chunk);
 
-    assert(ChunkIsValid(world, chunk));
     chunk->state = CHUNK_LOADED;
 }
 
@@ -460,8 +409,8 @@ static void ShiftWorld(GameState* state, World* world)
 		world->chunks[i] = nullptr;
 	}
 
-    ivec4* chunksToCreate = PushTempArray(world->totalChunks, ivec4);
-    int createCount = 0;
+    ivec4* chunksToCreate = AllocTempArray(world->totalChunks, ivec4);
+    int count = 0;
 
     // Any existing chunks that still belong in the active area will be pulled in to their
     // new position. Any that don't exist in the hash table will be created.
@@ -475,7 +424,7 @@ static void ShiftWorld(GameState* state, World* world)
 			Chunk* chunk = ChunkFromHash(world, wX, wZ);
 
 			if (chunk == nullptr)
-                chunksToCreate[createCount++] = ivec4(x, z, wX, wZ);
+                chunksToCreate[count++] = ivec4(x, z, wX, wZ);
 			else 
 			{
 				chunk->lcPos = ivec3(x, 0, z);
@@ -487,14 +436,14 @@ static void ShiftWorld(GameState* state, World* world)
 
     vec2 playerChunk = vec2(world->loadRange, world->loadRange);
 
-    sort(chunksToCreate, chunksToCreate + createCount, [playerChunk](auto a, auto b) 
+    sort(chunksToCreate, chunksToCreate + count, [playerChunk](auto a, auto b) 
     { 
         float distA = distance2(vec2(a.x, a.y), playerChunk);
         float distB = distance2(vec2(b.x, b.y), playerChunk);
         return distA < distB;
     });
 
-    for (int i = 0; i < createCount; i++)
+    for (int i = 0; i < count; i++)
     {
         // Encoded ivec4 values as x, y = local x, z and z, w = world x, z.
         ivec4 p = chunksToCreate[i];
@@ -599,28 +548,27 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
     if (existing == nullptr)
     {
-        world = PushStruct(World);
-        Construct(world, World);
+        world = (World*)calloc(1, sizeof(World));
 
         // Load range worth of chunks on each side plus the middle chunk.
         world->size = (loadRange * 2) + 1;
 
         world->totalChunks = Square(world->size);
-        world->chunks = PushArray(world->totalChunks, Chunk*);
-        world->visibleChunks = PushArray(world->totalChunks, Chunk*);
+        world->chunks = (Chunk**)calloc(world->totalChunks, sizeof(Chunk*));
+        world->visibleChunks = (Chunk**)malloc(world->totalChunks * sizeof(Chunk*));
 
         world->loadRange = loadRange;
 
         // Allocate extra chunks for the pool for world shifting. We create new chunks
         // before we destroy the old ones.
         int targetPoolSize = world->totalChunks * 2;
-        world->pool = PushArray(targetPoolSize, Chunk*);
+        world->pool = (Chunk**)malloc(targetPoolSize * sizeof(Chunk*));
         world->poolSize = 0;
         world->maxPoolSize = targetPoolSize;
 
         for (int i = 0; i < targetPoolSize; i++)
         {
-            Chunk* chunk = PushStruct(Chunk);
+            Chunk* chunk = (Chunk*)malloc(sizeof(Chunk));
             AddChunkToPool(world, chunk);
         }
 
@@ -631,7 +579,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
         CreateBlockData(state, world->blockData);
 
-        world->savePath = PathToExe("Saves", PushArray(MAX_PATH, char), MAX_PATH);
+        world->savePath = PathToExe("Saves", (char*)malloc(MAX_PATH * sizeof(char)), MAX_PATH);
         CreateDirectory(world->savePath, NULL);
 
         char path[MAX_PATH];
@@ -648,9 +596,6 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
             ReadBinary(path, (char*)&seed);
             world->seed = seed;
         }
-
-        CreateMeshDataPool(world->meshData, 24, 131072, 196608);
-        CreateMeshDataPool(world->largeMeshData, 4, 786432, 1179648);
 
         world->blockToSet = BLOCK_GRASS;
         world->regionMutex = CreateMutex(NULL, FALSE, NULL);

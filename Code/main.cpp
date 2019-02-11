@@ -67,7 +67,7 @@ enum PauseState
 	WORLD_CONFIG
 };
 
-#include "gamememory.h"
+#include "tempmemory.h"
 #include "random.h"
 #include "utils.h"
 #include "profiling.h"
@@ -281,12 +281,10 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	// Set vertical synchronization to the monitor refresh rate.
 	glfwSwapInterval(1);
 
-	g_memory.size = 2147483648;
-	g_memory.tempLoc = 1610612736;
-	g_memory.tempUsed = g_memory.tempLoc;
+	g_memory.size = 33554432;
 	g_memory.data = (uint8_t*)VirtualAlloc(0, g_memory.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-	GameState* state = PushStruct(GameState);
+	GameState* state = (GameState*)calloc(1, sizeof(GameState));
 	Construct(state, GameState);
 
 	InitUI(window, state->ui);

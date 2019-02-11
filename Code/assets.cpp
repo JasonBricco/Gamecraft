@@ -24,7 +24,8 @@ static Shader* GetShader(GameState* state, ShaderID id)
 
 static void LoadAssets(GameState* state)
 {
-    char* path = PathToExe("Assets/Assets.gca", PushTempArray(MAX_PATH, char), MAX_PATH);
+    char* buffer = AllocTempArray(MAX_PATH, char);
+    char* path = PathToExe("Assets/Assets.gca", buffer, MAX_PATH);
 
     uint32_t size;
     void* dataPtr = ReadFileData(path, &size);
@@ -47,7 +48,7 @@ static void LoadAssets(GameState* state)
 
     AssetDatabase& db = state->assets;
 
-    ImageData* array = PushTempArray(header->arrayCount, ImageData);
+    ImageData* array = AllocTempArray(header->arrayCount, ImageData);
     int arrayCount = 0;
 
     for (uint32_t i = 0; i < header->imageCount; i++)

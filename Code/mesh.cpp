@@ -12,57 +12,47 @@ static inline bool MeshHasFlag(Mesh& mesh, int32_t flag)
 	return mesh.flags & flag;
 }
 
+static inline int CalculateMeshDataSize(int vertices, int indices)
+{
+	return (vertices * sizeof(vec3) * 2) + (vertices * sizeof(Colori)) + (indices * sizeof(int));
+}
+
 static MeshData* CreateMeshData(int vertices, int indices)
 {
-	MeshData* data = PushStruct(MeshData);
-	data->positions = PushArray(vertices, vec3);
-	data->texCoords = PushArray(vertices, vec3);
-	data->colors = PushArray(vertices, Colori);
-	data->indices = PushArray(indices, int);
-	data->vertexMax = vertices;
-	data->indexMax = indices;
-	return data;
+	MeshData* meshData = (MeshData*)malloc(sizeof(MeshData));
+	meshData->data = malloc(CalculateMeshDataSize(vertices, indices));
+	meshData->vertCount = 0;
+	meshData->vertMax = vertices;
+	meshData->indexCount = 0;
+	meshData->indexMax = indices;
+	meshData->positions = (vec3*)meshData->data;
+	meshData->texCoords = meshData->positions + vertices;
+	meshData->colors = (Colori*)(meshData->texCoords + vertices);
+	meshData->indices = (int*)(meshData->colors + vertices);
+	return meshData;
 }
 
-static void CreateMeshDataPool(MeshDataPool& pool, int capacity, int vertices, int indices)
+static void DestroyMeshData(MeshData* meshData)
 {
-	pool.capacity = capacity;
-	pool.count = capacity;
-    pool.data = PushArray(capacity, MeshData*);
-
-    for (int i = 0; i < capacity; i++)
-        pool.data[i] = CreateMeshData(vertices, indices);
+	free(meshData->data);
 }
 
-static MeshData* CreateTempMeshData(int vertices, int indices)
-{
-	MeshData* data = PushTempStruct(MeshData);
-	data->positions = PushTempArray(vertices, vec3);
-	data->texCoords = PushTempArray(vertices, vec3);
-	data->colors = PushTempArray(vertices, Colori);
-	data->indices = PushTempArray(indices, int);;
-	data->vertexMax = vertices;
-	data->indexMax = indices;
-	return data;
-}
-
-static inline bool MeshDataInBounds(MeshData* data, int inc, int count, int max)
+static inline void CheckMeshBounds(MeshData* meshData, int count, int inc, int max)
 {
 	if (count + inc > max)
 	{
-		data->valid = false;
-		return false;
+		meshData->vertMax *= 2;
+		meshData->indexMax *= 2;
+		meshData->data = realloc(meshData->data, CalculateMeshDataSize(meshData->vertMax, meshData->indexMax));
 	}
-
-	return true;
 }
 
 static inline void SetIndices(MeshData* data)
 {
-	int offset = data->vertexCount;
-	int count = data->indexCount;
+	CheckMeshBounds(data, data->indexCount, 6, data->indexMax);
 
-	assert(MeshDataInBounds(data, 6, count, data->indexMax));
+	int offset = data->vertCount;
+	int count = data->indexCount;
 
 	data->indices[count] = offset + 2;
 	data->indices[count + 1] = offset + 1;
@@ -77,7 +67,7 @@ static inline void SetIndices(MeshData* data)
 
 static inline void SetUVs(MeshData* data, float w)
 {
-	int count = data->vertexCount;
+	int count = data->vertCount;
 	data->texCoords[count] = vec3(0.0f, 1.0f, w);
     data->texCoords[count + 1] = vec3(0.0f, 0.0f, w);
     data->texCoords[count + 2] = vec3(1.0f, 0.0f, w);
@@ -94,7 +84,7 @@ static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type)
 	// Vertex position buffer.
 	glGenBuffers(1, &mesh.positions);
 	glBindBuffer(GL_ARRAY_BUFFER, mesh.positions);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * meshData->vertexCount, meshData->positions, type);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * meshData->vertCount, meshData->positions, type);
 
 	glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(id++);
@@ -104,7 +94,7 @@ static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type)
 		// Vertex texture coordinates buffer.
 		glGenBuffers(1, &mesh.texCoords);
 		glBindBuffer(GL_ARRAY_BUFFER, mesh.texCoords);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * meshData->vertexCount, meshData->texCoords, type);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * meshData->vertCount, meshData->texCoords, type);
 
 		glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, 0, NULL); 
 		glEnableVertexAttribArray(id++);
@@ -115,7 +105,7 @@ static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type)
 		// Colors buffer.
 		glGenBuffers(1, &mesh.colors);
 		glBindBuffer(GL_ARRAY_BUFFER, mesh.colors);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(Colori) * meshData->vertexCount, meshData->colors, type);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(Colori) * meshData->vertCount, meshData->colors, type);
 
 		glVertexAttribPointer(id, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
 		glEnableVertexAttribArray(id);

@@ -29,19 +29,14 @@ struct Mesh
 
 struct MeshData
 {
+    void* data;
+
+    // Pointers into the data array.
     vec3* positions;
     vec3* texCoords;
     Colori* colors;
     int* indices;
 
-    int vertexCount, vertexMax;
+    int vertCount, vertMax;
     int indexCount, indexMax;
-
-    bool valid;
-};
-
-struct MeshDataPool
-{
-    int capacity, count;
-    MeshData** data;
 };

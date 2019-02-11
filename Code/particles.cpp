@@ -7,7 +7,7 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	emitter.spawnCount = spawnCount;
 	emitter.radius = radius;
 
-	MeshData* data = CreateTempMeshData(4, 6); 
+	MeshData* data = CreateMeshData(4, 6);
 
     SetIndices(data);
     SetUVs(data, 0.0f);
@@ -16,7 +16,7 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
     data->positions[1] = vec3(-0.015625f, 0.125f, 0.015625f);
     data->positions[2] = vec3(0.015625f, 0.125f, 0.015625f);
     data->positions[3] = vec3(0.015625f, -0.125f, 0.015625f);
-    data->vertexCount = 4;
+    data->vertCount = 4;
 
     Mesh mesh = {};
     SetMeshFlags(mesh, MESH_NO_COLORS);
@@ -25,6 +25,7 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	glBindVertexArray(mesh.va);
 
 	FillMeshData(mesh, data, GL_STREAM_DRAW);
+	DestroyMeshData(data);
 
 	for (int i = 0; i < 4; i++)
 	{
