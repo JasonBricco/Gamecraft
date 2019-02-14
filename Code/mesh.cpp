@@ -19,8 +19,9 @@ static inline int CalculateMeshDataSize(int vertices, int indices)
 
 static MeshData* CreateMeshData(int vertices, int indices)
 {
-	MeshData* meshData = (MeshData*)malloc(sizeof(MeshData));
-	meshData->data = malloc(CalculateMeshDataSize(vertices, indices));
+	MeshData* meshData = AllocStruct(MeshData);
+	int sizeInBytes = CalculateMeshDataSize(vertices, indices);
+	meshData->data = AllocRaw(sizeInBytes);
 	meshData->vertCount = 0;
 	meshData->vertMax = vertices;
 	meshData->indexCount = 0;
@@ -34,7 +35,8 @@ static MeshData* CreateMeshData(int vertices, int indices)
 
 static void DestroyMeshData(MeshData* meshData)
 {
-	free(meshData->data);
+	Free(meshData->data);
+	Free(meshData);
 }
 
 static inline void CheckMeshBounds(MeshData* meshData, int count, int inc, int max)
@@ -43,7 +45,7 @@ static inline void CheckMeshBounds(MeshData* meshData, int count, int inc, int m
 	{
 		meshData->vertMax *= 2;
 		meshData->indexMax *= 2;
-		meshData->data = realloc(meshData->data, CalculateMeshDataSize(meshData->vertMax, meshData->indexMax));
+		meshData->data = ReallocRaw(meshData->data, CalculateMeshDataSize(meshData->vertMax, meshData->indexMax));
 	}
 }
 
@@ -76,6 +78,8 @@ static inline void SetUVs(MeshData* data, float w)
 
 static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type)
 {
+	BEGIN_TIMED_BLOCK(FILL_MESH);
+
 	glGenVertexArrays(1, &mesh.va);
 	glBindVertexArray(mesh.va);
 
@@ -117,6 +121,8 @@ static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type)
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * meshData->indexCount, meshData->indices, type);
 
 	mesh.indexCount = meshData->indexCount;
+
+	END_TIMED_BLOCK(FILL_MESH);
 }
 
 static inline void DrawMesh(Mesh& mesh)

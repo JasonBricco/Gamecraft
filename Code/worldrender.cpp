@@ -5,6 +5,8 @@
 // Builds mesh data for the chunk.
 static void BuildChunk(World* world, Chunk* chunk)
 {
+    BEGIN_TIMED_BLOCK(BUILD_CHUNK);
+
     for (int z = 0; z < CHUNK_SIZE_X; z++)
     {
         for (int y = 0; y < CHUNK_SIZE_Y; y++)
@@ -20,7 +22,7 @@ static void BuildChunk(World* world, Chunk* chunk)
 
                     if (data == nullptr)
                     {
-                        data = CreateMeshData(131072, 196608);
+                        data = CreateMeshData(8192, 12288);
                         chunk->meshData[type] = data;
                     }
 
@@ -31,9 +33,11 @@ static void BuildChunk(World* world, Chunk* chunk)
     }
 
     chunk->state = CHUNK_NEEDS_FILL;
+
+    END_TIMED_BLOCK(BUILD_CHUNK);
 }
 
-static inline void FillChunkMeshes(World* world, Chunk* chunk)
+static void FillChunkMeshes(Chunk* chunk)
 {
     for (int i = 0; i < CHUNK_MESH_COUNT; i++)
     {
@@ -41,24 +45,18 @@ static inline void FillChunkMeshes(World* world, Chunk* chunk)
 
         if (data != nullptr)
         {
-            if (data->vertCount > 0)
-            {
-                FillMeshData(chunk->meshes[i], data, GL_DYNAMIC_DRAW);
-                DestroyMeshData(data);
-            }
-
+            assert(data->vertCount > 0);
+            FillMeshData(chunk->meshes[i], data, GL_DYNAMIC_DRAW);
+            DestroyMeshData(data);
             chunk->meshData[i] = nullptr;
         }
     }
-
-    chunk->state = CHUNK_BUILT;
-    world->buildCount--;
 }
 
-static inline void BuildChunkNow(World* world, Chunk* chunk)
+static void BuildChunkNow(World* world, Chunk* chunk)
 {
     BuildChunk(world, chunk);
-    FillChunkMeshes(world, chunk);
+    FillChunkMeshes(chunk);
     chunk->state = CHUNK_BUILT;
     chunk->pendingUpdate = false;
 }
@@ -115,7 +113,9 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
             } break;
 
             case CHUNK_NEEDS_FILL:
-                FillChunkMeshes(world, chunk);
+                FillChunkMeshes(chunk);
+                chunk->state = CHUNK_BUILT;
+                world->buildCount--;
                 break;
 
             case CHUNK_BUILT:

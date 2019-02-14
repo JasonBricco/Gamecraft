@@ -36,6 +36,8 @@ static inline float* GetNoise3D(Noise* noise, Noise::NoiseType type, int x, int 
 
 static void GenerateChunkTerrain(World* world, Chunk* chunk)
 {
+    BEGIN_TIMED_BLOCK(CHUNK_GEN);
+
     WorldPos start = chunk->cPos * CHUNK_SIZE_X;
 
     Noise* noise = Noise::NewFastNoiseSIMD();
@@ -152,4 +154,6 @@ static void GenerateChunkTerrain(World* world, Chunk* chunk)
     Noise::FreeNoiseSet(comp);
 
     delete noise;
+
+    END_TIMED_BLOCK(CHUNK_GEN);
 }

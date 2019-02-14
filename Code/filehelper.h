@@ -14,7 +14,7 @@ static void* ReadFileData(char* path, uint32_t* sizePtr)
             return nullptr;
 
         uint32_t size = (uint32_t)sizeValue.QuadPart;
-        void* data = malloc(size);
+        void* data = AllocRaw(size);
         
         DWORD bytesRead;
 
@@ -22,7 +22,7 @@ static void* ReadFileData(char* path, uint32_t* sizePtr)
             *sizePtr = size;
         else
         {
-            free(data);
+            Free(data);
             data = nullptr;
         }
 
@@ -106,20 +106,5 @@ static string GetLastErrorText()
 
     return message;
 }
-
-#if _DEBUG
-#define Error(...) { \
-    char error_buffer[256]; \
-    snprintf(error_buffer, sizeof(error_buffer), __VA_ARGS__); \
-    DebugBreak(); \
-}
-#else
-#define Error(...) { \
-    char error_buffer[256]; \
-    snprintf(error_buffer, sizeof(error_buffer), __VA_ARGS__); \
-    MessageBox(NULL, error_buffer, NULL, MB_OK | MB_ICONERROR); \
-    exit(-1); \
-}
-#endif
 
 #endif

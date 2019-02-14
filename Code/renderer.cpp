@@ -34,7 +34,7 @@ static inline void UseShader(Shader* shader)
 
 static Graphic* CreateGraphic(Shader* shader, Texture texture)
 {
-	Graphic* graphic = (Graphic*)calloc(1, sizeof(Graphic));
+	Graphic* graphic = CallocStruct(Graphic);
 	MeshData* data = CreateMeshData(4, 6);
 
 	SetIndices(data);
@@ -94,7 +94,7 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 
 static Camera* NewCamera()
 {
-	Camera* cam = (Camera*)calloc(1, sizeof(Camera));
+	Camera* cam = CallocStruct(Camera);
 	cam->nearDist = 0.1f;
 	cam->farDist = 512.0f;
 	cam->sensitivity = 0.05f;
@@ -474,7 +474,7 @@ static void OutputShaderError(GLuint shader, char* mode)
 	GLint length = 0;
 	glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
 
-    GLchar* errorLog = (GLchar*)calloc(length, sizeof(GLchar));
+    GLchar* errorLog = CallocArray(length, GLchar);
     glGetProgramInfoLog(shader, length, NULL, errorLog);
     
    	Print("Error! Shader program failed to %s. Log: %s\n", mode, length == 0 ? "No error given." : errorLog);

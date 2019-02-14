@@ -2,13 +2,14 @@
 // Jason Bricco
 // 
 
-#define PROFILING 0
-
 #if PROFILING
 
 enum MeasureSection
 {
     MEASURE_GAME_LOOP,
+    MEASURE_BUILD_CHUNK,
+    MEASURE_CHUNK_GEN,
+    MEASURE_FILL_MESH,
     MEASURE_COUNT
 };
 

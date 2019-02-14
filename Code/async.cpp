@@ -63,7 +63,7 @@ static void CreateThreads(GameState* state)
 
 	WorkQueue& queue = state->workQueue;
 	queue.size = 4096;
-	queue.items = (AsyncItem*)malloc(queue.size * sizeof(AsyncItem));
+	queue.items = AllocArray(queue.size, AsyncItem);
 
 	for (int i = 0; i < threadCount; i++)
 	{

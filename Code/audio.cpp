@@ -69,7 +69,7 @@ static void LoadMusic(AudioEngine* engine, char* path)
 	source->SetVolume(0.0f);
 
 	int bufferSize = sampleRate * 2;
-	engine->musicSamples = (int16_t*)malloc(bufferSize * sizeof(int16_t));
+	engine->musicSamples = AllocArray(bufferSize, int16_t);
 	engine->bufferSize = bufferSize;
 	engine->sampleCount = bufferSize / format.nChannels;
 
@@ -158,7 +158,8 @@ static void PlaySound(Sound sound)
 	}
 	else
 	{
-		SoundCallback* callback = new SoundCallback();
+		SoundCallback* callback = CallocStruct(SoundCallback);
+		Construct(callback, SoundCallback);
 		
 		WAVEFORMATEX format = GetFormat(sound.sampleRate);
 		hr = engine->pXAudio->CreateSourceVoice(&source, &format, 0, 2.0f, callback);

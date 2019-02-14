@@ -14,9 +14,7 @@ static inline int RegionIndex(ivec3 p)
 
 static Region* LoadRegionFile(World* world, RegionPos p)
 {
-    Print("Loading region at %i, %i\n", p.x, p.z);
-
-    Region* region = (Region*)calloc(1, sizeof(Region));
+    Region* region = CallocStruct(Region);
     region->pos = p;
 
     char path[MAX_PATH];
@@ -167,21 +165,27 @@ static inline void RemoveRegion(World* world, Region* region)
     if (region == world->firstRegion)
         world->firstRegion = nullptr;
 
-    free(region);
+    Free(region);
 }
 
 static void UnloadDistantRegions(World* world)
 {
-    for (Region* region = world->firstRegion; region != nullptr; region = region->next)
+    Region* region = world->firstRegion;
+
+    while (region != nullptr)
     {
         RegionPos p = region->pos;
         ivec3 diff = p - world->playerRegion;
+
+        Region* next = region->next;
 
         if (abs(diff.x) > 1 || abs(diff.z) > 1)
         {
             SaveRegion(world, region);
             RemoveRegion(world, region);
         }
+        
+        region = next;
     }
 }
 

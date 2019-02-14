@@ -24,7 +24,7 @@
 using namespace std;
 
 #include "assetbuilder.h"
-#include "memory.h"
+#include "mem.h"
 #include "filehelper.h"
 
 #define ArrayLength(array) (sizeof(array) / sizeof((array)[0]))

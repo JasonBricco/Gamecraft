@@ -2,6 +2,9 @@
 // Jason Bricco
 //
 
+#define DEBUG_MEMORY 1
+#define PROFILING 0
+
 #pragma warning(push, 0)
 
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -59,6 +62,21 @@ using namespace std;
 #define Print(...)
 #endif
 
+#if _DEBUG
+#define Error(...) { \
+    char error_buffer[256]; \
+    snprintf(error_buffer, sizeof(error_buffer), __VA_ARGS__); \
+    DebugBreak(); \
+}
+#else
+#define Error(...) { \
+    char error_buffer[256]; \
+    snprintf(error_buffer, sizeof(error_buffer), __VA_ARGS__); \
+    MessageBox(NULL, error_buffer, NULL, MB_OK | MB_ICONERROR); \
+    exit(-1); \
+}
+#endif
+
 enum PauseState
 {
 	PLAYING,
@@ -67,7 +85,7 @@ enum PauseState
 	WORLD_CONFIG
 };
 
-#include "tempmemory.h"
+#include "mem.h"
 #include "random.h"
 #include "utils.h"
 #include "profiling.h"
@@ -250,6 +268,13 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 
 	state->rain.pos = vec3(player->pos.x, player->pos.y + 50.0f, player->pos.z);
 	UpdateParticles(state->rain, world, deltaTime);
+
+	#if DEBUG_MEMORY
+
+	if (KeyPressed(state->input, KEY_F1))
+		DumpMemoryInfo();
+
+	#endif
 }
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
@@ -284,7 +309,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	g_memory.size = 33554432;
 	g_memory.data = (uint8_t*)VirtualAlloc(0, g_memory.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-	GameState* state = (GameState*)calloc(1, sizeof(GameState));
+	GameState* state = CallocStruct(GameState);
 	Construct(state, GameState);
 
 	InitUI(window, state->ui);

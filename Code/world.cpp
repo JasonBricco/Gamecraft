@@ -548,27 +548,27 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
     if (existing == nullptr)
     {
-        world = (World*)calloc(1, sizeof(World));
+        world = CallocStruct(World);
 
         // Load range worth of chunks on each side plus the middle chunk.
         world->size = (loadRange * 2) + 1;
 
         world->totalChunks = Square(world->size);
-        world->chunks = (Chunk**)calloc(world->totalChunks, sizeof(Chunk*));
-        world->visibleChunks = (Chunk**)malloc(world->totalChunks * sizeof(Chunk*));
+        world->chunks = CallocArray(world->totalChunks, Chunk*);
+        world->visibleChunks = AllocArray(world->totalChunks, Chunk*);
 
         world->loadRange = loadRange;
 
         // Allocate extra chunks for the pool for world shifting. We create new chunks
         // before we destroy the old ones.
         int targetPoolSize = world->totalChunks * 2;
-        world->pool = (Chunk**)malloc(targetPoolSize * sizeof(Chunk*));
+        world->pool = AllocArray(targetPoolSize, Chunk*);
         world->poolSize = 0;
         world->maxPoolSize = targetPoolSize;
 
         for (int i = 0; i < targetPoolSize; i++)
         {
-            Chunk* chunk = (Chunk*)malloc(sizeof(Chunk));
+            Chunk* chunk = AllocStruct(Chunk);
             AddChunkToPool(world, chunk);
         }
 
@@ -579,7 +579,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
         CreateBlockData(state, world->blockData);
 
-        world->savePath = PathToExe("Saves", (char*)malloc(MAX_PATH * sizeof(char)), MAX_PATH);
+        world->savePath = PathToExe("Saves", AllocArray(MAX_PATH, char), MAX_PATH);
         CreateDirectory(world->savePath, NULL);
 
         char path[MAX_PATH];
