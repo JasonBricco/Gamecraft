@@ -510,8 +510,6 @@ static void CheckWorld(GameState* state, World* world, Player* player)
 
 static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* player)
 {
-    world->visibleCount = 0;
-
     if (!player->spawned)
     {
         Chunk* spawnChunk = GetChunk(world, ChunkToLChunkPos(world->spawnChunk, world->ref));
@@ -528,9 +526,11 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     }
 
     GetCameraPlanes(cam);
-    GetVisibleChunks(world, cam);
 
-    ProcessVisibleChunks(state, world, cam);
+    int visibleCount = 0;
+    Chunk** visibleChunks = GetVisibleChunks(world, cam, visibleCount);
+
+    ProcessVisibleChunks(state, world, cam, visibleChunks, visibleCount);
 
     while (world->destroyQueue.count > 0)
     {
@@ -555,7 +555,6 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
         world->totalChunks = Square(world->size);
         world->chunks = CallocArray(world->totalChunks, Chunk*);
-        world->visibleChunks = AllocArray(world->totalChunks, Chunk*);
 
         world->loadRange = loadRange;
 

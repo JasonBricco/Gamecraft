@@ -102,10 +102,6 @@ struct World
     Chunk** chunks;
     int totalChunks;
 
-    // Chunks to be rendered.
-    Chunk** visibleChunks;
-    int visibleCount;
-
     // Tracks work being done by background threads so that the world cannot shift
     // while background work is being done.
     int buildCount;

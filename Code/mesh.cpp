@@ -30,6 +30,7 @@ static MeshData* CreateMeshData(int vertices, int indices)
 	meshData->texCoords = meshData->positions + vertices;
 	meshData->colors = (Colori*)(meshData->texCoords + vertices);
 	meshData->indices = (int*)(meshData->colors + vertices);
+
 	return meshData;
 }
 

@@ -77,27 +77,27 @@ static bool NeighborsHaveState(World* world, Chunk* chunk, ChunkState state)
     return true;
 }
 
-static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
+static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam, Chunk** visibleChunks, int visibleCount)
 {
     for (int i = 0; i < CHUNK_MESH_COUNT; i++)
     {
         ChunkMeshList& list = cam->meshLists[i];
-        list.meshes = AllocTempArray(world->visibleCount, ChunkMesh);
+        list.meshes = AllocTempArray(visibleCount, ChunkMesh);
         list.count = 0;
     }
 
     vec2 playerChunk = vec2(world->loadRange, world->loadRange);
 
-    sort(world->visibleChunks, world->visibleChunks + world->visibleCount, [playerChunk](auto a, auto b) 
+    sort(visibleChunks, visibleChunks + visibleCount, [playerChunk](auto a, auto b) 
     { 
         float distA = distance2(vec2(a->lcPos.x, a->lcPos.z), playerChunk);
         float distB = distance2(vec2(b->lcPos.x, b->lcPos.z), playerChunk);
         return distA < distB;
     });
 
-    for (int i = 0; i < world->visibleCount; i++)
+    for (int i = 0; i < visibleCount; i++)
     {
-        Chunk* chunk = world->visibleChunks[i];
+        Chunk* chunk = visibleChunks[i];
         assert(chunk->active);
 
         switch (chunk->state)
@@ -139,8 +139,10 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
     }
 }
 
-static void GetVisibleChunks(World* world, Camera* cam)
+static Chunk** GetVisibleChunks(World* world, Camera* cam, int& visibleCount)
 {    
+    Chunk** visibleChunks = AllocTempArray(world->totalChunks, Chunk*);
+
     for (int i = 0; i < world->totalChunks; i++)
     {
         Chunk* chunk = world->chunks[i];
@@ -150,7 +152,7 @@ static void GetVisibleChunks(World* world, Camera* cam)
         // when the building chunks can't decrement.
         if (chunk->state == CHUNK_NEEDS_FILL)
         {
-            world->visibleChunks[world->visibleCount++] = chunk;
+            visibleChunks[visibleCount++] = chunk;
             continue;
         }
         
@@ -161,8 +163,10 @@ static void GetVisibleChunks(World* world, Camera* cam)
         FrustumVisibility visibility = TestFrustum(cam, min, max);
 
         if (visibility >= FRUSTUM_VISIBLE)
-            world->visibleChunks[world->visibleCount++] = chunk;
+            visibleChunks[visibleCount++] = chunk;
     }
+
+    return visibleChunks;
 }
 
 // Returns true if the current block should draw its face when placed

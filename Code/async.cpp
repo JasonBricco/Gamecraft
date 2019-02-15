@@ -37,6 +37,8 @@ static DWORD WINAPI ThreadProc(LPVOID ptr)
     }
 }
 
+#if MULTITHREADING
+
 static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, Chunk* chunk, AsyncCallback callback = nullptr)
 {
 	WorkQueue& queue = state->workQueue;
@@ -50,6 +52,16 @@ static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, Ch
 	queue.write = nextWrite;
 	ReleaseSemaphore(state->semaphore, 1, NULL);
 }
+
+#else
+
+static inline void QueueAsync(GameState*, AsyncFunc func, World* world, Chunk* chunk, AsyncCallback callback = nullptr)
+{
+	Unused(callback);
+	func(world, chunk);
+}
+
+#endif
 
 static void CreateThreads(GameState* state)
 {
