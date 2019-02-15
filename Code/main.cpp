@@ -2,7 +2,7 @@
 // Jason Bricco
 //
 
-#define DEBUG_MEMORY 1
+#define DEBUG_MEMORY 0
 #define PROFILING 0
 #define MULTITHREADING 1
 

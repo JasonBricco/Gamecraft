@@ -7,25 +7,21 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	emitter.spawnCount = spawnCount;
 	emitter.radius = radius;
 
-	MeshData* data = CreateMeshData(4, 6);
+	Mesh* mesh = CreateMesh(4, 6, MESH_NO_COLORS);
 
-    SetIndices(data);
-    SetUVs(data, 0.0f);
+    SetIndices(mesh);
+    SetUVs(mesh, 0.0f);
 
-    data->positions[0] = vec3(-0.015625f, -0.125f, 0.015625f);
-    data->positions[1] = vec3(-0.015625f, 0.125f, 0.015625f);
-    data->positions[2] = vec3(0.015625f, 0.125f, 0.015625f);
-    data->positions[3] = vec3(0.015625f, -0.125f, 0.015625f);
-    data->vertCount = 4;
-
-    Mesh mesh = {};
-    SetMeshFlags(mesh, MESH_NO_COLORS);
+    mesh->positionData[0] = vec3(-0.015625f, -0.125f, 0.015625f);
+    mesh->positionData[1] = vec3(-0.015625f, 0.125f, 0.015625f);
+    mesh->positionData[2] = vec3(0.015625f, 0.125f, 0.015625f);
+    mesh->positionData[3] = vec3(0.015625f, -0.125f, 0.015625f);
+    mesh->vertCount = 4;
     
-	glGenVertexArrays(1, &mesh.va);
-	glBindVertexArray(mesh.va);
+	glGenVertexArrays(1, &mesh->va);
+	glBindVertexArray(mesh->va);
 
-	FillMeshData(mesh, data, GL_STREAM_DRAW);
-	DestroyMeshData(data);
+	FillMeshData(mesh, GL_STREAM_DRAW);
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -108,6 +104,6 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 
 	glBindTexture(GL_TEXTURE_2D, GetTexture(state, IMAGE_RAIN).id);
 
-	glBindVertexArray(emitter.mesh.va);
-	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh.indexCount, GL_UNSIGNED_INT, 0, emitter.count);
+	glBindVertexArray(emitter.mesh->va);
+	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh->indexCount, GL_UNSIGNED_INT, 0, emitter.count);
 }

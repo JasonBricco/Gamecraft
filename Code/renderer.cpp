@@ -35,22 +35,20 @@ static inline void UseShader(Shader* shader)
 static Graphic* CreateGraphic(Shader* shader, Texture texture)
 {
 	Graphic* graphic = CallocStruct(Graphic);
-	MeshData* data = CreateMeshData(4, 6);
+	Mesh* mesh = CreateMesh(4, 6, MESH_NO_COLORS);
 
-	SetIndices(data);
-	SetUVs(data, 0.0f);
+	SetIndices(mesh);
+	SetUVs(mesh, 0.0f);
 
-	data->positions[0] = vec3(32.0f, 0.0f, 0.0f);
-	data->positions[1] = vec3(32.0f, 32.0f, 0.0f);
-	data->positions[2] = vec3(0.0f, 32.0f, 0.0f);
-	data->positions[3] = vec3(0.0f, 0.0f, 0.0f);
-	data->vertCount = 4;
+	mesh->positionData[0] = vec3(32.0f, 0.0f, 0.0f);
+	mesh->positionData[1] = vec3(32.0f, 32.0f, 0.0f);
+	mesh->positionData[2] = vec3(0.0f, 32.0f, 0.0f);
+	mesh->positionData[3] = vec3(0.0f, 0.0f, 0.0f);
+	mesh->vertCount = 4;
 	
-	SetMeshFlags(graphic->mesh, MESH_NO_COLORS);
-	FillMeshData(graphic->mesh, data, GL_STATIC_DRAW);
+	FillMeshData(mesh, GL_STATIC_DRAW);
 
-	DestroyMeshData(data);
-
+	graphic->mesh = mesh;
 	graphic->shader = shader;
 	graphic->texture = texture;
 
@@ -227,20 +225,18 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 	
 	cam->crosshair = graphic;
 
-	MeshData* data = CreateMeshData(4, 6);
-	SetIndices(data);
+	Mesh* mesh = CreateMesh(4, 6, MESH_NO_UVS | MESH_NO_COLORS);
+	SetIndices(mesh);
 
-	data->positions[0] = vec3(-1.0f, 1.0f, 0.0f);
-	data->positions[1] = vec3(1.0f, 1.0f, 0.0f);
-	data->positions[2] = vec3(1.0f, -1.0f, 0.0f);
-	data->positions[3] = vec3(-1.0f, -1.0f, 0.0f);
-	data->vertCount = 4;
+	mesh->positionData[0] = vec3(-1.0f, 1.0f, 0.0f);
+	mesh->positionData[1] = vec3(1.0f, 1.0f, 0.0f);
+	mesh->positionData[2] = vec3(1.0f, -1.0f, 0.0f);
+	mesh->positionData[3] = vec3(-1.0f, -1.0f, 0.0f);
+	mesh->vertCount = 4;
 	
-	SetMeshFlags(cam->fadeMesh, MESH_NO_UVS | MESH_NO_COLORS);
-	FillMeshData(cam->fadeMesh, data, GL_STATIC_DRAW);
+	FillMeshData(mesh, GL_STATIC_DRAW);
 
-	DestroyMeshData(data);
-
+	cam->fadeMesh = mesh;
 	cam->fadeShader = GetShader(state, SHADER_FADE);
 	cam->fadeColor = CLEAR_COLOR;
 }

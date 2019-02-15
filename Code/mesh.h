@@ -20,22 +20,18 @@ enum MeshFlags
 struct Mesh
 {
     GLuint va;
-    GLuint positions, texCoords, colors;
+    GLuint positions, uvs, colors;
     GLuint indices;
 
     int32_t flags;
-    int indexCount;
-};
-
-struct MeshData
-{
+    
     void* data;
 
     // Pointers into the data array.
-    vec3* positions;
-    vec3* texCoords;
-    Colori* colors;
-    int* indices;
+    vec3* positionData;
+    vec3* uvData;
+    Colori* colorData;
+    int* indexData;
 
     int vertCount, vertMax;
     int indexCount, indexMax;
