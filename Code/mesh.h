@@ -29,7 +29,7 @@ struct Mesh
 
     // Pointers into the data array.
     vec3* positionData;
-    vec3* uvData;
+    u16vec3* uvData;
     Colori* colorData;
     int* indexData;
 

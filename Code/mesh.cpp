@@ -23,7 +23,7 @@ static Mesh* CreateMesh(int vertices, int indices, int32_t flags)
 	mesh->indexCount = 0;
 	mesh->indexMax = indices;
 	mesh->positionData = (vec3*)mesh->data;
-	mesh->uvData = mesh->positionData + vertices;
+	mesh->uvData = (u16vec3*)(mesh->positionData + vertices);
 	mesh->colorData = (Colori*)(mesh->uvData + vertices);
 	mesh->indexData = (int*)(mesh->colorData + vertices);
 
@@ -58,13 +58,13 @@ static inline void SetIndices(Mesh* mesh)
 	mesh->indexCount += 6;
 }
 
-static inline void SetUVs(Mesh* mesh, float w)
+static inline void SetUVs(Mesh* mesh, uint16_t w)
 {
 	int count = mesh->vertCount;
-	mesh->uvData[count] = vec3(0.0f, 1.0f, w);
-    mesh->uvData[count + 1] = vec3(0.0f, 0.0f, w);
-    mesh->uvData[count + 2] = vec3(1.0f, 0.0f, w);
-    mesh->uvData[count + 3] = vec3(1.0f, 1.0f, w);
+	mesh->uvData[count] = u16vec3(0, 1, w);
+    mesh->uvData[count + 1] = u16vec3(0, 0, w);
+    mesh->uvData[count + 2] = u16vec3(1, 0, w);
+    mesh->uvData[count + 3] = u16vec3(1, 1, w);
 }
 
 static void FillMeshData(Mesh* mesh, GLenum type)
@@ -89,9 +89,9 @@ static void FillMeshData(Mesh* mesh, GLenum type)
 		// Vertex texture coordinates buffer.
 		glGenBuffers(1, &mesh->uvs);
 		glBindBuffer(GL_ARRAY_BUFFER, mesh->uvs);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * mesh->vertCount, mesh->uvData, type);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(u16vec3) * mesh->vertCount, mesh->uvData, type);
 
-		glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, 0, NULL); 
+		glVertexAttribPointer(id, 3, GL_UNSIGNED_SHORT, GL_FALSE, 0, NULL); 
 		glEnableVertexAttribArray(id++);
 	}
 

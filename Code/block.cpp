@@ -2,7 +2,7 @@
 // Jason Bricco
 //
 
-static inline float* GetTextures(World* world, Block block)
+static inline uint16_t* GetTextures(World* world, Block block)
 {
     return world->blockData[block].textures;
 }
@@ -42,7 +42,7 @@ static inline char* GetBlockName(World* world, Block block)
     return world->blockData[block].name;
 }
 
-static inline void SetBlockTextures(BlockData& data, float top, float bottom, float front, float back, float right, float left)
+static inline void SetBlockTextures(BlockData& data, uint16_t top, uint16_t bottom, uint16_t front, uint16_t back, uint16_t right, uint16_t left)
 {
     data.textures[FACE_TOP] = top;
     data.textures[FACE_BOTTOM] = bottom;
@@ -52,12 +52,12 @@ static inline void SetBlockTextures(BlockData& data, float top, float bottom, fl
     data.textures[FACE_LEFT] = left;
 }
 
-static inline void SetBlockTextures(BlockData& data, float tex)
+static inline void SetBlockTextures(BlockData& data, uint16_t tex)
 {
     SetBlockTextures(data, tex, tex, tex, tex, tex, tex);
 }
 
-static inline void SetBlockTextures(BlockData& data, float top, float bottom, float sides)
+static inline void SetBlockTextures(BlockData& data, uint16_t top, uint16_t bottom, uint16_t sides)
 {
     SetBlockTextures(data, top, bottom, sides, sides, sides, sides);
 }

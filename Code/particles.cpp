@@ -10,7 +10,7 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	Mesh* mesh = CreateMesh(4, 6, MESH_NO_COLORS);
 
     SetIndices(mesh);
-    SetUVs(mesh, 0.0f);
+    SetUVs(mesh, 0);
 
     mesh->positionData[0] = vec3(-0.015625f, -0.125f, 0.015625f);
     mesh->positionData[1] = vec3(-0.015625f, 0.125f, 0.015625f);

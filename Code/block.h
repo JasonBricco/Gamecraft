@@ -42,7 +42,7 @@ using BuildBlockFunc = void(*)(World*, Chunk*, Mesh*, int, int, int, Block);
 
 struct BlockData
 {
-    float textures[6];
+    uint16_t textures[6];
     bool passable;
     BlockMeshType meshType;
     CullType cull;

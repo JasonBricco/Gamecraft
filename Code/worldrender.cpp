@@ -242,7 +242,7 @@ static inline void SetFaceVertexData(Mesh* mesh, int index, float x, float y, fl
 // chunk in local world space.
 static void BuildBlock(World* world, Chunk* chunk, Mesh* mesh, int xi, int yi, int zi, Block block)
 {
-    float* textures = GetTextures(world, block);
+    uint16_t* textures = GetTextures(world, block);
 
     RelPos rP = ivec3(xi, yi, zi);
     float x = (float)xi, y = (float)yi, z = (float)zi;
