@@ -384,9 +384,7 @@ static Chunk* CreateChunk(GameState* state, World* world, int lcX, int lcZ, Chun
 
 static void DestroyChunkCallback(World* world, Chunk* chunk)
 {
-    for (int i = 0; i < CHUNK_MESH_COUNT; i++)
-       DestroyMesh(chunk->meshes[i]);
-
+    DestroyChunkMeshes(chunk);
     AddChunkToPool(world, chunk);
 }
 

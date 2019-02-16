@@ -15,7 +15,7 @@ enum ShaderType
 struct Graphic
 {
     vec3 pos;
-    Mesh* mesh;
+    Mesh mesh;
     Texture texture;
     Shader* shader;
 };
@@ -35,7 +35,7 @@ struct Plane
 
 struct ChunkMesh
 {
-    Mesh* mesh;
+    Mesh mesh;
     vec3 pos;
 };
 
@@ -77,7 +77,7 @@ struct Camera
     // Screen fading.
     Color fadeColor;
     Shader* fadeShader;
-    Mesh* fadeMesh;
+    Mesh fadeMesh;
 
     // Backface culling will be enabled if this is true.
     bool disableFluidCull;

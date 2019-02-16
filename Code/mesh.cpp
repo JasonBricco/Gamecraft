@@ -2,151 +2,149 @@
 // Jason Bricco
 //
 
-static inline bool MeshHasFlag(Mesh* mesh, int32_t flag)
-{
-	return mesh->flags & flag;
-}
-
 static inline int CalculateMeshDataSize(int vertices, int indices)
 {
 	return (vertices * sizeof(vec3) * 2) + (vertices * sizeof(Colori)) + (indices * sizeof(int));
 }
 
-static Mesh* CreateMesh(int vertices, int indices, int32_t flags)
+static MeshData* CreateMeshData(int vertices, int indices)
 {
-	Mesh* mesh = AllocStruct(Mesh);
-	mesh->flags = flags;
+	MeshData* meshData = AllocStruct(MeshData);
 	int sizeInBytes = CalculateMeshDataSize(vertices, indices);
-	mesh->data = AllocRaw(sizeInBytes);
-	mesh->vertCount = 0;
-	mesh->vertMax = vertices;
-	mesh->indexCount = 0;
-	mesh->indexMax = indices;
-	mesh->positionData = (vec3*)mesh->data;
-	mesh->uvData = (u16vec3*)(mesh->positionData + vertices);
-	mesh->colorData = (Colori*)(mesh->uvData + vertices);
-	mesh->indexData = (int*)(mesh->colorData + vertices);
-
-	return mesh;
+	meshData->data = AllocRaw(sizeInBytes);
+	meshData->positions = (vec3*)meshData->data;
+	meshData->uvs = (u16vec3*)(meshData->positions + vertices);
+	meshData->colors = (Colori*)(meshData->uvs + vertices);
+	meshData->indices = (int*)(meshData->colors + vertices);
+	meshData->vertCount = 0;
+	meshData->vertMax = vertices;
+	meshData->indexCount = 0;
+	meshData->indexMax = indices;
+	return meshData;
 }
 
-static inline void CheckMeshBounds(Mesh* mesh, int count, int inc, int max)
+static inline void CheckMeshBounds(MeshData* meshData, int count, int inc, int max)
 {
 	if (count + inc > max)
 	{
-		mesh->vertMax *= 2;
-		mesh->indexMax *= 2;
-		mesh->data = ReallocRaw(mesh->data, CalculateMeshDataSize(mesh->vertMax, mesh->indexMax));
+		meshData->vertMax *= 2;
+		meshData->indexMax *= 2;
+		meshData->data = ReallocRaw(meshData->data, CalculateMeshDataSize(meshData->vertMax, meshData->indexMax));
 	}
 }
 
-static inline void SetIndices(Mesh* mesh)
+static inline void SetIndices(MeshData* meshData)
 {
-	CheckMeshBounds(mesh, mesh->indexCount, 6, mesh->indexMax);
+	CheckMeshBounds(meshData, meshData->indexCount, 6, meshData->indexMax);
 
-	int offset = mesh->vertCount;
-	int count = mesh->indexCount;
+	int offset = meshData->vertCount;
+	int count = meshData->indexCount;
 
-	mesh->indexData[count] = offset + 2;
-	mesh->indexData[count + 1] = offset + 1;
-	mesh->indexData[count + 2] = offset;
+	meshData->indices[count] = offset + 2;
+	meshData->indices[count + 1] = offset + 1;
+	meshData->indices[count + 2] = offset;
 
-	mesh->indexData[count + 3] = offset + 3;
-	mesh->indexData[count + 4] = offset + 2;
-	mesh->indexData[count + 5] = offset;
+	meshData->indices[count + 3] = offset + 3;
+	meshData->indices[count + 4] = offset + 2;
+	meshData->indices[count + 5] = offset;
 
-	mesh->indexCount += 6;
+	meshData->indexCount += 6;
 }
 
-static inline void SetUVs(Mesh* mesh, uint16_t w)
+static inline void SetUVs(MeshData* meshData, uint16_t w)
 {
-	int count = mesh->vertCount;
-	mesh->uvData[count] = u16vec3(0, 1, w);
-    mesh->uvData[count + 1] = u16vec3(0, 0, w);
-    mesh->uvData[count + 2] = u16vec3(1, 0, w);
-    mesh->uvData[count + 3] = u16vec3(1, 1, w);
+	int count = meshData->vertCount;
+	meshData->uvs[count] = u16vec3(0, 1, w);
+    meshData->uvs[count + 1] = u16vec3(0, 0, w);
+    meshData->uvs[count + 2] = u16vec3(1, 0, w);
+    meshData->uvs[count + 3] = u16vec3(1, 1, w);
 }
 
-static void FillMeshData(Mesh* mesh, GLenum type)
+static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, int32_t flags)
 {
 	BEGIN_TIMED_BLOCK(FILL_MESH);
 
-	glGenVertexArrays(1, &mesh->va);
-	glBindVertexArray(mesh->va);
+	assert(meshData->vertCount > 0);
+	assert(mesh.indexCount == 0);
+
+	glGenVertexArrays(1, &mesh.va);
+	glBindVertexArray(mesh.va);
 
 	int id = 0;
 
 	// Vertex position buffer.
-	glGenBuffers(1, &mesh->positions);
-	glBindBuffer(GL_ARRAY_BUFFER, mesh->positions);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * mesh->vertCount, mesh->positionData, type);
+	glGenBuffers(1, &mesh.positions);
+	glBindBuffer(GL_ARRAY_BUFFER, mesh.positions);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * meshData->vertCount, meshData->positions, type);
 
 	glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(id++);
 
-	if (!MeshHasFlag(mesh, MESH_NO_UVS))
+	if (!HasFlag(flags, MESH_NO_UVS))
 	{
 		// Vertex texture coordinates buffer.
-		glGenBuffers(1, &mesh->uvs);
-		glBindBuffer(GL_ARRAY_BUFFER, mesh->uvs);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(u16vec3) * mesh->vertCount, mesh->uvData, type);
+		glGenBuffers(1, &mesh.uvs);
+		glBindBuffer(GL_ARRAY_BUFFER, mesh.uvs);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(u16vec3) * meshData->vertCount, meshData->uvs, type);
 
 		glVertexAttribPointer(id, 3, GL_UNSIGNED_SHORT, GL_FALSE, 0, NULL); 
 		glEnableVertexAttribArray(id++);
 	}
 
-	if (!MeshHasFlag(mesh, MESH_NO_COLORS))
+	if (!HasFlag(flags, MESH_NO_COLORS))
 	{
 		// Colors buffer.
-		glGenBuffers(1, &mesh->colors);
-		glBindBuffer(GL_ARRAY_BUFFER, mesh->colors);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(Colori) * mesh->vertCount, mesh->colorData, type);
+		glGenBuffers(1, &mesh.colors);
+		glBindBuffer(GL_ARRAY_BUFFER, mesh.colors);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(Colori) * meshData->vertCount, meshData->colors, type);
 
 		glVertexAttribPointer(id, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
 		glEnableVertexAttribArray(id);
 	}
 
 	// Index buffer.
-	glGenBuffers(1, &mesh->indices);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->indices);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * mesh->indexCount, mesh->indexData, type);
+	glGenBuffers(1, &mesh.indices);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indices);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * meshData->indexCount, meshData->indices, type);
 
-	Free(mesh->data);
-	mesh->data = nullptr;
+	mesh.flags = flags;
+	mesh.indexCount = meshData->indexCount;
+
+	Free(meshData->data);
+	Free(meshData);
 
 	END_TIMED_BLOCK(FILL_MESH);
 }
 
-static inline void DrawMesh(Mesh* mesh)
+static inline void DrawMesh(Mesh mesh)
 {
-	glBindVertexArray(mesh->va);
-	glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+	assert(mesh.indexCount > 0);
+	glBindVertexArray(mesh.va);
+	glDrawElements(GL_TRIANGLES, mesh.indexCount, GL_UNSIGNED_INT, 0);
 }
 
-static inline void DrawMesh(Mesh* mesh, Shader* shader, vec3 pos)
+static inline void DrawMesh(Mesh mesh, Shader* shader, vec3 pos)
 {
 	mat4 model = translate(mat4(1.0f), pos);
 	SetUniform(shader->model, model);
 	DrawMesh(mesh);
 }
 
-static void DestroyMesh(Mesh* mesh)
+static void DestroyMesh(Mesh& mesh)
 {
-	if (mesh != nullptr)
+	if (mesh.indexCount > 0)
 	{
-		assert(mesh->indexCount > 0);
-		assert(mesh->data == nullptr);
+		glDeleteBuffers(1, &mesh.positions);
 
-		glDeleteBuffers(1, &mesh->positions);
+		if (!HasFlag(mesh.flags, MESH_NO_UVS))
+			glDeleteBuffers(1, &mesh.uvs);
 
-		if (!MeshHasFlag(mesh, MESH_NO_UVS))
-			glDeleteBuffers(1, &mesh->uvs);
+		if (!HasFlag(mesh.flags, MESH_NO_COLORS))
+			glDeleteBuffers(1, &mesh.colors);
 
-		if (!MeshHasFlag(mesh, MESH_NO_COLORS))
-			glDeleteBuffers(1, &mesh->colors);
+		glDeleteBuffers(1, &mesh.indices);
+		glDeleteVertexArrays(1, &mesh.va);
 
-		glDeleteBuffers(1, &mesh->indices);
-		glDeleteVertexArrays(1, &mesh->va);
-		Free(mesh);
+		mesh.indexCount = 0;
 	}
 }

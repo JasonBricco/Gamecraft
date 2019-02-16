@@ -24,14 +24,18 @@ struct Mesh
     GLuint indices;
 
     int32_t flags;
-    
+    int indexCount;
+};
+
+struct MeshData
+{
     void* data;
 
     // Pointers into the data array.
-    vec3* positionData;
-    u16vec3* uvData;
-    Colori* colorData;
-    int* indexData;
+    vec3* positions;
+    u16vec3* uvs;
+    Colori* colors;
+    int* indices;
 
     int vertCount, vertMax;
     int indexCount, indexMax;

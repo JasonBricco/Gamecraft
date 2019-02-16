@@ -7,21 +7,18 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	emitter.spawnCount = spawnCount;
 	emitter.radius = radius;
 
-	Mesh* mesh = CreateMesh(4, 6, MESH_NO_COLORS);
+	MeshData* data = CreateMeshData(4, 6);
 
-    SetIndices(mesh);
-    SetUVs(mesh, 0);
+    SetIndices(data);
+    SetUVs(data, 0);
 
-    mesh->positionData[0] = vec3(-0.015625f, -0.125f, 0.015625f);
-    mesh->positionData[1] = vec3(-0.015625f, 0.125f, 0.015625f);
-    mesh->positionData[2] = vec3(0.015625f, 0.125f, 0.015625f);
-    mesh->positionData[3] = vec3(0.015625f, -0.125f, 0.015625f);
-    mesh->vertCount = 4;
-    
-	glGenVertexArrays(1, &mesh->va);
-	glBindVertexArray(mesh->va);
+    data->positions[0] = vec3(-0.015625f, -0.125f, 0.015625f);
+    data->positions[1] = vec3(-0.015625f, 0.125f, 0.015625f);
+    data->positions[2] = vec3(0.015625f, 0.125f, 0.015625f);
+    data->positions[3] = vec3(0.015625f, -0.125f, 0.015625f);
+    data->vertCount = 4;
 
-	FillMeshData(mesh, GL_STREAM_DRAW);
+	FillMeshData(emitter.mesh, data, GL_STREAM_DRAW, MESH_NO_COLORS);
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -30,8 +27,6 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 		glEnableVertexAttribArray(2 + i);
 		glVertexAttribDivisor(2 + i, 1);
 	}
-
-	emitter.mesh = mesh;
 }
 
 static void SpawnParticle(ParticleEmitter& emitter, float x, float y, float z, vec3 velocity)
@@ -104,6 +99,6 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 
 	glBindTexture(GL_TEXTURE_2D, GetTexture(state, IMAGE_RAIN).id);
 
-	glBindVertexArray(emitter.mesh->va);
-	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh->indexCount, GL_UNSIGNED_INT, 0, emitter.count);
+	glBindVertexArray(emitter.mesh.va);
+	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh.indexCount, GL_UNSIGNED_INT, 0, emitter.count);
 }

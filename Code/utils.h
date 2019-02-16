@@ -14,6 +14,11 @@
 #define Align8(v) ((v + 7) & ~7)
 #define Align16(v) ((v + 15) & ~15)
 
+static inline bool HasFlag(int32_t flags, int32_t flag)
+{
+    return flags & flag;
+}
+
 typedef vec4 Color;
 
 #define RED_COLOR vec4(1.0f, 0.0f, 0.0f, 1.0f)

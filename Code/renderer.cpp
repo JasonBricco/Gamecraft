@@ -35,20 +35,20 @@ static inline void UseShader(Shader* shader)
 static Graphic* CreateGraphic(Shader* shader, Texture texture)
 {
 	Graphic* graphic = CallocStruct(Graphic);
-	Mesh* mesh = CreateMesh(4, 6, MESH_NO_COLORS);
 
-	SetIndices(mesh);
-	SetUVs(mesh, 0);
+	MeshData* data = CreateMeshData(4, 6);
 
-	mesh->positionData[0] = vec3(32.0f, 0.0f, 0.0f);
-	mesh->positionData[1] = vec3(32.0f, 32.0f, 0.0f);
-	mesh->positionData[2] = vec3(0.0f, 32.0f, 0.0f);
-	mesh->positionData[3] = vec3(0.0f, 0.0f, 0.0f);
-	mesh->vertCount = 4;
+	SetIndices(data);
+	SetUVs(data, 0);
+
+	data->positions[0] = vec3(32.0f, 0.0f, 0.0f);
+	data->positions[1] = vec3(32.0f, 32.0f, 0.0f);
+	data->positions[2] = vec3(0.0f, 32.0f, 0.0f);
+	data->positions[3] = vec3(0.0f, 0.0f, 0.0f);
+	data->vertCount = 4;
 	
-	FillMeshData(mesh, GL_STATIC_DRAW);
+	FillMeshData(graphic->mesh, data, GL_STATIC_DRAW, MESH_NO_COLORS);
 
-	graphic->mesh = mesh;
 	graphic->shader = shader;
 	graphic->texture = texture;
 
@@ -225,18 +225,17 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 	
 	cam->crosshair = graphic;
 
-	Mesh* mesh = CreateMesh(4, 6, MESH_NO_UVS | MESH_NO_COLORS);
-	SetIndices(mesh);
+	MeshData* data = CreateMeshData(4, 6);
+	SetIndices(data);
 
-	mesh->positionData[0] = vec3(-1.0f, 1.0f, 0.0f);
-	mesh->positionData[1] = vec3(1.0f, 1.0f, 0.0f);
-	mesh->positionData[2] = vec3(1.0f, -1.0f, 0.0f);
-	mesh->positionData[3] = vec3(-1.0f, -1.0f, 0.0f);
-	mesh->vertCount = 4;
+	data->positions[0] = vec3(-1.0f, 1.0f, 0.0f);
+	data->positions[1] = vec3(1.0f, 1.0f, 0.0f);
+	data->positions[2] = vec3(1.0f, -1.0f, 0.0f);
+	data->positions[3] = vec3(-1.0f, -1.0f, 0.0f);
+	data->vertCount = 4;
 	
-	FillMeshData(mesh, GL_STATIC_DRAW);
+	FillMeshData(cam->fadeMesh, data, GL_STATIC_DRAW, MESH_NO_UVS | MESH_NO_COLORS);
 
-	cam->fadeMesh = mesh;
 	cam->fadeShader = GetShader(state, SHADER_FADE);
 	cam->fadeColor = CLEAR_COLOR;
 }
