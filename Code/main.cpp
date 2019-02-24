@@ -5,6 +5,7 @@
 #define DEBUG_MEMORY 0
 #define PROFILING 0
 #define MULTITHREADING 1
+#define TESTING 0
 
 #pragma warning(push, 0)
 
@@ -108,9 +109,15 @@ enum PauseState
 #include "particles.h"
 #include "gamestate.h"
 
+#if TESTING
+#include <string>
+#include "test.h"
+#endif
+
 static void Pause(GameState* state, GLFWwindow* window, World* world, PauseState pauseState);
 static void Unpause(GameState* state, GLFWwindow* window);
 
+#include "algorithms.cpp"
 #include "audio.cpp"
 #include "assets.cpp"
 #include "async.cpp"
@@ -132,7 +139,7 @@ static char* buildType = "DEBUG";
 static char* buildType = "RELEASE";
 #endif
 
-static char* buildID = "151";
+static char* buildID = "172";
 
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT windowPos = { sizeof(windowPos) };
@@ -278,6 +285,17 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 	#endif
 }
 
+#if TESTING
+
+int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+{
+	TestGenericAlgorithms();
+}
+
+#else
+
+#include <string>
+
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
 	if (!glfwInit())
@@ -384,3 +402,5 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	return 0;
 }
+
+#endif

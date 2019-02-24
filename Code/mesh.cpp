@@ -4,22 +4,30 @@
 
 static inline int CalculateMeshDataSize(int vertices, int indices)
 {
-	return (vertices * sizeof(vec3) * 2) + (vertices * sizeof(Colori)) + (indices * sizeof(int));
+	return vertices * sizeof(vec3) + vertices * sizeof(u16vec3) + vertices * sizeof(Colori) + indices * sizeof(int);
+}
+
+static void SetMeshDataPointers(MeshData* meshData)
+{
+	meshData->positions = (vec3*)meshData->data;
+	meshData->uvOffset = meshData->vertMax * sizeof(vec3);
+	meshData->uvs = (u16vec3*)(meshData->data + meshData->uvOffset);
+	meshData->colorOffset = meshData->uvOffset + (meshData->vertMax * sizeof(u16vec3));
+	meshData->colors = (Colori*)(meshData->data + meshData->colorOffset);
+	meshData->indexOffset = meshData->colorOffset + (meshData->vertMax * sizeof(Colori));
+	meshData->indices = (int*)(meshData->data + meshData->indexOffset);
 }
 
 static MeshData* CreateMeshData(int vertices, int indices)
 {
 	MeshData* meshData = AllocStruct(MeshData);
 	int sizeInBytes = CalculateMeshDataSize(vertices, indices);
-	meshData->data = AllocRaw(sizeInBytes);
-	meshData->positions = (vec3*)meshData->data;
-	meshData->uvs = (u16vec3*)(meshData->positions + vertices);
-	meshData->colors = (Colori*)(meshData->uvs + vertices);
-	meshData->indices = (int*)(meshData->colors + vertices);
+	meshData->data = AllocArray(sizeInBytes, uint8_t);
 	meshData->vertCount = 0;
 	meshData->vertMax = vertices;
 	meshData->indexCount = 0;
 	meshData->indexMax = indices;
+	SetMeshDataPointers(meshData);
 	return meshData;
 }
 
@@ -29,7 +37,17 @@ static inline void CheckMeshBounds(MeshData* meshData, int count, int inc, int m
 	{
 		meshData->vertMax *= 2;
 		meshData->indexMax *= 2;
-		meshData->data = ReallocRaw(meshData->data, CalculateMeshDataSize(meshData->vertMax, meshData->indexMax));
+		meshData->data = ReallocArray(meshData->data, CalculateMeshDataSize(meshData->vertMax, meshData->indexMax), uint8_t);
+
+		u16vec3* oldUvs = (u16vec3*)(meshData->data + meshData->uvOffset);
+		Colori* oldColors = (Colori*)(meshData->data + meshData->colorOffset);
+		int* oldIndices = (int*)(meshData->data + meshData->indexOffset);
+
+		SetMeshDataPointers(meshData);
+
+		memcpy(meshData->indices, oldIndices, meshData->indexCount * sizeof(int));
+		memcpy(meshData->colors, oldColors, meshData->vertCount * sizeof(Colori));
+		memcpy(meshData->uvs, oldUvs, meshData->vertCount * sizeof(u16vec3));
 	}
 }
 

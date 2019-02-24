@@ -358,7 +358,7 @@ static inline Chunk* ChunkFromPool(World* world)
 static void LoadChunk(World* world, Chunk* chunk)
 {
     if (!LoadChunkFromDisk(world, chunk))
-        GenerateChunkTerrain(world, chunk);
+        GenerateGrassyTerrain(world, chunk);
 
     chunk->state = CHUNK_LOADED;
 }

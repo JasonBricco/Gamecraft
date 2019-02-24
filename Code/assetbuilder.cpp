@@ -49,6 +49,10 @@ int main()
 		"W:/Assets/Water2.png",
 		"W:/Assets/Water3.png",
 		"W:/Assets/Water4.png",
+		"W:/Assets/WoodSide.png",
+		"W:/Assets/WoodTop.png",
+		"W:/Assets/Leaves.png",
+		"W:/Assets/Clay.png",
 		"W:/Assets/Crosshair.png",
 		"W:/Assets/Rain.png"
 	};
@@ -57,7 +61,7 @@ int main()
 	// INT_MAX means the image doesn't belong in an array.
 	int arrayIndices[] =
 	{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, INT_MAX, INT_MAX
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, INT_MAX, INT_MAX
 	};
 
 	header.arrayCount = ArrayLength(arrayIndices) - 2;

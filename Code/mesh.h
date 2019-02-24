@@ -29,7 +29,10 @@ struct Mesh
 
 struct MeshData
 {
-    void* data;
+    uint8_t* data;
+
+    // Byte offsets to the start of each component of the data array.
+    int uvOffset, colorOffset, indexOffset;
 
     // Pointers into the data array.
     vec3* positions;

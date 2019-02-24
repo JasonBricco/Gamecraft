@@ -120,4 +120,22 @@ static void CreateBlockData(GameState* state, BlockData* data)
     metalCrate.buildFunc = BuildBlock;
     metalCrate.onSetSound = GetSound(state, SOUND_STONE);
     metalCrate.name = "Metal Crate";
+
+    BlockData& wood = data[BLOCK_WOOD];
+    SetBlockTextures(wood, IMAGE_WOOD_TOP, IMAGE_WOOD_TOP, IMAGE_WOOD_SIDE);
+    wood.buildFunc = BuildBlock;
+    wood.onSetSound = GetSound(state, SOUND_STONE);
+    wood.name = "Wood";
+
+    BlockData& leaves = data[BLOCK_LEAVES];
+    SetBlockTextures(leaves, IMAGE_LEAVES);
+    leaves.buildFunc = BuildBlock;
+    leaves.onSetSound = GetSound(state, SOUND_STONE);
+    leaves.name = "Leaves";
+
+    BlockData& clay = data[BLOCK_CLAY];
+    SetBlockTextures(clay, IMAGE_CLAY);
+    clay.buildFunc = BuildBlock;
+    clay.onSetSound = GetSound(state, SOUND_STONE);
+    clay.name = "Clay";
 }

@@ -211,6 +211,12 @@ static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
     BlockButton(world, window, state, IMAGE_METAL_CRATE, BLOCK_METAL_CRATE, &blockName);
     ImGui::SameLine();
     BlockButton(world, window, state, IMAGE_WATER, BLOCK_WATER, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, window, state, IMAGE_WOOD_TOP, BLOCK_WOOD, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, window, state, IMAGE_LEAVES, BLOCK_LEAVES, &blockName);
+    ImGui::Spacing();
+    BlockButton(world, window, state, IMAGE_CLAY, BLOCK_CLAY, &blockName);
  
     ImGui::PopStyleColor();
 

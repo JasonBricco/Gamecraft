@@ -34,7 +34,7 @@ static inline float* GetNoise3D(Noise* noise, Noise::NoiseType type, int x, int 
     return noise->GetNoiseSet(x, 0, z, sizeX, maxY, sizeZ, scale);
 }
 
-static void GenerateChunkTerrain(World* world, Chunk* chunk)
+static void GenerateGrassyTerrain(World* world, Chunk* chunk)
 {
     BEGIN_TIMED_BLOCK(CHUNK_GEN);
 
@@ -156,4 +156,16 @@ static void GenerateChunkTerrain(World* world, Chunk* chunk)
     delete noise;
 
     END_TIMED_BLOCK(CHUNK_GEN);
+}
+
+static void GenerateGridTerrain(World*, Chunk* chunk)
+{
+    for (int x = 0; x < CHUNK_SIZE_X; x += 2)
+    {
+        for (int z = 0; z < CHUNK_SIZE_X; z += 2)
+        {
+            for (int y = 0; y < WORLD_HEIGHT; y += 2)
+                SetBlock(chunk, x, y, z, BLOCK_METAL_CRATE);
+        }
+    }
 }

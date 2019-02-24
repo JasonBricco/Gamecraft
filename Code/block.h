@@ -18,6 +18,9 @@ enum BlockType : Block
     BLOCK_STONE_BRICK,
     BLOCK_METAL_CRATE,
     BLOCK_WATER,
+    BLOCK_WOOD,
+    BLOCK_LEAVES,
+    BLOCK_CLAY,
     BLOCK_COUNT
 };
 

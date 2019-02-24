@@ -2,4 +2,5 @@
 // Jason Bricco
 //
 
-static void GenerateChunkTerrain(World* world, Chunk* chunk);
+static void GenerateGrassyTerrain(World* world, Chunk* chunk);
+static void GenerateGridTerrain(World*, Chunk* chunk);
