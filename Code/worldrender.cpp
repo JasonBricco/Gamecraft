@@ -3,15 +3,17 @@
 //
 
 // Builds mesh data for the chunk.
-static void BuildChunk(World* world, Chunk* chunk)
+static void BuildChunk(World* world, void* chunkPtr)
 {
     BEGIN_TIMED_BLOCK(BUILD_CHUNK);
 
-    for (int z = 0; z < CHUNK_SIZE_X; z++)
+    Chunk* chunk = (Chunk*)chunkPtr;
+
+    for (int z = 0; z < CHUNK_SIZE_H; z++)
     {
-        for (int y = 0; y < CHUNK_SIZE_Y; y++)
+        for (int y = 0; y < CHUNK_SIZE_V; y++)
         {
-            for (int x = 0; x < CHUNK_SIZE_X; x++)
+            for (int x = 0; x < CHUNK_SIZE_H; x++)
             {
                 Block block = GetBlock(chunk, x, y, z);
 
@@ -73,16 +75,16 @@ static void RebuildChunk(World* world, Chunk* chunk)
     chunk->pendingUpdate = false;
 }
 
-static bool NeighborsHaveState(World* world, Chunk* chunk, ChunkState state)
+static bool NeighborsLoaded(World* world, Chunk* chunk)
 {
     LChunkPos p = chunk->lcPos;
 
     for (int i = 0; i < 8; i++)
     {
-        LChunkPos next = p + DIRECTIONS_2D[i];
-        Chunk* c = GetChunkSafe(world, next);
+        LChunkPos next = p + DIRS_2D[i];
+        ChunkGroup* group = GetGroupSafe(world, next.x, next.z);
 
-        if (c == nullptr || c->state < state)
+        if (group == nullptr || !group->loaded)
             return false;
     }
 
@@ -106,17 +108,16 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam, Ch
         float distB = distance2(vec2(b->lcPos.x, b->lcPos.z), playerChunk);
         return distA < distB;
     });
-
+    
     for (int i = 0; i < visibleCount; i++)
     {
         Chunk* chunk = visibleChunks[i];
-        assert(chunk->active);
 
         switch (chunk->state)
         {
-            case CHUNK_LOADED:
+            case CHUNK_DEFAULT:
             {
-                if (NeighborsHaveState(world, chunk, CHUNK_LOADED))
+                if (NeighborsLoaded(world, chunk))
                 {
                     chunk->state = CHUNK_BUILDING;
                     world->buildCount++;
@@ -153,29 +154,36 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam, Ch
 
 static Chunk** GetVisibleChunks(World* world, Camera* cam, int& visibleCount)
 {    
-    Chunk** visibleChunks = AllocTempArray(world->totalChunks, Chunk*);
+    Chunk** visibleChunks = AllocTempArray(world->totalGroups * WORLD_CHUNK_HEIGHT, Chunk*);
 
-    for (int i = 0; i < world->totalChunks; i++)
+    for (int g = 0; g < world->totalGroups; g++)
     {
-        Chunk* chunk = world->chunks[i];
+        ChunkGroup* group = world->groups[g];
 
-        // Ensure chunks that need to be filled are considered visible so that
-        // their meshes will be filled. This prevents blocking the world generation
-        // when the building chunks can't decrement.
-        if (chunk->state == CHUNK_NEEDS_FILL)
+        if (!group->loaded) continue;
+
+        for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
         {
-            visibleChunks[visibleCount++] = chunk;
-            continue;
+            Chunk* chunk = group->chunks + i;
+
+            // Ensure chunks that need to be filled are considered visible so that
+            // their meshes will be filled. This prevents blocking the world generation
+            // when the building chunks can't decrement.
+            if (chunk->state == CHUNK_NEEDS_FILL)
+            {
+                visibleChunks[visibleCount++] = chunk;
+                continue;
+            }
+            
+            ivec3 cP = LChunkToLWorldPos(chunk->lcPos);
+            vec3 min = vec3(cP.x, cP.y, cP.z);
+            vec3 max = min + (vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H) - 1.0f);
+
+            FrustumVisibility visibility = TestFrustum(cam, min, max);
+
+            if (visibility >= FRUSTUM_VISIBLE)
+                visibleChunks[visibleCount++] = chunk;
         }
-        
-        ivec3 cP = chunk->lcPos * CHUNK_SIZE_X;
-        vec3 min = vec3(cP.x, 0.0f, cP.z);
-        vec3 max = min + (vec3(CHUNK_SIZE_X, WORLD_HEIGHT, CHUNK_SIZE_X) - 1.0f);
-
-        FrustumVisibility visibility = TestFrustum(cam, min, max);
-
-        if (visibility >= FRUSTUM_VISIBLE)
-            visibleChunks[visibleCount++] = chunk;
     }
 
     return visibleChunks;

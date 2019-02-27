@@ -3,10 +3,9 @@
 //
 
 // Number of chunks on each dimensions in a region file.
-#define REGION_SIZE 16
+#define REGION_SIZE 8
 #define REGION_SIZE_3 256
-#define REGION_SHIFT 4
-#define REGION_MASK 15
+#define REGION_MASK 7
 #define MAX_REGIONS 8
 
 struct SerializedChunk
@@ -48,6 +47,6 @@ struct Region
     Region* prev;
 };
 
-static bool LoadChunkFromDisk(World* world, Chunk* chunk);
-static void SaveChunk(World* world, Chunk* chunk);
+static bool LoadGroupFromDisk(World* world, ChunkGroup* group);
+static void SaveGroup(World* world, void* groupPtr);
 static void DeleteRegions(World* world);

@@ -2,14 +2,14 @@
 // Jason Bricco
 //
 
-static inline int RegionIndex(int x, int z)
+static inline int RegionIndex(int x, int y, int z)
 {
-    return z * REGION_SIZE + x;
+    return x + REGION_SIZE * (y + WORLD_CHUNK_HEIGHT * z);
 }
 
 static inline int RegionIndex(ivec3 p)
 {
-    return RegionIndex(p.x, p.z);
+    return RegionIndex(p.x, p.y, p.z);
 }
 
 static Region* LoadRegionFile(World* world, RegionPos p)
@@ -100,28 +100,31 @@ static void SaveRegion(World* world, Region* region)
 
     for (int z = 0; z < REGION_SIZE; z++)
     {
-        for (int x = 0; x < REGION_SIZE; x++)
+        for (int y = 0; y < WORLD_CHUNK_HEIGHT; y++)
         {
-            int index = RegionIndex(x, z);
-            assert(index >= 0 && index < REGION_SIZE_3);
-
-            SerializedChunk chunk = region->chunks[index];
-
-            if (chunk.size > 0)
+            for (int x = 0; x < REGION_SIZE; x++)
             {
-                DWORD bytesToWrite = sizeof(uint16_t) * chunk.size;
-                DWORD bytesWritten;
+                int index = RegionIndex(x, y, z);
+                assert(index >= 0 && index < REGION_SIZE_3);
 
-                if (!WriteFile(file, chunk.data, bytesToWrite, &bytesWritten, NULL))
+                SerializedChunk chunk = region->chunks[index];
+
+                if (chunk.size > 0)
                 {
-                    Print("Failed to save chunk. Error: %s\n", GetLastErrorText().c_str());
-                    continue;
+                    DWORD bytesToWrite = sizeof(uint16_t) * chunk.size;
+                    DWORD bytesWritten;
+
+                    if (!WriteFile(file, chunk.data, bytesToWrite, &bytesWritten, NULL))
+                    {
+                        Print("Failed to save chunk. Error: %s\n", GetLastErrorText().c_str());
+                        continue;
+                    }
+
+                    assert(bytesWritten == bytesToWrite);
+
+                    if (SetFilePointer(file, 0l, nullptr, FILE_END) == INVALID_SET_FILE_POINTER)
+                        Print("Failed to set the file pointer to the end of file.\n");
                 }
-
-                assert(bytesWritten == bytesToWrite);
-
-                if (SetFilePointer(file, 0l, nullptr, FILE_END) == INVALID_SET_FILE_POINTER)
-                    Print("Failed to set the file pointer to the end of file.\n");
             }
         }
     }
@@ -224,101 +227,116 @@ static void DeleteRegions(World* world)
         RemoveRegion(world, region);
 }
 
-static bool LoadChunkFromDisk(World* world, Chunk* chunk)
+static bool LoadGroupFromDisk(World* world, ChunkGroup* group)
 {
-    ChunkPos p = chunk->cPos;
+    ChunkPos p = group->pos;
     RegionPos regionP = ChunkToRegionPos(p);
 
     WaitForSingleObject(world->regionMutex, INFINITE);
     Region* region = GetOrLoadRegion(world, regionP);
     ReleaseMutex(world->regionMutex);
 
-    ivec3 local = ivec3(p.x & REGION_MASK, 0, p.z & REGION_MASK);
-    int offset = RegionIndex(local);
+    bool hasData = false;
 
-    assert(offset >= 0 && offset < REGION_SIZE_3);
-    
-    SerializedChunk chunkData = region->chunks[offset];
-
-    if (chunkData.size == 0)
-        return false;
-
-    int i = 0; 
-    int loc = 2;
-
-    // If every block in the chunk is the same, the saved count will be 65536 
-    // but wrap to 0 as uint16_t's max is 65535. If we read in a 0, 
-    // interpret it to be that every block in this chunk is the same.
-    if (chunkData.data[loc] == 0)
-        FillChunk(chunk, chunkData.data[loc + 1]);
-    else
+    for (int y = 0; y < WORLD_CHUNK_HEIGHT; y++)
     {
-        while (i < CHUNK_SIZE_3)
-        {
-            int count = chunkData.data[loc++];
-            Block block = chunkData.data[loc++];
+        ivec3 local = ivec3(p.x & REGION_MASK, y, p.z & REGION_MASK);
+        int offset = RegionIndex(local);
 
-            for (int j = 0; j < count; j++)
-                chunk->blocks[i++] = block;
+        assert(offset >= 0 && offset < REGION_SIZE_3);
+        
+        SerializedChunk chunkData = region->chunks[offset];
+
+        if (chunkData.size == 0)
+            continue;
+
+        Chunk* chunk = group->chunks + y;
+        hasData = true;
+
+        int i = 0; 
+        int loc = 2;
+
+        // If every block in the chunk is the same, the saved count will be 65536 
+        // but wrap to 0 as uint16_t's max is 65535. If we read in a 0, 
+        // interpret it to be that every block in this chunk is the same.
+        if (chunkData.data[loc] == 0)
+            FillChunk(chunk, chunkData.data[loc + 1]);
+        else
+        {
+            while (i < CHUNK_SIZE_3)
+            {
+                int count = chunkData.data[loc++];
+                Block block = chunkData.data[loc++];
+
+                for (int j = 0; j < count; j++)
+                    chunk->blocks[i++] = block;
+            }
         }
     }
 
-    return true;
+    return hasData;
 }
 
-static void SaveChunk(World* world, Chunk* chunk)
+static void SaveGroup(World* world, void* groupPtr)
 {
-    assert(chunk->modified);
+    ChunkGroup* group = (ChunkGroup*)groupPtr;
+    ChunkPos p = group->pos;
 
-    ChunkPos p = chunk->cPos;
-
-    RegionPos regionP = ChunkToRegionPos(p);
-
-    Region* region = GetRegion(world, regionP);
-    assert(region != nullptr);
-
-    region->modified = true;
-
-    ivec3 local = ivec3(p.x & REGION_MASK, 0, p.z & REGION_MASK);
-    int offset = RegionIndex(local);
-
-    assert(offset >= 0 && offset < REGION_SIZE_3);
-
-    SerializedChunk& store = region->chunks[offset];
-    region->hasData = true;
-    store.Clear();
-
-    store.Add((uint16_t)offset);
-
-    // Holds the number of elements we will write. We won't know this value until 
-    // after the RLE compression, but we should reserve its position in the data.
-    store.Add(0);
-
-    Block currentBlock = chunk->blocks[0];
-    uint16_t count = 1;
-
-    for (int i = 1; i < CHUNK_SIZE_3; i++)
+    for (int y = 0; y < WORLD_CHUNK_HEIGHT; y++)
     {
-        Block block = chunk->blocks[i];
+        Chunk* chunk = group->chunks + y;
 
-        if (block != currentBlock)
-        {
-            store.Add(count);
-            store.Add(currentBlock);
-            count = 1;
-            currentBlock = block;
-        }
-        else count++;
+        if (!chunk->modified)
+            continue;
 
-        if (i == CHUNK_SIZE_3 - 1)
+        RegionPos regionP = ChunkToRegionPos(p);
+
+        Region* region = GetRegion(world, regionP);
+        assert(region != nullptr);
+
+        region->modified = true;
+
+        ivec3 local = ivec3(p.x & REGION_MASK, 0, p.z & REGION_MASK);
+        int offset = RegionIndex(local);
+
+        assert(offset >= 0 && offset < REGION_SIZE_3);
+
+        SerializedChunk& store = region->chunks[offset];
+        region->hasData = true;
+        store.Clear();
+
+        store.Add((uint16_t)offset);
+
+        // Holds the number of elements we will write. We won't know this value until 
+        // after the RLE compression, but we should reserve its position in the data.
+        store.Add(0);
+
+        Block currentBlock = chunk->blocks[0];
+        uint16_t count = 1;
+
+        for (int i = 1; i < CHUNK_SIZE_3; i++)
         {
-            store.Add(count);
-            store.Add(currentBlock);
+            Block block = chunk->blocks[i];
+
+            if (block != currentBlock)
+            {
+                store.Add(count);
+                store.Add(currentBlock);
+                count = 1;
+                currentBlock = block;
+            }
+            else count++;
+
+            if (i == CHUNK_SIZE_3 - 1)
+            {
+                store.Add(count);
+                store.Add(currentBlock);
+            }
         }
+
+        store.data[1] = (uint16_t)(store.size - 2);
+        chunk->modified = false;
     }
-
-    store.data[1] = (uint16_t)(store.size - 2);
-    chunk->modified = false;
 }
 
 static void SaveWorld(World* world)
@@ -328,13 +346,8 @@ static void SaveWorld(World* world)
 
     WriteBinary(path, (char*)&world->seed, sizeof(int));
 
-    for (int i = 0; i < world->totalChunks; i++)
-    {
-        Chunk* chunk = world->chunks[i];
-
-        if (chunk->modified)
-            SaveChunk(world, chunk);
-    }
+    for (int i = 0; i < world->totalGroups; i++)
+        SaveGroup(world, world->groups[i]);
 
     SaveAllRegions(world);
 }

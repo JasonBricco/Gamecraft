@@ -615,7 +615,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 
 	Move(world, player, accel, deltaTime);
 
-	float min = 0.0f, max = (float)(world->size * CHUNK_SIZE_X - 1);
+	float min = 0.0f, max = (float)(world->size * CHUNK_SIZE_H - 1);
 	player->pos.x = std::clamp(player->pos.x, min, max);
 	player->pos.z = std::clamp(player->pos.z, min, max);
 
@@ -635,13 +635,6 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 	{
 		cam->fadeColor = CLEAR_COLOR;
 		cam->disableFluidCull = false;
-	}
-
-	if (KeyPressed(input, KEY_BACKSPACE))
-	{
-		ivec3 cPos = LWorldToLChunkPos(player->pos);
-		Chunk* chunk = GetChunk(world, cPos);
-		FillChunk(world, chunk, BLOCK_AIR);
 	}
 
 	int op = MousePressed(input, 0) ? 0 : MousePressed(input, 1) ? 1 : -1;
@@ -687,7 +680,7 @@ static Player* NewPlayer()
 
 static void SpawnPlayer(GameState* state, Player* player, Rectf spawnBounds)
 {
-	vec3 spawn = spawnBounds.min + (CHUNK_SIZE_X / 2.0f);
+	vec3 spawn = spawnBounds.min + (CHUNK_SIZE_H / 2.0f);
 	spawn.y = 100.0f;
 	player->pos = spawn;
 

@@ -358,7 +358,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	WorldConfig worldConfig = {};
 	worldConfig.radius = 1024;
 
-	World* world = NewWorld(state, 13, worldConfig);
+	World* world = NewWorld(state, 7, worldConfig);
 
 	Player* player = NewPlayer();
 	world->player = player;

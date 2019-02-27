@@ -4,41 +4,41 @@
 
 static inline float GetNoiseValue2D(float* noiseSet, int x, int z)
 {
-    return (noiseSet[x * (CHUNK_SIZE_X) + z] + 1.0f) / 2.0f;
+    return (noiseSet[x * (CHUNK_SIZE_H) + z] + 1.0f) / 2.0f;
 }
 
 static inline float GetRawNoiseValue2D(float* noiseSet, int x, int z)
 {
-    return noiseSet[x * (CHUNK_SIZE_X) + z];
+    return noiseSet[x * (CHUNK_SIZE_H) + z];
 }
 
 static inline float GetNoiseValue3D(float* noiseSet, int x, int y, int z, int maxY)
 {
-    return (noiseSet[z + CHUNK_SIZE_X * (y + maxY * x)] + 1.0f) / 2.0f;
+    return (noiseSet[z + CHUNK_SIZE_H * (y + maxY * x)] + 1.0f) / 2.0f;
 }
 
 static inline float* GetNoise2D(Noise* noise, Noise::NoiseType type, int x, int y, int z, float scale = 1.0f)
 {
     noise->SetNoiseType(type);
-    int sizeX = CHUNK_SIZE_X;
+    int sizeX = CHUNK_SIZE_H;
     int sizeY = 1;
-    int sizeZ = CHUNK_SIZE_X;
+    int sizeZ = CHUNK_SIZE_H;
     return noise->GetNoiseSet(x, y, z, sizeX, sizeY, sizeZ, scale);
 }
 
 static inline float* GetNoise3D(Noise* noise, Noise::NoiseType type, int x, int z, int maxY, float scale = 1.0f)
 {
     noise->SetNoiseType(type);
-    int sizeX = CHUNK_SIZE_X;
-    int sizeZ = CHUNK_SIZE_X;
+    int sizeX = CHUNK_SIZE_H;
+    int sizeZ = CHUNK_SIZE_H;
     return noise->GetNoiseSet(x, 0, z, sizeX, maxY, sizeZ, scale);
 }
 
-static void GenerateGrassyTerrain(World* world, Chunk* chunk)
+static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
 {
     BEGIN_TIMED_BLOCK(CHUNK_GEN);
 
-    WorldPos start = chunk->cPos * CHUNK_SIZE_X;
+    WorldPos start = ChunkToWorldPos(group->pos);
 
     Noise* noise = Noise::NewFastNoiseSIMD();
     noise->SetSeed(world->seed);
@@ -58,9 +58,9 @@ static void GenerateGrassyTerrain(World* world, Chunk* chunk)
     int surfaceMap[CHUNK_SIZE_2];
     int maxY = 0;
 
-    for (int x = 0; x < CHUNK_SIZE_X; x++)
+    for (int x = 0; x < CHUNK_SIZE_H; x++)
     {
-        for (int z = 0; z < CHUNK_SIZE_X; z++)
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
         {
             // Determine if this column is inside of the island. The world center is assumed to be the origin (0, 0).
             int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
@@ -99,13 +99,13 @@ static void GenerateGrassyTerrain(World* world, Chunk* chunk)
                 }
 
                 int height = (int)(terrainVal * p);
-                surfaceMap[z * CHUNK_SIZE_X + x] = height;
+                surfaceMap[z * CHUNK_SIZE_H + x] = height;
 
                 maxY = Max(maxY, Max(height, SEA_LEVEL));
             }
             else 
             {
-                surfaceMap[z * CHUNK_SIZE_X + x] = 0;
+                surfaceMap[z * CHUNK_SIZE_H + x] = 0;
                 maxY = Max(maxY, SEA_LEVEL);
             }
         }
@@ -114,58 +114,73 @@ static void GenerateGrassyTerrain(World* world, Chunk* chunk)
     noise->SetFractalOctaves(2);
     noise->SetFrequency(0.015f);
     noise->SetFractalType(Noise::FBM);
-    float* comp = GetNoise3D(noise, Noise::SimplexFractal, start.x, start.z, maxY, 0.2f);
+    float* comp = GetNoise3D(noise, Noise::SimplexFractal, start.x, start.z, maxY + 1, 0.2f);
 
-    for (int x = 0; x < CHUNK_SIZE_X; x++)
+    for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
-        for (int z = 0; z < CHUNK_SIZE_X; z++)
+        Chunk* chunk = group->chunks + i;
+        LWorldPos lwP = chunk->lwPos;
+
+        if (lwP.y > maxY)
+            continue;
+
+        int limY = Min(lwP.y + CHUNK_V_MASK, maxY) & CHUNK_V_MASK;
+
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
         {
-            int height = surfaceMap[z * CHUNK_SIZE_X + x];
-
-            for (int y = 0; y <= maxY; y++)
+            for (int y = 0; y <= limY; y++)
             {
-                float compVal = GetNoiseValue3D(comp, x, y, z, maxY);
-
-                if (y <= height - 10)
+                for (int x = 0; x < CHUNK_SIZE_H; x++)
                 {
-                    if (compVal <= 0.2f)
+                    int height = surfaceMap[z * CHUNK_SIZE_H + x];
+                    float compVal = GetNoiseValue3D(comp, x, y, z, maxY);
+
+                    if (y <= height - 10)
                     {
-                        SetBlock(chunk, x, y, z, BLOCK_STONE);
-                        continue;
+                        if (compVal <= 0.2f)
+                        {
+                            SetBlock(chunk, x, y, z, BLOCK_STONE);
+                            continue;
+                        }
                     }
-                }
 
-                if (y == height)
-                    SetBlock(chunk, x, y, z, BLOCK_GRASS);
-                else if (y > height && y <= SEA_LEVEL)
-                    SetBlock(chunk, x, y, z, BLOCK_WATER);
-                else 
-                {
-                    if (y < height)
-                        SetBlock(chunk, x, y, z, BLOCK_DIRT);
+                    if (y == height)
+                        SetBlock(chunk, x, y, z, BLOCK_GRASS);
+                    else if (y > height && y <= SEA_LEVEL)
+                        SetBlock(chunk, x, y, z, BLOCK_WATER);
+                    else 
+                    {
+                        if (y < height)
+                            SetBlock(chunk, x, y, z, BLOCK_DIRT);
+                    }
                 }
             }
         }
     }
 
+    Noise::FreeNoiseSet(comp);
     Noise::FreeNoiseSet(ridged);
     Noise::FreeNoiseSet(base);
     Noise::FreeNoiseSet(biome);
-    Noise::FreeNoiseSet(comp);
 
     delete noise;
 
     END_TIMED_BLOCK(CHUNK_GEN);
 }
 
-static void GenerateGridTerrain(World*, Chunk* chunk)
+static void GenerateGridTerrain(World*, ChunkGroup* group)
 {
-    for (int x = 0; x < CHUNK_SIZE_X; x += 2)
+    for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
-        for (int z = 0; z < CHUNK_SIZE_X; z += 2)
+        Chunk* chunk = group->chunks + i;
+        
+        for (int x = 0; x < CHUNK_SIZE_H; x += 2)
         {
-            for (int y = 0; y < WORLD_HEIGHT; y += 2)
-                SetBlock(chunk, x, y, z, BLOCK_METAL_CRATE);
+            for (int z = 0; z < CHUNK_SIZE_H; z += 2)
+            {
+                for (int y = 0; y < CHUNK_SIZE_V; y += 2)
+                    SetBlock(chunk, x, y, z, BLOCK_METAL_CRATE);
+            }
         }
     }
 }

@@ -2,14 +2,14 @@
 // Jason Bricco
 //
 
-using AsyncCallback = void(*)(World*, Chunk*);
-using AsyncFunc = void(*)(World*, Chunk*);
+using AsyncCallback = void(*)(World*, void*);
+using AsyncFunc = void(*)(World*, void*);
 
 struct AsyncItem
 {
     AsyncFunc func;
     World* world;
-    Chunk* chunk;
+    void* data;
     AsyncCallback callback;
 };
 
@@ -17,7 +17,7 @@ struct AsyncCallbackItem
 {
     AsyncCallback callback;
     World* world;
-    Chunk* chunk;
+    void* data;
 };
 
 struct WorkQueue

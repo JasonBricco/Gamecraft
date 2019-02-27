@@ -3,20 +3,24 @@
 //
 
 // Chunk size in blocks.
-#define CHUNK_SIZE_X 16
-#define CHUNK_SIZE_Y 256
+#define CHUNK_SIZE_H 32
+#define CHUNK_SIZE_V 64
 
-#define CHUNK_SIZE_BITS 4
-#define CHUNK_MASK 15
+#define CHUNK_H_BITS 5
+#define CHUNK_V_BITS 6
+
+#define CHUNK_H_MASK 31
+#define CHUNK_V_MASK 63
 
 // The number of blocks in a chunk.
 #define CHUNK_SIZE_3 65536
-#define CHUNK_SIZE_2 256
+#define CHUNK_SIZE_2 1024
 
-#define CHUNK_HASH_SIZE 4096
+#define GROUP_HASH_SIZE 2048
 #define SEA_LEVEL 12
 
-#define WORLD_HEIGHT 256
+#define WORLD_CHUNK_HEIGHT 4
+#define WORLD_BLOCK_HEIGHT 256
 
 // The position of the chunk in local space around the player.
 // All loaded chunks are in a local array. This indexes into it.
@@ -43,8 +47,7 @@ typedef FastNoiseSIMD Noise;
 
 enum ChunkState
 {
-    CHUNK_LOADING,
-    CHUNK_LOADED,
+    CHUNK_DEFAULT,
     CHUNK_BUILDING,
     CHUNK_NEEDS_FILL,
     CHUNK_BUILT,
@@ -54,7 +57,6 @@ enum ChunkState
 struct Chunk
 {
     LChunkPos lcPos;
-    ChunkPos cPos;
     LWorldPos lwPos;
 
     Block blocks[CHUNK_SIZE_3];
@@ -66,15 +68,21 @@ struct Chunk
 
     ChunkState state;
 
-    bool active, modified;
-
-    Chunk* next;
+    bool modified;
 };
 
-struct ChunkQueue
+struct ChunkGroup
 {
-    Chunk* front;
-    Chunk* end;
+    ChunkPos pos;
+    Chunk chunks[WORLD_CHUNK_HEIGHT];
+    bool active, loaded;
+    ChunkGroup* next;
+};
+
+struct GroupDestroyQueue
+{
+    ChunkGroup* front;
+    ChunkGroup* end;
     int count;
 };
 
@@ -95,25 +103,25 @@ struct World
     int falloffRadius;
 
     // Chunk pool to avoid constant allocating/freeing.
-    Chunk** pool;
+    ChunkGroup** pool;
     int poolSize, maxPoolSize;
 
-    // All actively loaded chunks around the player.
-    Chunk** chunks;
-    int totalChunks;
+    // All actively loaded chunk groups around the player.
+    ChunkGroup** groups;
+    int totalGroups;
 
     // Tracks work being done by background threads so that the world cannot shift
     // while background work is being done.
     int buildCount;
 
     // Chunk hash table to store chunks that need to transition.
-    Chunk* chunkHash[CHUNK_HASH_SIZE];
+    ChunkGroup* groupHash[GROUP_HASH_SIZE];
 
     // Chunks currently awaiting destruction.
-    ChunkQueue destroyQueue;
+    GroupDestroyQueue destroyQueue;
 
     // Spawn and reference corner in world chunk coordinates.
-    ChunkPos spawnChunk;
+    ChunkPos spawnGroup;
     ChunkPos ref;
 
     // Specifies the area in float space that the player exists within.
@@ -145,7 +153,7 @@ struct World
 struct RebasedPos
 {
     Chunk* chunk;
-    int rX, rZ;
+    int rX, rY, rZ;
 };
 
 struct WorldConfig

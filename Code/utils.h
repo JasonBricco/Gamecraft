@@ -51,22 +51,28 @@ struct Ray
     vec3 dir;
 };
 
-#define DIRECTION_LEFT 0
-#define DIRECTION_RIGHT 1
-#define DIRECTION_BACK 2
-#define DIRECTION_FRONT 3
-#define DIRECTION_UP 4
-#define DIRECTION_DOWN 5
+#define DIR_LEFT ivec3(-1, 0, 0)
+#define DIR_RIGHT ivec3(1, 0, 0)
+#define DIR_BACK ivec3(0, 0, -1)
+#define DIR_FRONT ivec3(0, 0, 1)
+#define DIR_UP ivec3(0, 1, 0)
+#define DIR_DOWN ivec3(0, -1, 0)
+#define DIR_LEFT_BACK ivec3(-1, 0, -1)
+#define DIR_LEFT_FRONT ivec3(-1, 0, 1)
+#define DIR_RIGHT_BACK ivec3(1, 0, -1)
+#define DIR_RIGHT_FRONT ivec3(1, 0, 1)
+#define DIR_LEFT_DOWN_BACK ivec3(-1, -1, -1)
+#define DIR_RIGHT_UP_FRONT ivec3(1, 1, 1)
 
-static const ivec3 DIRECTIONS_2D[8] = 
+static const ivec3 DIRS_2D[8] = 
 { 
-    ivec3(-1, 0, 0), ivec3(1, 0, 0), ivec3(0, 0, -1), ivec3(0, 0, 1),
-    ivec3(-1, 0, -1), ivec3(-1, 0, 1), ivec3(1, 0, -1), ivec3(1, 0, 1)
+    DIR_LEFT, DIR_RIGHT, DIR_BACK, DIR_FRONT,
+    DIR_LEFT_BACK, DIR_LEFT_FRONT, DIR_RIGHT_BACK, DIR_RIGHT_FRONT
 };
 
 static const ivec3 DIRECTIONS_3D[6] =
 {
-    ivec3(-1, 0, 0), ivec3(1, 0, 0), ivec3(0, 0, -1), ivec3(0, 0, 1), ivec3(0, 1, 0), ivec3(0, -1, 0)
+    DIR_LEFT, DIR_RIGHT, DIR_BACK, DIR_FRONT, DIR_UP, DIR_DOWN
 };
 
 static inline int Clamp(int value, int min, int max)

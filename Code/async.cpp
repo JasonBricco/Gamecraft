@@ -18,7 +18,7 @@ static inline bool DoNextAsync(WorkQueue& queue)
     	if (InterlockedCompareExchange(&queue.read, nextRead, originalRead) == originalRead)
 	    {
 	    	AsyncItem item = queue.items[originalRead];
-            item.func(item.world, item.chunk);
+            item.func(item.world, item.data);
 	    }
     }
  	else sleep = true;
@@ -39,7 +39,7 @@ static DWORD WINAPI ThreadProc(LPVOID ptr)
 
 #if MULTITHREADING
 
-static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, Chunk* chunk, AsyncCallback callback = nullptr)
+static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, void* data, AsyncCallback callback = nullptr)
 {
 	WorkQueue& queue = state->workQueue;
 	uint32_t nextWrite = (queue.write + 1) & (queue.size - 1);
@@ -47,7 +47,7 @@ static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, Ch
 	AsyncItem* item = queue.items + queue.write;
 	item->func = func;
 	item->world = world;
-	item->chunk = chunk;
+	item->data = data;
 	item->callback = callback;
 	queue.write = nextWrite;
 	ReleaseSemaphore(state->semaphore, 1, NULL);
@@ -55,10 +55,10 @@ static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, Ch
 
 #else
 
-static inline void QueueAsync(GameState*, AsyncFunc func, World* world, Chunk* chunk, AsyncCallback callback = nullptr)
+static inline void QueueAsync(GameState*, AsyncFunc func, World* world, void* data, AsyncCallback callback = nullptr)
 {
 	Unused(callback);
-	func(world, chunk);
+	func(world, data);
 }
 
 #endif
