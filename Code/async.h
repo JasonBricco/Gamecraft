@@ -20,7 +20,7 @@ struct AsyncCallbackItem
     void* data;
 };
 
-struct WorkQueue
+struct AsyncWorkQueue
 {
     // Read and write mark the locations where we write values into and read values 
     // from the queue. Write should write ahead while read stays behind. If read 

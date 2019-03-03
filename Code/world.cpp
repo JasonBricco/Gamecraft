@@ -2,25 +2,6 @@
 // Jason Bricco
 //
 
-static inline void EnqueueGroup(GroupDestroyQueue& queue, ChunkGroup* group)
-{
-    if (queue.front == nullptr)
-        queue.front = group;
-    else queue.end->next = group;
-
-    queue.end = group;
-    queue.count++;
-}
-
-static inline ChunkGroup* DequeueGroup(GroupDestroyQueue& queue)
-{
-    ChunkGroup* front = queue.front;
-    queue.front = front->next;
-    front->next = nullptr;
-    queue.count--;
-    return front;
-}
-
 static inline bool BlockInsideChunk(int x, int y, int z)
 {
     return x >= 0 && x < CHUNK_SIZE_H && y >= 0 && y < CHUNK_SIZE_V && z >= 0 && z < CHUNK_SIZE_H;
@@ -526,7 +507,7 @@ static void ShiftWorld(GameState* state, World* world)
 		ChunkGroup* group = world->groupHash[c];
 
         if (group != nullptr && !group->active)
-            EnqueueGroup(world->destroyQueue, group);
+            world->destroyList.push_back(group);
 
         world->groupHash[c] = nullptr;
 	}
@@ -602,13 +583,18 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
 
     ProcessVisibleChunks(state, world, cam, visibleChunks, visibleCount);
 
-    while (world->destroyQueue.count > 0)
+    int destroyLim = 0;
+
+    while (world->destroyList.size() > 0 && destroyLim < 4)
     {
-        ChunkGroup* group = DequeueGroup(world->destroyQueue);
+        ChunkGroup* group = world->destroyList.back();
+        world->destroyList.pop_back();
 
         if (group->loaded)
             QueueAsync(state, SaveGroup, world, group, DestroyGroup);
-        else EnqueueGroup(world->destroyQueue, group);
+        else world->destroyList.push_back(group);
+
+        destroyLim++;
     }
 }
 
@@ -619,6 +605,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
     if (existing == nullptr)
     {
         world = CallocStruct(World);
+        Construct(world, World);
 
         // Load range worth of groups on each side plus the middle group.
         world->size = (loadRange * 2) + 1;

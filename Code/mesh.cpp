@@ -78,6 +78,8 @@ static inline void SetUVs(MeshData* meshData, uint16_t w)
     meshData->uvs[count + 3] = u16vec3(1, 1, w);
 }
 
+static void DestroyMesh(Mesh& mesh);
+
 static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, int32_t flags)
 {
 	BEGIN_TIMED_BLOCK(FILL_MESH);
@@ -107,6 +109,7 @@ static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, int32_t fl
 
 		glVertexAttribPointer(id, 3, GL_UNSIGNED_SHORT, GL_FALSE, 0, NULL); 
 		glEnableVertexAttribArray(id++);
+		TrackGLAllocs(1);
 	}
 
 	if (!HasFlag(flags, MESH_NO_COLORS))
@@ -118,6 +121,7 @@ static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, int32_t fl
 
 		glVertexAttribPointer(id, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
 		glEnableVertexAttribArray(id);
+		TrackGLAllocs(1);
 	}
 
 	// Index buffer.
@@ -127,9 +131,12 @@ static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, int32_t fl
 
 	mesh.flags = flags;
 	mesh.indexCount = meshData->indexCount;
+	assert(mesh.indexCount > 0);
 
 	Free(meshData->data);
 	Free(meshData);
+
+	TrackGLAllocs(3);
 
 	END_TIMED_BLOCK(FILL_MESH);
 }
@@ -155,14 +162,21 @@ static void DestroyMesh(Mesh& mesh)
 		glDeleteBuffers(1, &mesh.positions);
 
 		if (!HasFlag(mesh.flags, MESH_NO_UVS))
+		{
 			glDeleteBuffers(1, &mesh.uvs);
+			UntrackGLAllocs(1);
+		}
 
 		if (!HasFlag(mesh.flags, MESH_NO_COLORS))
+		{
 			glDeleteBuffers(1, &mesh.colors);
+			UntrackGLAllocs(1);
+		}
 
 		glDeleteBuffers(1, &mesh.indices);
 		glDeleteVertexArrays(1, &mesh.va);
 
+		UntrackGLAllocs(3);
 		mesh.indexCount = 0;
 	}
 }

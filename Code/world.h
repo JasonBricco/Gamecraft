@@ -76,14 +76,6 @@ struct ChunkGroup
     ChunkPos pos;
     Chunk chunks[WORLD_CHUNK_HEIGHT];
     bool active, loaded;
-    ChunkGroup* next;
-};
-
-struct GroupDestroyQueue
-{
-    ChunkGroup* front;
-    ChunkGroup* end;
-    int count;
 };
 
 struct Player;
@@ -118,7 +110,7 @@ struct World
     ChunkGroup* groupHash[GROUP_HASH_SIZE];
 
     // Chunks currently awaiting destruction.
-    GroupDestroyQueue destroyQueue;
+    vector<ChunkGroup*> destroyList;
 
     // Spawn and reference corner in world chunk coordinates.
     ChunkPos spawnGroup;

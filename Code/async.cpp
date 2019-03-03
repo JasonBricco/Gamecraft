@@ -2,7 +2,7 @@
 // Jason Bricco
 //
 
-static inline bool DoNextAsync(WorkQueue& queue)
+static inline bool DoNextAsync(GameState* state, AsyncWorkQueue& queue)
 {
     bool sleep = false;
  
@@ -19,6 +19,14 @@ static inline bool DoNextAsync(WorkQueue& queue)
 	    {
 	    	AsyncItem item = queue.items[originalRead];
             item.func(item.world, item.data);
+
+            if (item.callback != nullptr)
+            {
+            	WaitForSingleObject(state->callbackMutex, INFINITE);
+			    AsyncCallbackItem cb = { item.callback, item.world, item.data };
+			    state->callbacks.push_back(cb);
+			    ReleaseMutex(state->callbackMutex);
+            }
 	    }
     }
  	else sleep = true;
@@ -32,24 +40,38 @@ static DWORD WINAPI ThreadProc(LPVOID ptr)
 
 	while (true)
 	{
-		if (DoNextAsync(state->workQueue)) 
+		if (DoNextAsync(state, state->workQueue)) 
 			WaitForSingleObject(state->semaphore, INFINITE);
     }
+}
+
+static void RunAsyncCallbacks(GameState* state)
+{
+	WaitForSingleObject(state->callbackMutex, INFINITE);
+
+	for (int i = 0; i < state->callbacks.size(); i++)
+	{
+		AsyncCallbackItem item = state->callbacks[i];
+		item.callback(item.world, item.data);
+	}
+
+	state->callbacks.clear();
+	ReleaseMutex(state->callbackMutex);
 }
 
 #if MULTITHREADING
 
 static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, void* data, AsyncCallback callback = nullptr)
 {
-	WorkQueue& queue = state->workQueue;
-	uint32_t nextWrite = (queue.write + 1) & (queue.size - 1);
-	assert(nextWrite != queue.read);
-	AsyncItem* item = queue.items + queue.write;
-	item->func = func;
-	item->world = world;
-	item->data = data;
-	item->callback = callback;
-	queue.write = nextWrite;
+	AsyncWorkQueue& asyncQueue = state->workQueue;
+	uint32_t nextWrite = (asyncQueue.write + 1) & (asyncQueue.size - 1);
+	assert(nextWrite != asyncQueue.read);
+	AsyncItem* asyncItem = asyncQueue.items + asyncQueue.write;
+	asyncItem->func = func;
+	asyncItem->world = world;
+	asyncItem->data = data;
+	asyncItem->callback = callback;
+	asyncQueue.write = nextWrite;
 	ReleaseSemaphore(state->semaphore, 1, NULL);
 }
 
@@ -57,8 +79,10 @@ static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, vo
 
 static inline void QueueAsync(GameState*, AsyncFunc func, World* world, void* data, AsyncCallback callback = nullptr)
 {
-	Unused(callback);
 	func(world, data);
+
+	if (callback != nullptr)
+		callback(world, data);
 }
 
 #endif
@@ -73,9 +97,11 @@ static void CreateThreads(GameState* state)
 	int threadCount = info.dwNumberOfProcessors - 1;
 	Print("Creating %i threads.\n", threadCount)
 
-	WorkQueue& queue = state->workQueue;
-	queue.size = 4096;
-	queue.items = AllocArray(queue.size, AsyncItem);
+	AsyncWorkQueue& asyncQueue = state->workQueue;
+	asyncQueue.size = 2048;
+	asyncQueue.items = AllocArray(asyncQueue.size, AsyncItem);
+
+	state->callbackMutex = CreateMutex(NULL, FALSE, NULL);
 
 	for (int i = 0; i < threadCount; i++)
 	{

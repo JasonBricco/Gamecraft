@@ -426,6 +426,7 @@ static Texture LoadTexture(int width, int height, uint8_t* pixels)
 	Texture tex;
 
     glGenTextures(1, &tex.id);
+    TrackGLAllocs(1);
     glBindTexture(GL_TEXTURE_2D, tex.id);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -460,6 +461,7 @@ static Texture LoadTextureArray(ImageData* data, int count, char* assetData)
 
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    TrackGLAllocs(2);
 
     return tex;
 }

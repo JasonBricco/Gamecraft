@@ -6,8 +6,13 @@ struct GameState
 {
 	AssetDatabase assets;
 
-	// Holds work to be added by the main thread and performed by background threads.
-	WorkQueue workQueue;
+	// Holds work to be added by the main thread and performed by background threads,
+	// or work added by background threads to be performed by the main thread.
+	AsyncWorkQueue workQueue;
+	
+	vector<AsyncCallbackItem> callbacks;
+	HANDLE callbackMutex;
+	
 	HANDLE semaphore;
 
 	int windowWidth, windowHeight;

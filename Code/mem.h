@@ -45,6 +45,7 @@ struct DebugAllocHeader
 };
 
 static vector<DebugAllocInfo> g_allocs;
+static int g_glAlloc = 0;
 static HANDLE g_allocMutex = NULL;
 
 typedef vector<DebugAllocInfo>::iterator DebugAllocIterator;
@@ -175,6 +176,9 @@ static void DumpMemoryInfo()
 
 	for (auto it = g_allocs.begin(); it != g_allocs.end(); it++)
 		Print("%s (%s): %i [%.2f mb]\n", it->str, it->type, it->count, it->sizeInMb);
+
+	Print("GL Allocs: %i\n", g_glAlloc);
+	Print("\n");
 }
 
 #define AllocStruct(type) (type*)DebugMalloc(sizeof(type), __FILE__, __LINE__, #type)
@@ -190,6 +194,9 @@ static void DumpMemoryInfo()
 #define ReallocArray(ptr, count, type) (type*)DebugRealloc(ptr, count * sizeof(type), __FILE__, __LINE__, #type)
 #define ReallocRaw(ptr, size) DebugRealloc(ptr, size, __FILE__, __LINE__, "Raw")
 
+#define TrackGLAllocs(count) g_glAlloc += count
+#define UntrackGLAllocs(count) g_glAlloc -= count
+
 #else
 
 #define AllocStruct(type) (type*)malloc(sizeof(type))
@@ -204,5 +211,8 @@ static void DumpMemoryInfo()
 
 #define ReallocArray(ptr, count, type) (type*)realloc(ptr, count * sizeof(type))
 #define ReallocRaw(ptr, size) realloc(ptr, size)
+
+#define TrackGLAllocs(count)
+#define UntrackGLAllocs(count)
 
 #endif

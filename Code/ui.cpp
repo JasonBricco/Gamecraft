@@ -72,7 +72,6 @@ static void InitUI(GLFWwindow* window, UI& ui)
 
     io.Fonts->TexID = (ImTextureID)(intptr_t)ui.fontTexture;
 
-    // Create VAO.
     glGenVertexArrays(1, &ui.va);
     glBindVertexArray(ui.va);
 
@@ -89,6 +88,7 @@ static void InitUI(GLFWwindow* window, UI& ui)
     glEnableVertexAttribArray(2);
 
     glGenBuffers(1, &ui.ib);
+    TrackGLAllocs(4);
 }
 
 static inline void MultiSpacing(int amount)
