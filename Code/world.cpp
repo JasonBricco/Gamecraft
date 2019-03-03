@@ -654,7 +654,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         }
 
         world->blockToSet = BLOCK_GRASS;
-        world->regionMutex = CreateMutex(NULL, FALSE, NULL);
+        InitializeCriticalSection(&world->regionCS);
     }
     else 
     {

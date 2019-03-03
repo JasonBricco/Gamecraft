@@ -11,7 +11,7 @@ struct GameState
 	AsyncWorkQueue workQueue;
 	
 	vector<AsyncCallbackItem> callbacks;
-	HANDLE callbackMutex;
+	SRWLOCK callbackLock;
 	
 	HANDLE semaphore;
 

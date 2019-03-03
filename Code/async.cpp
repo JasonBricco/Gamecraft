@@ -22,10 +22,10 @@ static inline bool DoNextAsync(GameState* state, AsyncWorkQueue& queue)
 
             if (item.callback != nullptr)
             {
-            	WaitForSingleObject(state->callbackMutex, INFINITE);
+            	AcquireSRWLockExclusive(&state->callbackLock);
 			    AsyncCallbackItem cb = { item.callback, item.world, item.data };
 			    state->callbacks.push_back(cb);
-			    ReleaseMutex(state->callbackMutex);
+			    ReleaseSRWLockExclusive(&state->callbackLock);
             }
 	    }
     }
@@ -47,7 +47,7 @@ static DWORD WINAPI ThreadProc(LPVOID ptr)
 
 static void RunAsyncCallbacks(GameState* state)
 {
-	WaitForSingleObject(state->callbackMutex, INFINITE);
+	AcquireSRWLockExclusive(&state->callbackLock);
 
 	for (int i = 0; i < state->callbacks.size(); i++)
 	{
@@ -56,7 +56,7 @@ static void RunAsyncCallbacks(GameState* state)
 	}
 
 	state->callbacks.clear();
-	ReleaseMutex(state->callbackMutex);
+	ReleaseSRWLockExclusive(&state->callbackLock);
 }
 
 #if MULTITHREADING
@@ -101,7 +101,7 @@ static void CreateThreads(GameState* state)
 	asyncQueue.size = 2048;
 	asyncQueue.items = AllocArray(asyncQueue.size, AsyncItem);
 
-	state->callbackMutex = CreateMutex(NULL, FALSE, NULL);
+	InitializeSRWLock(&state->callbackLock);
 
 	for (int i = 0; i < threadCount; i++)
 	{

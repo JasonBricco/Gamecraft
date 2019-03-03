@@ -128,7 +128,7 @@ struct World
     int regionCount;
 
     // Used to ensure blocking when loading a region file.
-    HANDLE regionMutex;
+    CRITICAL_SECTION regionCS;
 
     Player* player;
 

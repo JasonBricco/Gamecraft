@@ -232,9 +232,9 @@ static bool LoadGroupFromDisk(World* world, ChunkGroup* group)
     ChunkPos p = group->pos;
     RegionPos regionP = ChunkToRegionPos(p);
 
-    WaitForSingleObject(world->regionMutex, INFINITE);
+    EnterCriticalSection(&world->regionCS);
     Region* region = GetOrLoadRegion(world, regionP);
-    ReleaseMutex(world->regionMutex);
+    LeaveCriticalSection(&world->regionCS);
 
     bool hasData = false;
 
