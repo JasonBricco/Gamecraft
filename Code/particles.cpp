@@ -18,7 +18,11 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
     data->positions[3] = vec3(0.015625f, -0.125f, 0.015625f);
     data->vertCount = 4;
 
-	FillMeshData(emitter.mesh, data, GL_STREAM_DRAW, MESH_NO_COLORS);
+	FillMeshData(emitter.mesh, data, GL_STREAM_DRAW, MESH_NO_COLORS | MESH_NO_UVS);
+
+	glGenBuffers(1, &emitter.modelBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, emitter.modelBuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(mat4) * MAX_PARTICLES, NULL, GL_STREAM_DRAW);
 
 	for (int i = 0; i < 4; i++)
 	{

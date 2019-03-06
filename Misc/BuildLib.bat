@@ -32,7 +32,7 @@ IF "%~1" == "imgui" (
 	GOTO imgui
 )
 
-echo The specific library does not exist.
+echo The specific library does not exist. Options: 'glew', 'glfw', 'stb_vorbis', 'imgui', 'fastnoisesimd'.
 GOTO quit
 
 REM ------------------------------------- FAST NOISE SIMD -------------------------------------

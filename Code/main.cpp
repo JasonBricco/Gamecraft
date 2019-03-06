@@ -353,7 +353,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPos(window, state->windowWidth / 2.0f, state->windowHeight / 2.0f);
 
-	InitParticleEmitter(state->rain, 6, 20.0f);
+	InitParticleEmitter(state->rain, 12, 20.0f);
 
 	WorldConfig worldConfig = {};
 	worldConfig.radius = 1024;
