@@ -91,27 +91,27 @@ static bool NeighborsLoaded(World* world, Chunk* chunk)
     return true;
 }
 
-static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam, Chunk** visibleChunks, int visibleCount)
+static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
 {
     for (int i = 0; i < CHUNK_MESH_COUNT; i++)
     {
         ChunkMeshList& list = cam->meshLists[i];
-        list.meshes = AllocTempArray(visibleCount, ChunkMesh);
+        list.meshes = AllocTempArray(world->visibleCount, ChunkMesh);
         list.count = 0;
     }
 
     vec2 playerChunk = vec2(world->loadRange, world->loadRange);
 
-    sort(visibleChunks, visibleChunks + visibleCount, [playerChunk](auto a, auto b) 
+    sort(world->visibleChunks, world->visibleChunks + world->visibleCount, [playerChunk](auto a, auto b) 
     { 
         float distA = distance2(vec2(a->lcPos.x, a->lcPos.z), playerChunk);
         float distB = distance2(vec2(b->lcPos.x, b->lcPos.z), playerChunk);
         return distA < distB;
     });
-    
-    for (int i = 0; i < visibleCount; i++)
+
+    for (int i = 0; i < world->visibleCount; i++)
     {
-        Chunk* chunk = visibleChunks[i];
+        Chunk* chunk = world->visibleChunks[i];
 
         switch (chunk->state)
         {
@@ -126,10 +126,11 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam, Ch
             } break;
 
             case CHUNK_NEEDS_FILL:
+            {
                 FillChunkMeshes(chunk);
                 chunk->state = CHUNK_BUILT;
                 world->buildCount--;
-                break;
+            }
 
             case CHUNK_BUILT:
             {
@@ -152,9 +153,9 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam, Ch
     }
 }
 
-static Chunk** GetVisibleChunks(World* world, Camera* cam, int& visibleCount)
+static void GetVisibleChunks(World* world, Camera* cam)
 {    
-    Chunk** visibleChunks = AllocTempArray(world->totalGroups * WORLD_CHUNK_HEIGHT, Chunk*);
+    world->visibleCount = 0;
 
     for (int g = 0; g < world->totalGroups; g++)
     {
@@ -167,11 +168,11 @@ static Chunk** GetVisibleChunks(World* world, Camera* cam, int& visibleCount)
             Chunk* chunk = group->chunks + i;
 
             // Ensure chunks that need to be filled are considered visible so that
-            // their meshes will be filled. This prevents blocking the world generation
-            // when the building chunks can't decrement.
+            // their meshes will be filled. This prevents blocking when a visible chunk
+            // begins building but is no longer visible at the time of needing to be filled.
             if (chunk->state == CHUNK_NEEDS_FILL)
             {
-                visibleChunks[visibleCount++] = chunk;
+                world->visibleChunks[world->visibleCount++] = chunk;
                 continue;
             }
             
@@ -182,11 +183,9 @@ static Chunk** GetVisibleChunks(World* world, Camera* cam, int& visibleCount)
             FrustumVisibility visibility = TestFrustum(cam, min, max);
 
             if (visibility >= FRUSTUM_VISIBLE)
-                visibleChunks[visibleCount++] = chunk;
+                world->visibleChunks[world->visibleCount++] = chunk;
         }
     }
-
-    return visibleChunks;
 }
 
 // Returns true if the current block should draw its face when placed

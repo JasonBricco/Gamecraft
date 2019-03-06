@@ -576,12 +576,13 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
             CheckWorld(state, world, player);
     }
 
-    GetCameraPlanes(cam);
+    if (world->buildCount == 0)
+    {
+        GetCameraPlanes(cam);
+        GetVisibleChunks(world, cam);
+    }
 
-    int visibleCount = 0;
-    Chunk** visibleChunks = GetVisibleChunks(world, cam, visibleCount);
-
-    ProcessVisibleChunks(state, world, cam, visibleChunks, visibleCount);
+    ProcessVisibleChunks(state, world, cam);
 
     int destroyLim = 0;
 
@@ -612,6 +613,8 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
         world->totalGroups = Square(world->size);
         world->groups = CallocArray(world->totalGroups, ChunkGroup*);
+
+        world->visibleChunks = AllocArray(world->totalGroups * WORLD_CHUNK_HEIGHT, Chunk*);
 
         world->loadRange = loadRange;
 
