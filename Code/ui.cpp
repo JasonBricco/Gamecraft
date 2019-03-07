@@ -217,6 +217,8 @@ static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
     BlockButton(world, window, state, IMAGE_LEAVES, BLOCK_LEAVES, &blockName);
     ImGui::Spacing();
     BlockButton(world, window, state, IMAGE_CLAY, BLOCK_CLAY, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, window, state, IMAGE_SNOW_SIDE, BLOCK_SNOW, &blockName);
  
     ImGui::PopStyleColor();
 

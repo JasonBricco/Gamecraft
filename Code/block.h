@@ -21,6 +21,7 @@ enum BlockType : Block
     BLOCK_WOOD,
     BLOCK_LEAVES,
     BLOCK_CLAY,
+    BLOCK_SNOW,
     BLOCK_COUNT
 };
 

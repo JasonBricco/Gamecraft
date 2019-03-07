@@ -171,7 +171,7 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
 static void GenerateGridTerrain(World* world, ChunkGroup* group)
 {
     WorldPos start = ChunkToWorldPos(group->pos);
-    
+
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
         Chunk* chunk = group->chunks + i;
@@ -207,6 +207,106 @@ static void GenerateGridTerrain(World* world, ChunkGroup* group)
     }
 }
 
+static void GenerateSnowTerrain(World* world, ChunkGroup* group)
+{
+    BEGIN_TIMED_BLOCK(CHUNK_GEN);
+
+    WorldPos start = ChunkToWorldPos(group->pos);
+
+    Noise* noise = Noise::NewFastNoiseSIMD();
+    noise->SetSeed(world->seed);
+
+    noise->SetFrequency(0.025f);
+    noise->SetFractalType(Noise::Billow);
+    float* base = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.25f);
+
+    int surfaceMap[CHUNK_SIZE_2];
+    int maxY = 0;
+
+    for (int x = 0; x < CHUNK_SIZE_H; x++)
+    {
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
+        {.
+            int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
+
+            if (valueInCircle < world->radius)
+            {
+                float p = 1.0f;
+
+                if (valueInCircle > world->falloffRadius)
+                    p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->radius - world->falloffRadius));
+
+                float terrainVal = GetNoiseValue2D(base, x, z);
+                terrainVal = ((terrainVal * 0.2f) * 30.0f) + 10.0f;
+
+                int height = (int)(terrainVal * p);
+                surfaceMap[z * CHUNK_SIZE_H + x] = height;
+
+                maxY = Max(maxY, Max(height, SEA_LEVEL));
+            }
+            else 
+            {
+                surfaceMap[z * CHUNK_SIZE_H + x] = 0;
+                maxY = Max(maxY, SEA_LEVEL);
+            }
+        }
+    }
+
+    noise->SetFractalOctaves(2);
+    noise->SetFrequency(0.015f);
+    noise->SetFractalType(Noise::FBM);
+    float* comp = GetNoise3D(noise, Noise::SimplexFractal, start.x, start.z, maxY + 1, 0.2f);
+
+    for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
+    {
+        Chunk* chunk = group->chunks + i;
+        LWorldPos lwP = chunk->lwPos;
+
+        if (lwP.y > maxY)
+            continue;
+
+        int limY = Min(lwP.y + CHUNK_V_MASK, maxY) & CHUNK_V_MASK;
+
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
+        {
+            for (int y = 0; y <= limY; y++)
+            {
+                for (int x = 0; x < CHUNK_SIZE_H; x++)
+                {
+                    int height = surfaceMap[z * CHUNK_SIZE_H + x];
+                    float compVal = GetNoiseValue3D(comp, x, y, z, maxY);
+
+                    if (y <= height - 10)
+                    {
+                        if (compVal <= 0.2f)
+                        {
+                            SetBlock(chunk, x, y, z, BLOCK_STONE);
+                            continue;
+                        }
+                    }
+
+                    if (y == height)
+                        SetBlock(chunk, x, y, z, BLOCK_SNOW);
+                    else if (y > height && y <= SEA_LEVEL)
+                        SetBlock(chunk, x, y, z, BLOCK_WATER);
+                    else 
+                    {
+                        if (y < height)
+                            SetBlock(chunk, x, y, z, BLOCK_DIRT);
+                    }
+                }
+            }
+        }
+    }
+
+    Noise::FreeNoiseSet(comp);
+    Noise::FreeNoiseSet(base);
+
+    delete noise;
+
+    END_TIMED_BLOCK(CHUNK_GEN);
+}
+
 static void CreateBiomes(World* world)
 {
     Biome& grassy = world->biomes[BIOME_GRASSY];
@@ -217,7 +317,7 @@ static void CreateBiomes(World* world)
     Biome& snow = world->biomes[BIOME_SNOW];
     snow.name = "Snow";
     snow.type = BIOME_SNOW;
-    snow.func = GenerateGrassyTerrain;
+    snow.func = GenerateSnowTerrain;
 
     Biome& grid = world->biomes[BIOME_GRID];
     grid.name = "Grid";

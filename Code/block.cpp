@@ -138,4 +138,10 @@ static void CreateBlockData(GameState* state, BlockData* data)
     clay.buildFunc = BuildBlock;
     clay.onSetSound = GetSound(state, SOUND_STONE);
     clay.name = "Clay";
+
+    BlockData& snow = data[BLOCK_SNOW];
+    SetBlockTextures(snow, IMAGE_SNOW, IMAGE_DIRT, IMAGE_SNOW_SIDE);
+    snow.buildFunc = BuildBlock;
+    snow.onSetSound = GetSound(state, SOUND_STONE);
+    snow.name = "Snow";
 }
