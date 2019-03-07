@@ -11,6 +11,7 @@ enum BiomeType
 {
 	BIOME_GRASSY,
 	BIOME_SNOW,
+	BIOME_FLAT,
 	BIOME_GRID,
 	BIOME_COUNT
 };

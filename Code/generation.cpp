@@ -135,7 +135,7 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
                     int height = surfaceMap[z * CHUNK_SIZE_H + x];
                     float compVal = GetNoiseValue3D(comp, x, y, z, maxY);
 
-                    if (y <= height - 10)
+                    if (y <= height - 4)
                     {
                         if (compVal <= 0.2f)
                         {
@@ -226,7 +226,7 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
     for (int x = 0; x < CHUNK_SIZE_H; x++)
     {
         for (int z = 0; z < CHUNK_SIZE_H; z++)
-        {.
+        {
             int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
 
             if (valueInCircle < world->radius)
@@ -276,7 +276,7 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
                     int height = surfaceMap[z * CHUNK_SIZE_H + x];
                     float compVal = GetNoiseValue3D(comp, x, y, z, maxY);
 
-                    if (y <= height - 10)
+                    if (y <= height - 4)
                     {
                         if (compVal <= 0.2f)
                         {
@@ -307,6 +307,71 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
     END_TIMED_BLOCK(CHUNK_GEN);
 }
 
+static void GenerateFlatTerrain(World* world, ChunkGroup* group)
+{
+    WorldPos start = ChunkToWorldPos(group->pos);
+
+    int surfaceMap[CHUNK_SIZE_2];
+    int maxY = 0;
+
+    for (int x = 0; x < CHUNK_SIZE_H; x++)
+    {
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
+        {
+            int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
+
+            if (valueInCircle < world->radius)
+            {
+                float p = 1.0f;
+
+                if (valueInCircle > world->falloffRadius)
+                    p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->radius - world->falloffRadius));
+
+                int height = (int)(SEA_LEVEL * p);
+                surfaceMap[z * CHUNK_SIZE_H + x] = height;
+                maxY = Max(maxY, Max(height, SEA_LEVEL));
+            }
+            else
+            {
+                surfaceMap[z * CHUNK_SIZE_H + x] = 0;
+                maxY = Max(maxY, SEA_LEVEL);
+            }
+        }
+    }
+
+    for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
+    {
+        Chunk* chunk = group->chunks + i;
+        LWorldPos lwP = chunk->lwPos;
+
+        if (lwP.y > maxY)
+            continue;
+
+        int limY = Min(lwP.y + CHUNK_V_MASK, maxY) & CHUNK_V_MASK;
+
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
+        {
+            for (int y = 0; y <= limY; y++)
+            {
+                for (int x = 0; x < CHUNK_SIZE_H; x++)
+                {
+                    int height = surfaceMap[z * CHUNK_SIZE_H + x];
+
+                    if (y == height)
+                        SetBlock(chunk, x, y, z, BLOCK_GRASS);
+                    else if (y > height && y <= SEA_LEVEL)
+                        SetBlock(chunk, x, y, z, BLOCK_WATER);
+                    else 
+                    {
+                        if (y < height)
+                            SetBlock(chunk, x, y, z, BLOCK_DIRT);
+                    }
+                }
+            }
+        }
+    }
+}
+
 static void CreateBiomes(World* world)
 {
     Biome& grassy = world->biomes[BIOME_GRASSY];
@@ -323,4 +388,9 @@ static void CreateBiomes(World* world)
     grid.name = "Grid";
     grid.type = BIOME_GRID;
     grid.func = GenerateGridTerrain;
+
+    Biome& flat = world->biomes[BIOME_FLAT];
+    flat.name = "Flat";
+    flat.type = BIOME_FLAT;
+    flat.func = GenerateFlatTerrain;
 }
