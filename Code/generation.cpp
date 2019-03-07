@@ -168,19 +168,59 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
     END_TIMED_BLOCK(CHUNK_GEN);
 }
 
-static void GenerateGridTerrain(World*, ChunkGroup* group)
+static void GenerateGridTerrain(World* world, ChunkGroup* group)
 {
+    WorldPos start = ChunkToWorldPos(group->pos);
+    
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
         Chunk* chunk = group->chunks + i;
+
+        if (i == 0)
+        {
+            for (int x = 0; x < CHUNK_SIZE_H; x++)
+            {
+                for (int z = 0; z < CHUNK_SIZE_H; z++)
+                {
+                    for (int y = 0; y < SEA_LEVEL; y++)
+                    {
+                        if (GetBlock(chunk, x, y, z) == BLOCK_AIR)
+                            SetBlock(chunk, x, y, z, BLOCK_WATER);
+                    }
+                }
+            }
+        }
         
         for (int x = 0; x < CHUNK_SIZE_H; x += 2)
         {
             for (int z = 0; z < CHUNK_SIZE_H; z += 2)
             {
-                for (int y = 0; y < CHUNK_SIZE_V; y += 2)
-                    SetBlock(chunk, x, y, z, BLOCK_METAL_CRATE);
+                int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
+
+                if (valueInCircle < world->radius)
+                {
+                    for (int y = 0; y < CHUNK_SIZE_V; y += 2)
+                        SetBlock(chunk, x, y, z, BLOCK_METAL_CRATE);
+                }
             }
         }
     }
+}
+
+static void CreateBiomes(World* world)
+{
+    Biome& grassy = world->biomes[BIOME_GRASSY];
+    grassy.name = "Grassy";
+    grassy.type = BIOME_GRASSY;
+    grassy.func = GenerateGrassyTerrain;
+
+    Biome& snow = world->biomes[BIOME_SNOW];
+    snow.name = "Snow";
+    snow.type = BIOME_SNOW;
+    snow.func = GenerateGrassyTerrain;
+
+    Biome& grid = world->biomes[BIOME_GRID];
+    grid.name = "Grid";
+    grid.type = BIOME_GRID;
+    grid.func = GenerateGridTerrain;
 }

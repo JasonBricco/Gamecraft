@@ -402,7 +402,7 @@ static void LoadGroup(World* world, void* groupPtr)
     ChunkGroup* group = (ChunkGroup*)groupPtr;
 
     if (!LoadGroupFromDisk(world, group))
-        GenerateGrassyTerrain(world, group);
+        world->biomes[world->activeBiome].func(world, group);
 
     group->loaded = true;
 }
@@ -611,6 +611,8 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         // Load range worth of groups on each side plus the middle group.
         world->size = (loadRange * 2) + 1;
 
+        CreateBiomes(world);
+
         world->totalGroups = Square(world->size);
         world->groups = CallocArray(world->totalGroups, ChunkGroup*);
 
@@ -676,6 +678,8 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
     world->radius = config.infinite ? INT_MAX : config.radius;
     world->falloffRadius = world->radius - (CHUNK_SIZE_H * 2);
+
+    world->activeBiome = config.biome;
 
     world->spawnGroup = ivec3(0, 0, 0);
 

@@ -166,9 +166,15 @@ static inline void RemoveRegion(World* world, Region* region)
     world->regionCount--;
 
     if (region == world->firstRegion)
-        world->firstRegion = nullptr;
+        world->firstRegion = region->next;
 
     Free(region);
+}
+
+static void DeleteRegions(World* world)
+{
+    while (world->firstRegion != nullptr)
+        RemoveRegion(world, world->firstRegion);
 }
 
 static void UnloadDistantRegions(World* world)
@@ -217,14 +223,6 @@ static Region* GetOrLoadRegion(World* world, RegionPos pos)
     }
 
     return region;
-}
-
-static void DeleteRegions(World* world)
-{
-    assert(world->firstRegion != nullptr);
-
-    for (Region* region = world->firstRegion; region != nullptr; region = region->next)
-        RemoveRegion(world, region);
 }
 
 static bool LoadGroupFromDisk(World* world, ChunkGroup* group)

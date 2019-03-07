@@ -2,5 +2,24 @@
 // Jason Bricco
 //
 
-static void GenerateGrassyTerrain(World* world, ChunkGroup* group);
-static void GenerateGridTerrain(World*, ChunkGroup* group);
+struct World;
+struct ChunkGroup;
+
+using BiomeFunc = void(*)(World*, ChunkGroup*);
+
+enum BiomeType
+{
+	BIOME_GRASSY,
+	BIOME_SNOW,
+	BIOME_GRID,
+	BIOME_COUNT
+};
+
+struct Biome
+{
+	char* name;
+	BiomeType type;
+	BiomeFunc func;
+};
+
+static void CreateBiomes(World* world);

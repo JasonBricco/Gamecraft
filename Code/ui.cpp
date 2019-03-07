@@ -291,7 +291,7 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
 
 static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, WorldConfig& config, Player* player)
 {
-    ImVec2 size = CreateUIWindow(300.0f, 110.0f);
+    ImVec2 size = CreateUIWindow(300.0f, 135.0f);
 
     ImGui::Begin("WorldConfig", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
 
@@ -320,6 +320,23 @@ static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, Wo
 
     ImGui::SameLine();
     ImGui::Checkbox("Infinite", &config.infinite);
+
+    bool biomes[BIOME_COUNT] = {};
+    biomes[config.biome] = true;
+
+    MultiSpacing(2);
+    ImGui::Text("Biome");
+    ImGui::SameLine();
+
+    for (int i = 0; i < BIOME_COUNT; i++)
+    {
+        Biome& biome = world->biomes[i];
+
+        if (ImGui::Checkbox(biome.name, &biomes[i]))
+            config.biome = (BiomeType)i;
+
+        ImGui::SameLine();
+    }
 
     ImVec2 btnSize = ImVec2(100.0f, 25.0f);
     ImGui::SetCursorPos(ImVec2(size.x * 0.5f - (btnSize.x * 0.5f), size.y - 35.0f));

@@ -143,6 +143,9 @@ struct World
     BlockData blockData[BLOCK_COUNT];
 
     BlockType blockToSet;
+
+    Biome biomes[BIOME_COUNT];
+    int activeBiome;
 };
 
 struct RebasedPos
@@ -156,4 +159,5 @@ struct WorldConfig
     char radiusBuffer[10];
     int radius;
     bool infinite;
+    BiomeType biome;
 };
