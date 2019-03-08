@@ -2,12 +2,13 @@
 // Jason Bricco
 //
 
-#define MAX_PARTICLES 2048
+#define MAX_PARTICLES 8192
 
 struct Particle
 {
-	vec3 pos;
+	vec3 pos, wPos;
 	vec3 velocity;
+	float timeLeft;
 };
 
 struct ParticleEmitter

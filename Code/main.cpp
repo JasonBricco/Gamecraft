@@ -139,7 +139,7 @@ static char* buildType = "DEBUG";
 static char* buildType = "RELEASE";
 #endif
 
-static char* buildID = "172";
+static char* buildID = "180";
 
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT windowPos = { sizeof(windowPos) };
@@ -274,7 +274,7 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 
 	Simulate(state, world, player, deltaTime);
 
-	state->rain.pos = vec3(player->pos.x, player->pos.y + 50.0f, player->pos.z);
+	state->rain.pos = vec3(player->pos.x, Max(265.0f, player->pos.y + 10.0f), player->pos.z);
 	UpdateParticles(state->rain, world, deltaTime);
 
 	#if DEBUG_MEMORY

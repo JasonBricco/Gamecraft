@@ -33,55 +33,66 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
 	}
 }
 
-static void SpawnParticle(ParticleEmitter& emitter, float x, float y, float z, vec3 velocity)
+static void SpawnParticle(ParticleEmitter& emitter, float x, float y, float z, float lifeTime, vec3 velocity)
 {
-	int index = emitter.count;
-	assert(index < MAX_PARTICLES);
-	Particle particle = { vec3(x, y, z), velocity };
-	emitter.particles[index] = particle;
-	emitter.count++;
+	Particle particle = { vec3(x, y, z), vec3(0.0f), velocity, lifeTime };
+	emitter.particles[emitter.count++] = particle;
 }
 
 static void DestroyParticle(ParticleEmitter& emitter, int index)
 {
-	int end = emitter.count - 1;
-	emitter.particles[index] = emitter.particles[end];
-
+	emitter.particles[index] = emitter.particles[emitter.count - 1];
 	emitter.count--;
 }
 
 static void UpdateParticles(ParticleEmitter& emitter, World* world, float deltaTime)
 {
+	BEGIN_TIMED_BLOCK(PARTICLE_UPDATE);
+
 	emitter.timer -= deltaTime;
 
 	if (emitter.active && emitter.timer <= 0.0f)
 	{
 		for (int i = 0; i < emitter.spawnCount; i++)
 		{
-			float x = emitter.pos.x + RandRange(-emitter.radius, emitter.radius);
-			float z = emitter.pos.z + RandRange(-emitter.radius, emitter.radius);
+			float x = RandRange(-emitter.radius, emitter.radius);
+			float z = RandRange(-emitter.radius, emitter.radius);
 
-			SpawnParticle(emitter, x, emitter.pos.y, z, vec3(0.0f, -30.0f, 0.0f));
+			SpawnParticle(emitter, x, emitter.pos.y, z, 10.0f, vec3(0.0f, -45.0f, 0.0f));
 		}
 
 		emitter.timer = 0.01f;
 	}
 
 	// Particle simulation.
-	for (int i = 0; i < emitter.count; i++)
+	for (int i = emitter.count - 1; i >= 0; i--)
 	{
 		Particle& particle = emitter.particles[i];
-		particle.pos += (particle.velocity * deltaTime);
 
-		Block block = GetBlock(world, BlockPos(particle.pos));
+		particle.timeLeft -= deltaTime;
+
+		if (particle.timeLeft <= 0.0f)
+		{
+			DestroyParticle(emitter, i);
+			continue;
+		}
+
+		particle.pos += (particle.velocity * deltaTime);
+		particle.wPos = vec3(emitter.pos.x + particle.pos.x, particle.pos.y, emitter.pos.z + particle.pos.z);
+
+		Block block = GetBlock(world, BlockPos(particle.wPos));
 
 		if (!IsPassable(world, block))
 			DestroyParticle(emitter, i);
 	}
+
+	END_TIMED_BLOCK(PARTICLE_UPDATE);
 }
 
 static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* cam)
 {
+	BEGIN_TIMED_BLOCK(PARTICLE_RENDER);
+
 	if (emitter.count == 0) return;
 
 	glBindBuffer(GL_ARRAY_BUFFER, emitter.modelBuffer);
@@ -90,7 +101,7 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 	for (int i = 0; i < emitter.count; i++)
 	{
 		Particle& particle = emitter.particles[i];
-		matrices[i] = translate(mat4(1.0f), particle.pos);
+		matrices[i] = translate(mat4(1.0f), particle.wPos);
 	}
 
 	glUnmapBuffer(GL_ARRAY_BUFFER);
@@ -105,4 +116,6 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 
 	glBindVertexArray(emitter.mesh.va);
 	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh.indexCount, GL_UNSIGNED_INT, 0, emitter.count);
+
+	END_TIMED_BLOCK(PARTICLE_RENDER);
 }
