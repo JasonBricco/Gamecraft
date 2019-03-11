@@ -157,6 +157,52 @@ static void ListUniforms(Shader* shader)
 	}
 }
 
+static void CheckFrameBufferStatus()
+{
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+	{
+		switch (status)
+		{
+			case GL_FRAMEBUFFER_UNDEFINED:
+				Error("Frame buffer is not complete. Status: Framebuffer Undefined\n");
+				break;
+
+			case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+				Error("Frame buffer is not complete. Status: Incomplete Attachment\n");
+				break;
+
+			case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+				Error("Frame buffer is not complete. Status: Incomplete Missing Attachment\n");
+				break;
+
+			case GL_FRAMEBUFFER_UNSUPPORTED:
+				Error("Frame buffer is not complete. Status: Framebuffer Unsupported\n");
+				break;
+
+			case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+				Error("Frame buffer is not complete. Status: Incomplete Draw Buffer\n");
+				break;
+
+			case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+				Error("Frame buffer is not complete. Status: Incomplete Read Buffer\n");
+				break;
+
+			case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+				Error("Frame buffer is not complete. Status: Incomplete Multisample\n");
+				break;
+			
+			case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+				Error("Frame buffer is not complete. Status: Incomplete Layer Targets\n");
+				break;
+
+			default:
+				Error("Frame buffer is not complete. Status: Unknown, Code: %i\n", status);
+		}
+	}
+}
+
 static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int screenHeight)
 {
 	state->ambient = 1.0f;
@@ -166,7 +212,6 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 	glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_CULL_FACE);
-	glEnable(GL_MULTISAMPLE);
 
 #if _DEBUG
 	glEnable(GL_DEBUG_OUTPUT);
@@ -238,6 +283,24 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 
 	cam->fadeShader = GetShader(state, SHADER_FADE);
 	cam->fadeColor = CLEAR_COLOR;
+
+	glEnable(GL_MULTISAMPLE);
+	cam->samplesAA = 4;
+
+	glGenTextures(1, &cam->colAA);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, cam->colAA);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, cam->samplesAA, GL_RGBA8, screenWidth, screenHeight, true);
+
+	glGenTextures(1, &cam->depthAA);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, cam->samplesAA, GL_DEPTH_COMPONENT24, screenWidth, screenHeight, true);
+
+	glGenFramebuffers(1, &cam->fboAA);
+	glBindFramebuffer(GL_FRAMEBUFFER, cam->fboAA);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, cam->colAA, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA, 0);
+
+	CheckFrameBufferStatus();
 }
 
 static Ray ScreenCenterToRay(GameState* state, Camera* cam)
@@ -352,6 +415,10 @@ static inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 
 static void RenderScene(GameState* state, Camera* cam)
 {
+	if (cam->samplesAA > 0)
+		glBindFramebuffer(GL_FRAMEBUFFER, cam->fboAA);
+	else glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	glClear(GL_COLOR_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
@@ -419,6 +486,14 @@ static void RenderScene(GameState* state, Camera* cam)
 	glDisable(GL_BLEND);
 	glEnable(GL_CULL_FACE);
 	glClear(GL_DEPTH_BUFFER_BIT);
+
+	if (cam->samplesAA > 0)
+	{
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, cam->fboAA);
+		glDrawBuffer(GL_BACK);
+		glBlitFramebuffer(0, 0, state->windowWidth, state->windowHeight, 0, 0, state->windowWidth, state->windowHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	}
 }
 
 static Texture LoadTexture(int width, int height, uint8_t* pixels)

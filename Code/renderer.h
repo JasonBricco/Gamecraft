@@ -84,6 +84,11 @@ struct Camera
 
     // Time for shader animation.
     float animTime;
+
+    // Antialiasing.
+    int samplesAA;
+    GLuint colAA, depthAA;
+    GLuint fboAA;
 };
 
 static void LoadShader(Shader* shader, int vertLength, char* vertCode, int fragLength, char* fragCode);

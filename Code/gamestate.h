@@ -2,6 +2,15 @@
 // Jason Bricco
 //
 
+enum PauseState
+{
+	PLAYING,
+	PAUSED,
+	SELECTING_BLOCK,
+	GAME_SETTINGS,
+	WORLD_CONFIG
+};
+
 struct GameState
 {
 	AssetDatabase assets;

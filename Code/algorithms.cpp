@@ -85,6 +85,52 @@ static void SelectionSort(T* items, int size)
 	}
 }
 
+template <typename T>
+static inline void SwapInArray(T* items, int a, int b)
+{
+	T temp = items[a];
+	items[a] = items[b];
+	items[b] = temp;
+}
+
+template <typename T>
+static int QuickSortPartition(T* items, int start, int end)
+{
+	int pivot = items[end];
+	int left = start;
+	int right = end - 1;
+
+	while (left <= right)
+	{
+		while (left <= right && items[left] <= pivot)
+			left++;
+
+		while (left <= right && items[right] >= pivot)
+			right--;
+
+		if (left < right)
+		{
+			SwapInArray(items, left, right);
+			left++;
+			right--;
+		}
+	}
+
+	SwapInArray(items, left, end);
+	return left;
+}
+
+template <typename T>
+static void QuickSort(T* items, int start, int end)
+{
+	if (start < end)
+	{
+		int pivot = QuickSortPartition(items, start, end);
+		QuickSort(items, start, pivot - 1);
+		QuickSort(items, pivot + 1, end);
+	}
+}
+
 template <typename K, typename V>
 struct PQEntry
 {
@@ -248,6 +294,19 @@ static void TestPQSort()
 	AssertArrayEquals(items, expected, ArrayLength(items));
 }
 
+static void TestQuickSort()
+{
+	int items[10] = { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+	int expected[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+	QuickSort(items, 0, ArrayLength(items) - 1);
+	AssertArrayEquals(items, expected, ArrayLength(items));
+
+	int items2[10] = { 9, 3, 5, 1, 4, 10, 2, 8, 6, 7 };
+	int expected2[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+	QuickSort(items2, 0, ArrayLength(items2) - 1);
+	AssertArrayEquals(items2, expected2, ArrayLength(items2));
+}
+
 static void TestGenericAlgorithms()
 {
 	TestBinarySearch();
@@ -255,6 +314,7 @@ static void TestGenericAlgorithms()
 	TestInsertionSort();
 	TestSelectionSort();
 	TestPQSort();
+	TestQuickSort();
 }
 
 #endif

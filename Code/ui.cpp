@@ -236,21 +236,30 @@ static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
     ImGui::End();
 }
 
+static inline void WindowHeader(char* text, float windowWidth)
+{
+    ImVec2 textSize = ImGui::CalcTextSize(text);
+
+    ImVec2 cursorPos = ImVec2(windowWidth * 0.5f - (textSize.x * 0.5f), 10.0f);
+    ImGui::SetCursorPos(cursorPos);
+
+    ImGui::Text(text);
+}
+
+static inline ImVec2 GetButtonLoc(ImVec2 btnSize, float winW, float y)
+{
+    return ImVec2(winW * 0.5f - (btnSize.x * 0.5f), y);
+}
+
 static void CreatePauseUI(GameState* state, GLFWwindow* window)
 {
     ImVec2 size = CreateUIWindow(175.0f, 220.0f);
 
     ImGui::Begin("Pause", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
-
-    ImVec2 textSize = ImGui::CalcTextSize("Paused");
-
-    ImVec2 cursorPos = ImVec2(size.x * 0.5f - (textSize.x * 0.5f), 10.0f);
-    ImGui::SetCursorPos(cursorPos);
-
-    ImGui::Text("Paused");
+    WindowHeader("Paused", size.x);
 
     ImVec2 btnSize = ImVec2(100.0f, 30.0f);
-    cursorPos = ImVec2(size.x * 0.5f - (btnSize.x * 0.5f), 35.0f);
+    ImVec2 cursorPos = GetButtonLoc(btnSize, size.x, 35.0f);
 
     ImGui::SetCursorPos(cursorPos);
 
@@ -277,10 +286,8 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
 
-    bool muted = state->audio.muted;
-
-    if (ImGui::Button(muted ? "Unmute Audio" : "Mute Audio", btnSize))
-        ToggleMute(&state->audio);
+    if (ImGui::Button("Settings", btnSize))
+        state->pauseState = GAME_SETTINGS;
 
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
@@ -291,19 +298,46 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
     ImGui::End();
 }
 
+static void CreateSettingsUI(GameState* state)
+{
+    ImVec2 size = CreateUIWindow(200.0f, 150.0f);
+
+    ImGui::Begin("Settings", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
+    WindowHeader("Settings", size.x);
+
+    ImVec2 btnSize = ImVec2(125.0f, 30.0f);
+    ImVec2 cursorPos = GetButtonLoc(btnSize, size.x, 35.0f);
+    ImGui::SetCursorPos(cursorPos);
+
+    bool muted = state->audio.muted;
+
+    if (ImGui::Button(muted ? "Unmute Audio" : "Mute Audio", btnSize))
+        ToggleMute(&state->audio);
+
+    cursorPos.y += 35.0f;
+    ImGui::SetCursorPos(cursorPos);
+
+    Camera* cam = state->camera;
+    bool aaOn = cam->samplesAA == 4;
+
+    if (ImGui::Button(aaOn ? "Antialiasing On" : "Antialiasing Off", btnSize))
+        cam->samplesAA = aaOn ? 0 : 4;
+
+    cursorPos.y += 35.0f;
+    ImGui::SetCursorPos(cursorPos);
+
+    if (ImGui::Button("Go Back", btnSize))
+        state->pauseState = PAUSED;
+
+    ImGui::End();
+}
+
 static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, WorldConfig& config, Player* player)
 {
     ImVec2 size = CreateUIWindow(300.0f, 135.0f);
 
     ImGui::Begin("WorldConfig", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
-
-    char* text = "World Settings";
-    ImVec2 textSize = ImGui::CalcTextSize(text);
-
-    ImVec2 cursorPos = ImVec2(size.x * 0.5f - (textSize.x * 0.5f), 10.0f);
-    ImGui::SetCursorPos(cursorPos);
-
-    ImGui::Text("World Settings");
+    WindowHeader("World Settings", size.x);
 
     MultiSpacing(3);
 
@@ -340,10 +374,11 @@ static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, Wo
         ImGui::SameLine();
     }
 
-    ImVec2 btnSize = ImVec2(100.0f, 25.0f);
-    ImGui::SetCursorPos(ImVec2(size.x * 0.5f - (btnSize.x * 0.5f), size.y - 35.0f));
+    ImVec2 btnSize = ImVec2(85.0f, 25.0f);
+    ImVec2 loc = GetButtonLoc(btnSize, size.x, size.y - 35.0f);
+    ImGui::SetCursorPos(ImVec2(loc.x - (btnSize.x * 0.5f) - 3.0f, loc.y));
 
-    if (ImGui::Button("Generate", ImVec2(100.0f, 25.0f)))
+    if (ImGui::Button("Generate", btnSize))
     {
         int radius = atoi(config.radiusBuffer);
         memset(config.radiusBuffer, 0, sizeof(config.radiusBuffer));
@@ -357,6 +392,11 @@ static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, Wo
             Unpause(state, window);
         }
     }
+
+    ImGui::SetCursorPos(ImVec2(loc.x + (btnSize.x * 0.5f) + 3.0f, loc.y));
+
+    if (ImGui::Button("Go Back", btnSize))
+        state->pauseState = PAUSED;
 
     ImGui::End();
 }
@@ -439,4 +479,26 @@ static void RenderUI(GameState* state, Camera* cam, UI& ui)
     }
 
     glDisable(GL_SCISSOR_TEST);
+}
+
+static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldConfig& config, Player* player)
+{
+    switch (state->pauseState)
+    {
+        case PAUSED:
+            CreatePauseUI(state, window);
+            break;
+
+        case SELECTING_BLOCK:
+            CreateBlockUI(window, world, state);
+            break;
+
+        case GAME_SETTINGS:
+            CreateSettingsUI(state);
+            break;
+
+        case WORLD_CONFIG:
+            WorldConfigUI(window, state, world, config, player);
+            break;
+    }
 }

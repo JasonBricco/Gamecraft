@@ -68,6 +68,7 @@ using namespace std;
 #define Error(...) { \
     char error_buffer[256]; \
     snprintf(error_buffer, sizeof(error_buffer), __VA_ARGS__); \
+    OutputDebugString(error_buffer); \
     DebugBreak(); \
 }
 #else
@@ -78,14 +79,6 @@ using namespace std;
     exit(-1); \
 }
 #endif
-
-enum PauseState
-{
-	PLAYING,
-	PAUSED,
-	SELECTING_BLOCK,
-	WORLD_CONFIG
-};
 
 #include "mem.h"
 #include "random.h"
@@ -210,24 +203,6 @@ static void Unpause(GameState* state, GLFWwindow* window)
 	state->pauseState = PLAYING;
 }
 
-static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldConfig& config, Player* player)
-{
-	switch (state->pauseState)
-    {
-        case PAUSED:
-            CreatePauseUI(state, window);
-            break;
-
-        case SELECTING_BLOCK:
-            CreateBlockUI(window, world, state);
-            break;
-
-        case WORLD_CONFIG:
-        	WorldConfigUI(window, state, world, config, player);
-        	break;
-    }
-}
-
 static void Update(GameState* state, GLFWwindow* window, Player* player, World* world, float deltaTime)
 {
 	Input& input = state->input;
@@ -294,8 +269,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 #else
 
-#include <string>
-
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
 	if (!glfwInit())
@@ -306,7 +279,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	glfwWindowHint(GLFW_SAMPLES, 4);
 
 	int screenWidth = 1024, screenHeight = 768;
 
