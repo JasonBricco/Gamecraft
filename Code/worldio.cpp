@@ -294,7 +294,7 @@ static void SaveGroup(World* world, void* groupPtr)
 
         region->modified = true;
 
-        ivec3 local = ivec3(p.x & REGION_MASK, 0, p.z & REGION_MASK);
+        ivec3 local = ivec3(p.x & REGION_MASK, y, p.z & REGION_MASK);
         int offset = RegionIndex(local);
 
         assert(offset >= 0 && offset < REGION_SIZE_3);
@@ -358,7 +358,7 @@ static bool LoadWorldFileData(GameState* state, World* world)
     CreateDirectory(world->savePath, NULL);
 
     char path[MAX_PATH];
-    sprintf(path, "%s\\WorldData.txt", path);
+    sprintf(path, "%s\\WorldData.txt", world->savePath);
 
     if (PathFileExists(path))
     {
