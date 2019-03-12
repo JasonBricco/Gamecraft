@@ -112,29 +112,52 @@ static void CheckFrameBufferStatus()
 	}
 }
 
+static void DestroyAAFBO(Camera* cam)
+{
+	GLuint textures[] = { cam->colAA, cam->depthAA };
+	glDeleteTextures(2, textures);
+	glDeleteFramebuffers(1, &cam->fboAA);
+}
+
 static void CreateAAFBO(Camera* cam, int width, int height)
 {
-	if (glIsBuffer(cam->fboAA))
+	if (cam->samplesAA > 0)
 	{
-		GLuint textures[] = { cam->colAA, cam->depthAA };
-		glDeleteTextures(2, textures);
-		glDeleteFramebuffers(1, &cam->fboAA);
+		if (glIsBuffer(cam->fboAA))
+			DestroyAAFBO(cam);
+
+		glGenTextures(1, &cam->colAA);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, cam->colAA);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, cam->samplesAA, GL_RGBA8, width, height, true);
+
+		glGenTextures(1, &cam->depthAA);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, cam->samplesAA, GL_DEPTH_COMPONENT24, width, height, true);
+
+		glGenFramebuffers(1, &cam->fboAA);
+		glBindFramebuffer(GL_FRAMEBUFFER, cam->fboAA);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, cam->colAA, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA, 0);
+
+		CheckFrameBufferStatus();
 	}
+}
 
-	glGenTextures(1, &cam->colAA);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, cam->colAA);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, cam->samplesAA, GL_RGBA8, width, height, true);
+static void SetAA(GameState* state, int samples)
+{
+	Camera* cam = state->camera;
+	cam->samplesAA = samples;
 
-	glGenTextures(1, &cam->depthAA);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, cam->samplesAA, GL_DEPTH_COMPONENT24, width, height, true);
-
-	glGenFramebuffers(1, &cam->fboAA);
-	glBindFramebuffer(GL_FRAMEBUFFER, cam->fboAA);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, cam->colAA, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA, 0);
-
-	CheckFrameBufferStatus();
+	if (samples > 0)
+	{
+		glEnable(GL_MULTISAMPLE);
+		CreateAAFBO(cam, state->windowWidth, state->windowHeight);
+	}
+	else
+	{
+		glDisable(GL_MULTISAMPLE);
+		DestroyAAFBO(cam);
+	}
 }
 
 static void SetWindowSize(GLFWwindow* window, int width, int height)
@@ -310,9 +333,6 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 
 	cam->fadeShader = GetShader(state, SHADER_FADE);
 	cam->fadeColor = CLEAR_COLOR;
-
-	glEnable(GL_MULTISAMPLE);
-	cam->samplesAA = 4;
 }
 
 static Ray ScreenCenterToRay(GameState* state, Camera* cam)

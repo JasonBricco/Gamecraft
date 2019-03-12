@@ -321,7 +321,7 @@ static void CreateSettingsUI(GameState* state)
     bool aaOn = cam->samplesAA == 4;
 
     if (ImGui::Button(aaOn ? "Antialiasing On" : "Antialiasing Off", btnSize))
-        cam->samplesAA = aaOn ? 0 : 4;
+        SetAA(state, aaOn ? 0 : 4);
 
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
@@ -523,5 +523,7 @@ static void LoadGameSettings(GameState* state)
         ReadBinary(path, (char*)&settings);
         state->audio.muted = settings.audioMuted;
         state->camera->samplesAA = settings.samplesAA;
+        SetAA(state, settings.samplesAA);
     }
+    else SetAA(state, 4);
 }
