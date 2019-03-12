@@ -41,7 +41,7 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
     WorldPos start = ChunkToWorldPos(group->pos);
 
     Noise* noise = Noise::NewFastNoiseSIMD();
-    noise->SetSeed(world->seed);
+    noise->SetSeed(world->properties.seed);
 
     noise->SetFrequency(0.015f);
     noise->SetFractalOctaves(4);
@@ -65,12 +65,12 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
             // Determine if this column is inside of the island. The world center is assumed to be the origin (0, 0).
             int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
 
-            if (valueInCircle < world->radius)
+            if (valueInCircle < world->properties.radius)
             {
                 float p = 1.0f;
 
                 if (valueInCircle > world->falloffRadius)
-                    p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->radius - world->falloffRadius));
+                    p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->properties.radius - world->falloffRadius));
 
                 float terrainVal;
                 float biomeVal = GetRawNoiseValue2D(biome, x, z);
@@ -197,7 +197,7 @@ static void GenerateGridTerrain(World* world, ChunkGroup* group)
             {
                 int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
 
-                if (valueInCircle < world->radius)
+                if (valueInCircle < world->properties.radius)
                 {
                     for (int y = 0; y < CHUNK_SIZE_V; y += 2)
                         SetBlock(chunk, x, y, z, BLOCK_METAL_CRATE);
@@ -214,7 +214,7 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
     WorldPos start = ChunkToWorldPos(group->pos);
 
     Noise* noise = Noise::NewFastNoiseSIMD();
-    noise->SetSeed(world->seed);
+    noise->SetSeed(world->properties.seed);
 
     noise->SetFrequency(0.025f);
     noise->SetFractalType(Noise::Billow);
@@ -229,12 +229,12 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
         {
             int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
 
-            if (valueInCircle < world->radius)
+            if (valueInCircle < world->properties.radius)
             {
                 float p = 1.0f;
 
                 if (valueInCircle > world->falloffRadius)
-                    p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->radius - world->falloffRadius));
+                    p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->properties.radius - world->falloffRadius));
 
                 float terrainVal = GetNoiseValue2D(base, x, z);
                 terrainVal = ((terrainVal * 0.2f) * 30.0f) + 10.0f;
@@ -320,12 +320,12 @@ static void GenerateFlatTerrain(World* world, ChunkGroup* group)
         {
             int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
 
-            if (valueInCircle < world->radius)
+            if (valueInCircle < world->properties.radius)
             {
                 float p = 1.0f;
 
                 if (valueInCircle > world->falloffRadius)
-                    p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->radius - world->falloffRadius));
+                    p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->properties.radius - world->falloffRadius));
 
                 int height = (int)(SEA_LEVEL * p);
                 surfaceMap[z * CHUNK_SIZE_H + x] = height;

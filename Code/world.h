@@ -81,6 +81,11 @@ struct ChunkGroup
 struct Player;
 struct Region;
 
+struct WorldProperties
+{
+    int seed, radius, biome;
+};
+
 struct World
 {
     // Size of the active world near the origin.
@@ -89,9 +94,7 @@ struct World
 
     int loadRange;
 
-    // The radius of the island the terrain generates within and the radius
-    // at which the terrain begins falling off into sea.
-    int radius;
+    // The radius at which the terrain begins falling off into sea.
     int falloffRadius;
 
     // Chunk pool to avoid constant allocating/freeing.
@@ -138,14 +141,13 @@ struct World
     // The region the player is in.
     RegionPos playerRegion;
 
-    int seed;
+    WorldProperties properties;
 
     BlockData blockData[BLOCK_COUNT];
 
     BlockType blockToSet;
 
     Biome biomes[BIOME_COUNT];
-    int activeBiome;
 };
 
 struct RebasedPos

@@ -402,7 +402,7 @@ static void LoadGroup(World* world, void* groupPtr)
     ChunkGroup* group = (ChunkGroup*)groupPtr;
 
     if (!LoadGroupFromDisk(world, group))
-        world->biomes[world->activeBiome].func(world, group);
+        world->biomes[world->properties.biome].func(world, group);
 
     group->loaded = true;
 }
@@ -640,22 +640,10 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
         CreateBlockData(state, world->blockData);
 
-        world->savePath = PathToExe("Saves", AllocArray(MAX_PATH, char), MAX_PATH);
-        CreateDirectory(world->savePath, NULL);
-
-        char path[MAX_PATH];
-        sprintf(path, "%s\\WorldData.txt", world->savePath);
-
-        if (!PathFileExists(path))
+        if (!LoadWorldFileData(state, world))
         {
             srand((uint32_t)time(0));
-            world->seed = rand();
-        }
-        else
-        {
-            int seed;
-            ReadBinary(path, (char*)&seed);
-            world->seed = seed;
+            world->properties = { rand(), config.radius, BIOME_GRASSY };
         }
 
         world->blockToSet = BLOCK_GRASS;
@@ -673,13 +661,12 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
             world->groups[i] = nullptr;
         }
 
-        world->seed = rand();
+        world->properties.seed = rand();
+        world->properties.radius = config.infinite ? INT_MAX : config.radius;
+        world->properties.biome = config.biome;
     }
 
-    world->radius = config.infinite ? INT_MAX : config.radius;
-    world->falloffRadius = world->radius - (CHUNK_SIZE_H * 2);
-
-    world->activeBiome = config.biome;
+    world->falloffRadius = world->properties.radius - (CHUNK_SIZE_H * 2);
 
     world->spawnGroup = ivec3(0, 0, 0);
 

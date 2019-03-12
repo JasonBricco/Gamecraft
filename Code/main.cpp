@@ -303,6 +303,9 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	GameState* state = CallocStruct(GameState);
 	Construct(state, GameState);
 
+	state->savePath = PathToExe("Saves", AllocArray(MAX_PATH, char), MAX_PATH);
+	CreateDirectory(state->savePath, NULL);
+
 	InitUI(window, state->ui);
 	InitAudio(&state->audio);
 	
@@ -326,6 +329,8 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glfwSetCursorPos(window, state->windowWidth / 2.0f, state->windowHeight / 2.0f);
 
 	InitParticleEmitter(state->rain, 12, 20.0f);
+
+	LoadGameSettings(state);
 
 	WorldConfig worldConfig = {};
 	worldConfig.radius = 1024;
@@ -369,6 +374,8 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	}
 
 	SaveWorld(world);
+	SaveGameSettings(state);
+
 	glfwTerminate();
 
 	FLUSH_COUNTERS();

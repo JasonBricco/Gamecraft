@@ -38,4 +38,6 @@ struct GameState
 	ParticleEmitter rain;
 
 	PauseState pauseState;
+
+	char* savePath;
 };

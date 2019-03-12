@@ -502,3 +502,26 @@ static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldCo
             break;
     }
 }
+
+static void SaveGameSettings(GameState* state)
+{
+    char path[MAX_PATH];
+    sprintf(path, "%s\\Settings.txt", state->savePath);
+
+    SettingsFileData settings = { state->audio.muted, state->camera->samplesAA };
+    WriteBinary(path, (char*)&settings, sizeof(SettingsFileData));
+}
+
+static void LoadGameSettings(GameState* state)
+{
+    char path[MAX_PATH];
+    sprintf(path, "%s\\Settings.txt", state->savePath);
+
+    if (PathFileExists(path))
+    {
+        SettingsFileData settings;
+        ReadBinary(path, (char*)&settings);
+        state->audio.muted = settings.audioMuted;
+        state->camera->samplesAA = settings.samplesAA;
+    }
+}

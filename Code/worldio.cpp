@@ -342,10 +342,29 @@ static void SaveWorld(World* world)
     char path[MAX_PATH];
     sprintf(path, "%s\\WorldData.txt", world->savePath);
 
-    WriteBinary(path, (char*)&world->seed, sizeof(int));
+    WriteBinary(path, (char*)&world->properties, sizeof(WorldProperties));
 
     for (int i = 0; i < world->totalGroups; i++)
         SaveGroup(world, world->groups[i]);
 
     SaveAllRegions(world);
+}
+
+static bool LoadWorldFileData(GameState* state, World* world)
+{
+    world->savePath = (char*)calloc(1, MAX_PATH * sizeof(char));
+    world->savePath = strcat(strcat(world->savePath, state->savePath), "\\World");
+
+    CreateDirectory(world->savePath, NULL);
+
+    char path[MAX_PATH];
+    sprintf(path, "%s\\WorldData.txt", path);
+
+    if (PathFileExists(path))
+    {
+        ReadBinary(path, (char*)&world->properties);
+        return true;
+    }
+
+    return false;
 }

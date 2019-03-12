@@ -50,3 +50,4 @@ struct Region
 static bool LoadGroupFromDisk(World* world, ChunkGroup* group);
 static void SaveGroup(World* world, void* groupPtr);
 static void DeleteRegions(World* world);
+static bool LoadWorldFileData(GameState* state, World* world);
