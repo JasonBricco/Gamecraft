@@ -66,6 +66,77 @@ static inline void SetCrosshairPos(Graphic* crosshair, int width, int height)
 	crosshair->pos = vec3((width / 2.0f) - 16.0f, (height / 2.0f) - 16.0f, 0.0f);
 }
 
+static void CheckFrameBufferStatus()
+{
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+	{
+		switch (status)
+		{
+			case GL_FRAMEBUFFER_UNDEFINED:
+				Error("Frame buffer is not complete. Status: Framebuffer Undefined\n");
+				break;
+
+			case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+				Error("Frame buffer is not complete. Status: Incomplete Attachment\n");
+				break;
+
+			case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+				Error("Frame buffer is not complete. Status: Incomplete Missing Attachment\n");
+				break;
+
+			case GL_FRAMEBUFFER_UNSUPPORTED:
+				Error("Frame buffer is not complete. Status: Framebuffer Unsupported\n");
+				break;
+
+			case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+				Error("Frame buffer is not complete. Status: Incomplete Draw Buffer\n");
+				break;
+
+			case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+				Error("Frame buffer is not complete. Status: Incomplete Read Buffer\n");
+				break;
+
+			case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+				Error("Frame buffer is not complete. Status: Incomplete Multisample\n");
+				break;
+			
+			case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+				Error("Frame buffer is not complete. Status: Incomplete Layer Targets\n");
+				break;
+
+			default:
+				Error("Frame buffer is not complete. Status: Unknown, Code: %i\n", status);
+		}
+	}
+}
+
+static void CreateAAFBO(Camera* cam, int width, int height)
+{
+	if (glIsBuffer(cam->fboAA))
+	{
+		GLuint textures[] = { cam->colAA, cam->depthAA };
+		glDeleteTextures(2, textures);
+		glDeleteFramebuffers(1, &cam->fboAA);
+	}
+
+	glGenTextures(1, &cam->colAA);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, cam->colAA);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, cam->samplesAA, GL_RGBA8, width, height, true);
+
+	glGenTextures(1, &cam->depthAA);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, cam->samplesAA, GL_DEPTH_COMPONENT24, width, height, true);
+
+	glGenFramebuffers(1, &cam->fboAA);
+	glBindFramebuffer(GL_FRAMEBUFFER, cam->fboAA);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, cam->colAA, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA, 0);
+
+	CheckFrameBufferStatus();
+}
+
 static void SetWindowSize(GLFWwindow* window, int width, int height)
 {
 	GameState* state = (GameState*)glfwGetWindowUserPointer(window);
@@ -88,6 +159,8 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 
 	if (cam->crosshair != nullptr)
 		SetCrosshairPos(cam->crosshair, width, height);
+
+	CreateAAFBO(cam, width, height);
 }
 
 static Camera* NewCamera()
@@ -154,52 +227,6 @@ static void ListUniforms(Shader* shader)
 	    char name[100];
 	    glGetActiveUniformName(shader->handle, i, sizeof(name), (GLsizei*)NULL, name);
 	   	Print("%s\n", name);
-	}
-}
-
-static void CheckFrameBufferStatus()
-{
-	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-
-	if (status != GL_FRAMEBUFFER_COMPLETE)
-	{
-		switch (status)
-		{
-			case GL_FRAMEBUFFER_UNDEFINED:
-				Error("Frame buffer is not complete. Status: Framebuffer Undefined\n");
-				break;
-
-			case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-				Error("Frame buffer is not complete. Status: Incomplete Attachment\n");
-				break;
-
-			case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-				Error("Frame buffer is not complete. Status: Incomplete Missing Attachment\n");
-				break;
-
-			case GL_FRAMEBUFFER_UNSUPPORTED:
-				Error("Frame buffer is not complete. Status: Framebuffer Unsupported\n");
-				break;
-
-			case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
-				Error("Frame buffer is not complete. Status: Incomplete Draw Buffer\n");
-				break;
-
-			case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
-				Error("Frame buffer is not complete. Status: Incomplete Read Buffer\n");
-				break;
-
-			case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
-				Error("Frame buffer is not complete. Status: Incomplete Multisample\n");
-				break;
-			
-			case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
-				Error("Frame buffer is not complete. Status: Incomplete Layer Targets\n");
-				break;
-
-			default:
-				Error("Frame buffer is not complete. Status: Unknown, Code: %i\n", status);
-		}
 	}
 }
 
@@ -286,21 +313,6 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 
 	glEnable(GL_MULTISAMPLE);
 	cam->samplesAA = 4;
-
-	glGenTextures(1, &cam->colAA);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, cam->colAA);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, cam->samplesAA, GL_RGBA8, screenWidth, screenHeight, true);
-
-	glGenTextures(1, &cam->depthAA);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, cam->samplesAA, GL_DEPTH_COMPONENT24, screenWidth, screenHeight, true);
-
-	glGenFramebuffers(1, &cam->fboAA);
-	glBindFramebuffer(GL_FRAMEBUFFER, cam->fboAA);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, cam->colAA, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA, 0);
-
-	CheckFrameBufferStatus();
 }
 
 static Ray ScreenCenterToRay(GameState* state, Camera* cam)
