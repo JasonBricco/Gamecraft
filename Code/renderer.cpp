@@ -117,6 +117,7 @@ static void DestroyAAFBO(Camera* cam)
 	GLuint textures[] = { cam->colAA, cam->depthAA };
 	glDeleteTextures(2, textures);
 	glDeleteFramebuffers(1, &cam->fboAA);
+	UntrackGLAllocs(3);
 }
 
 static void CreateAAFBO(Camera* cam, int width, int height)
@@ -140,6 +141,7 @@ static void CreateAAFBO(Camera* cam, int width, int height)
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA, 0);
 
 		CheckFrameBufferStatus();
+		TrackGLAllocs(3);
 	}
 }
 

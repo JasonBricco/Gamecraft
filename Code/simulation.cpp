@@ -639,24 +639,25 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 
 	int op = MousePressed(input, 0) ? 0 : MousePressed(input, 1) ? 1 : -1;
 
-	if (op >= 0)
+	world->cursorOnBlock = false;
+	HitInfo info = GetVoxelHit(state, cam, world);
+
+	if (info.hit)
 	{
-		HitInfo info = GetVoxelHit(state, cam, world);
+		world->cursorOnBlock = true;
+		world->cursorBlockPos = info.hitPos;
 
-		if (info.hit)
+		ivec3 setPos;
+
+		if (op == 0)
 		{
-			ivec3 setPos;
-
-			if (op == 0)
-			{
-				setPos = info.adjPos;
-				SetBlock(world, setPos, world->blockToSet);
-			}
-			else
-			{
-				setPos = info.hitPos;
-				SetBlock(world, setPos, BLOCK_AIR);
-			}
+			setPos = info.adjPos;
+			SetBlock(world, setPos, world->blockToSet);
+		}
+		else if (op == 1)
+		{
+			setPos = info.hitPos;
+			SetBlock(world, setPos, BLOCK_AIR);
 		}
 	}
 }
@@ -678,10 +679,18 @@ static Player* NewPlayer()
 	return player;
 }
 
-static void SpawnPlayer(GameState* state, Player* player, Rectf spawnBounds)
+static void SpawnPlayer(GameState* state, World* world, Player* player, Rectf spawnBounds)
 {
 	vec3 spawn = spawnBounds.min + (CHUNK_SIZE_H / 2.0f);
-	spawn.y = 100.0f;
+
+	Ray ray = { vec3(spawn.x, WORLD_BLOCK_HEIGHT, spawn.z), vec3(0.0, -1.0f, 0.0f) };
+
+	vec3 loc;
+	
+	if (VoxelRaycast(world, ray, WORLD_BLOCK_HEIGHT, &loc))
+		spawn.y = loc.y + 2.0f;
+	else spawn.y = 258.0f;
+	
 	player->pos = spawn;
 
 	MoveCamera(state->camera, player->pos);

@@ -92,6 +92,15 @@ static inline RegionPos LWorldToRegionPos(vec3 wPos, ChunkPos ref)
     return ChunkToRegionPos(cP);
 }
 
+static inline WorldPos LWorldToWorldPos(World* world, LWorldPos p)
+{
+    LChunkPos lcP = LWorldToLChunkPos(p);
+    ChunkPos cP = LChunkToChunkPos(lcP, world->ref);
+    WorldPos wP = ChunkToWorldPos(cP);
+    RelPos rel = LWorldToRelPos(p);
+    return ivec3(wP.x + rel.x, p.y, wP.z + rel.z);
+}
+
 // Returns an index into the chunk group array from the given chunk position.
 static inline int32_t GroupIndex(World* world, int32_t lcX, int32_t lcZ)
 {
@@ -566,7 +575,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
         ChunkGroup* spawnGroup = GetGroup(world, lP.x, lP.z);
 
         if (spawnGroup->loaded)
-            SpawnPlayer(state, player, world->pBounds);
+            SpawnPlayer(state, world, player, world->pBounds);
     }
     else
     {

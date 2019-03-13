@@ -166,6 +166,10 @@ static void OnKey(GLFWwindow* window, int key, int, int action, int mode)
 		case GLFW_KEY_F1:
 			SetKey(input, KEY_F1, action);
 			break;
+
+		case GLFW_KEY_F3:
+			SetKey(input, KEY_F3, action);
+			break;
 	}
 
 	if (mode == GLFW_MOD_SHIFT) 

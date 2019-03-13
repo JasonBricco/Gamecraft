@@ -149,7 +149,7 @@ static void BeginNewUIFrame(GLFWwindow* window, UI& ui, float deltaTime)
     int displayW, displayH;
     glfwGetFramebufferSize(window, &displayW, &displayH);
 
-    io.DisplaySize = ImVec2((float)w, (float)h);
+    io.DisplaySize = ImVec2((float)displayW, (float)displayH);
     io.DisplayFramebufferScale = ImVec2(w > 0 ? ((float)displayW / w) : 0, h > 0 ? ((float)displayH / h) : 0);
 
     io.DeltaTime = deltaTime;
@@ -401,6 +401,62 @@ static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, Wo
     ImGui::End();
 }
 
+static double GetFPS()
+{
+    static double prevSec = 0.0;
+    static int frameCount = 0;
+    static double fps = 0.0;
+
+    double current = glfwGetTime();
+    double elapsed = current - prevSec;
+
+    if (elapsed > 0.25)
+    {
+        prevSec = current;
+        fps = (double)frameCount / elapsed;
+        frameCount = 0;
+    }
+
+    frameCount++;
+    return fps;
+}
+
+static void CreateDebugHUD(GameState* state, World* world)
+{
+    double fps = GetFPS();
+
+    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+    ImGui::SetNextWindowSize(ImVec2((float)state->windowWidth, (float)state->windowHeight));
+
+    ImGui::Begin("HUD", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+
+    char fpsText[16];
+    sprintf(fpsText, "FPS: %.1f", fps);
+
+    ImGui::Text(fpsText);
+
+    char buildText[32];
+    sprintf(buildText, "Build: %i, Mode: %s", g_buildID, g_buildType);
+
+    ImGui::Text(buildText);
+    
+    if (world->cursorOnBlock)
+    {
+        Block block = GetBlock(world, world->cursorBlockPos);
+        char* name = GetBlockName(world, block);
+
+        ivec3 lwP = world->cursorBlockPos;
+        WorldPos p = LWorldToWorldPos(world, lwP);
+
+        char blockText[64];
+        sprintf_s(blockText, 64, "Block: %s, Position: %i, %i, %i", name, p.x, p.y, p.z);
+
+        ImGui::Text(blockText);
+    }
+
+    ImGui::End();
+}
+
 static void RenderUI(GameState* state, Camera* cam, UI& ui)
 {
     ImGui::Render();
@@ -415,10 +471,6 @@ static void RenderUI(GameState* state, Camera* cam, UI& ui)
         return;
 
     data->ScaleClipRects(io.DisplayFramebufferScale);
-
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_SCISSOR_TEST);
 
     float L = data->DisplayPos.x;
     float R = data->DisplayPos.x + data->DisplaySize.x;
@@ -436,6 +488,10 @@ static void RenderUI(GameState* state, Camera* cam, UI& ui)
         SetUniform(shader->proj, proj);
         DrawGraphic(crosshair, shader);
     }
+
+    glBlendEquation(GL_FUNC_ADD);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_SCISSOR_TEST);
 
     Shader* shader = GetShader(state, SHADER_UI);
     UseShader(shader);
@@ -501,6 +557,9 @@ static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldCo
             WorldConfigUI(window, state, world, config, player);
             break;
     }
+
+    if (state->debugHudActive)
+        CreateDebugHUD(state, world);
 }
 
 static void SaveGameSettings(GameState* state)

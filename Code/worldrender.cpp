@@ -116,6 +116,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
         switch (chunk->state)
         {
             case CHUNK_DEFAULT:
+            case CHUNK_LOADED_DATA:
             {
                 if (NeighborsLoaded(world, chunk))
                 {

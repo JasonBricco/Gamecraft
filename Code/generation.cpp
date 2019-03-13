@@ -81,7 +81,7 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
 
                 // Value for mountainous terrain.
                 float mountain = GetNoiseValue2D(ridged, x, z);
-                mountain = (pow(mountain, 3.5f) * 60.0f) + 20.0f;
+                mountain = (pow(mountain, 3.5f) * 60.0f) + 60.0f;
 
                 float lower = 0.0f;
                 float upper = 0.6f;
@@ -121,21 +121,23 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
         Chunk* chunk = group->chunks + i;
         LWorldPos lwP = chunk->lwPos;
 
-        if (lwP.y > maxY)
+        if (lwP.y > maxY || chunk->state == CHUNK_LOADED_DATA)
             continue;
 
-        int limY = Min(lwP.y + CHUNK_V_MASK, maxY) & CHUNK_V_MASK;
+        int limY = Min(lwP.y + CHUNK_V_MASK, maxY);
 
         for (int z = 0; z < CHUNK_SIZE_H; z++)
         {
-            for (int y = 0; y <= limY; y++)
+            for (int wY = lwP.y; wY <= limY; wY++)
             {
+                int y = wY & CHUNK_V_MASK;
+
                 for (int x = 0; x < CHUNK_SIZE_H; x++)
                 {
                     int height = surfaceMap[z * CHUNK_SIZE_H + x];
-                    float compVal = GetNoiseValue3D(comp, x, y, z, maxY);
+                    float compVal = GetNoiseValue3D(comp, x, wY, z, maxY);
 
-                    if (y <= height - 4)
+                    if (wY <= height - 4)
                     {
                         if (compVal <= 0.2f)
                         {
@@ -144,13 +146,13 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
                         }
                     }
 
-                    if (y == height)
+                    if (wY == height)
                         SetBlock(chunk, x, y, z, BLOCK_GRASS);
-                    else if (y > height && y <= SEA_LEVEL)
+                    else if (wY > height && wY <= SEA_LEVEL)
                         SetBlock(chunk, x, y, z, BLOCK_WATER);
                     else 
                     {
-                        if (y < height)
+                        if (wY < height)
                             SetBlock(chunk, x, y, z, BLOCK_DIRT);
                     }
                 }
@@ -175,6 +177,9 @@ static void GenerateGridTerrain(World* world, ChunkGroup* group)
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
         Chunk* chunk = group->chunks + i;
+
+        if (chunk->state == CHUNK_LOADED_DATA)
+            continue;
 
         if (i == 0)
         {
@@ -262,21 +267,23 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
         Chunk* chunk = group->chunks + i;
         LWorldPos lwP = chunk->lwPos;
 
-        if (lwP.y > maxY)
+        if (lwP.y > maxY || chunk->state == CHUNK_LOADED_DATA)
             continue;
 
-        int limY = Min(lwP.y + CHUNK_V_MASK, maxY) & CHUNK_V_MASK;
+        int limY = Min(lwP.y + CHUNK_V_MASK, maxY);
 
         for (int z = 0; z < CHUNK_SIZE_H; z++)
         {
-            for (int y = 0; y <= limY; y++)
+            for (int wY = lwP.y; wY <= limY; wY++)
             {
+                int y = wY & CHUNK_V_MASK;
+
                 for (int x = 0; x < CHUNK_SIZE_H; x++)
                 {
                     int height = surfaceMap[z * CHUNK_SIZE_H + x];
-                    float compVal = GetNoiseValue3D(comp, x, y, z, maxY);
+                    float compVal = GetNoiseValue3D(comp, x, wY, z, maxY);
 
-                    if (y <= height - 4)
+                    if (wY <= height - 4)
                     {
                         if (compVal <= 0.2f)
                         {
@@ -285,13 +292,13 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
                         }
                     }
 
-                    if (y == height)
+                    if (wY == height)
                         SetBlock(chunk, x, y, z, BLOCK_SNOW);
-                    else if (y > height && y <= SEA_LEVEL)
+                    else if (wY > height && wY <= SEA_LEVEL)
                         SetBlock(chunk, x, y, z, BLOCK_WATER);
                     else 
                     {
-                        if (y < height)
+                        if (wY < height)
                             SetBlock(chunk, x, y, z, BLOCK_DIRT);
                     }
                 }
@@ -344,26 +351,28 @@ static void GenerateFlatTerrain(World* world, ChunkGroup* group)
         Chunk* chunk = group->chunks + i;
         LWorldPos lwP = chunk->lwPos;
 
-        if (lwP.y > maxY)
+        if (lwP.y > maxY || chunk->state == CHUNK_LOADED_DATA)
             continue;
 
-        int limY = Min(lwP.y + CHUNK_V_MASK, maxY) & CHUNK_V_MASK;
+        int limY = Min(lwP.y + CHUNK_V_MASK, maxY);
 
         for (int z = 0; z < CHUNK_SIZE_H; z++)
         {
-            for (int y = 0; y <= limY; y++)
+            for (int wY = lwP.y; wY <= limY; wY++)
             {
+                int y = wY & CHUNK_V_MASK;
+
                 for (int x = 0; x < CHUNK_SIZE_H; x++)
                 {
                     int height = surfaceMap[z * CHUNK_SIZE_H + x];
 
-                    if (y == height)
+                    if (wY == height)
                         SetBlock(chunk, x, y, z, BLOCK_GRASS);
-                    else if (y > height && y <= SEA_LEVEL)
+                    else if (wY > height && wY <= SEA_LEVEL)
                         SetBlock(chunk, x, y, z, BLOCK_WATER);
                     else 
                     {
-                        if (y < height)
+                        if (wY < height)
                             SetBlock(chunk, x, y, z, BLOCK_DIRT);
                     }
                 }

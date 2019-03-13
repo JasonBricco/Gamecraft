@@ -7,6 +7,14 @@
 #define MULTITHREADING 1
 #define TESTING 0
 
+#if _DEBUG
+static char* g_buildType = "DEBUG";
+#else
+static char* g_buildType = "RELEASE";
+#endif
+
+static int g_buildID = 187;
+
 #pragma warning(push, 0)
 
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -126,14 +134,6 @@ static void Unpause(GameState* state, GLFWwindow* window);
 #include "particles.cpp"
 #include "ui.cpp"
 
-#if _DEBUG
-static char* buildType = "DEBUG";
-#else
-static char* buildType = "RELEASE";
-#endif
-
-static char* buildID = "186";
-
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT windowPos = { sizeof(windowPos) };
 
@@ -158,29 +158,6 @@ static void ToggleFullscreen(HWND window)
 		SetWindowPlacement(window, &windowPos);
 		SetWindowPos(window, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 	}
-}
-
-static void ShowFPS(GLFWwindow* window)
-{
-	static double prevSec = 0.0;
-	static int frameCount = 0;
-
-	double current = glfwGetTime();
-	double elapsed = current - prevSec;
-
-	if (elapsed > 0.25)
-	{
-		prevSec = current;
-		double fps = (double)frameCount / elapsed;
-
-		char profile[64];
-		sprintf(profile, "Gamecraft - FPS: %.01f - %s - Build: %s\n", fps, buildType, buildID);
-
-		glfwSetWindowTitle(window, profile);
-		frameCount = 0;
-	}
-
-	frameCount++;
 }
 
 static void Pause(GameState* state, GLFWwindow* window, World* world, PauseState pauseState)
@@ -223,10 +200,14 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 			ToggleFullscreen(glfwGetWin32Window(window));
 	}
 
+	if (KeyPressed(input, KEY_F3))
+		state->debugHudActive = !state->debugHudActive;
+
 	UpdateAudio(&state->audio, deltaTime);
 	UpdateWorld(state, world, state->camera, player);
 
-	if (state->pauseState != PLAYING || !player->spawned) return;
+	if (state->pauseState != PLAYING || !player->spawned) 
+		return;
 
 	if (KeyPressed(input, KEY_EQUAL))
 	{
@@ -318,8 +299,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	InitRenderer(state, cam, screenWidth, screenHeight);
 
 	glfwSetWindowUserPointer(window, state);
-	SetWindowSize(window, screenWidth, screenHeight);
-
 	glfwSetKeyCallback(window, OnKey);
 	glfwSetWindowSizeCallback(window, SetWindowSize);
 	glfwSetMouseButtonCallback(window, OnMouseButton);
@@ -330,8 +309,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	InitParticleEmitter(state->rain, 12, 20.0f);
 
-	LoadGameSettings(state);
-
 	WorldConfig worldConfig = {};
 	worldConfig.radius = 1024;
 
@@ -339,6 +316,12 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	Player* player = NewPlayer();
 	world->player = player;
+
+	int fW, fH;
+	glfwGetFramebufferSize(window, &fW, &fH);
+	SetWindowSize(window, fW, fH);
+
+	LoadGameSettings(state);
 	
 	double lastTime = glfwGetTime();
 
@@ -364,8 +347,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		FLUSH_COUNTERS();
 
 		glfwSwapBuffers(window);
-
-		ShowFPS(window);
 
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);

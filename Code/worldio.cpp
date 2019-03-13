@@ -234,7 +234,7 @@ static bool LoadGroupFromDisk(World* world, ChunkGroup* group)
     Region* region = GetOrLoadRegion(world, regionP);
     LeaveCriticalSection(&world->regionCS);
 
-    bool hasData = false;
+    bool complete = true;
 
     for (int y = 0; y < WORLD_CHUNK_HEIGHT; y++)
     {
@@ -246,10 +246,13 @@ static bool LoadGroupFromDisk(World* world, ChunkGroup* group)
         SerializedChunk chunkData = region->chunks[offset];
 
         if (chunkData.size == 0)
+        {
+            complete = false;
             continue;
+        }
 
         Chunk* chunk = group->chunks + y;
-        hasData = true;
+        chunk->state = CHUNK_LOADED_DATA;
 
         int i = 0; 
         int loc = 2;
@@ -272,7 +275,7 @@ static bool LoadGroupFromDisk(World* world, ChunkGroup* group)
         }
     }
 
-    return hasData;
+    return complete;
 }
 
 static void SaveGroup(World* world, void* groupPtr)

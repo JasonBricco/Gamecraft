@@ -48,6 +48,7 @@ typedef FastNoiseSIMD Noise;
 enum ChunkState
 {
     CHUNK_DEFAULT,
+    CHUNK_LOADED_DATA,
     CHUNK_BUILDING,
     CHUNK_NEEDS_FILL,
     CHUNK_BUILT,
@@ -148,6 +149,10 @@ struct World
     BlockType blockToSet;
 
     Biome biomes[BIOME_COUNT];
+
+    // Cursor block information for the debug HUD.
+    bool cursorOnBlock;
+    ivec3 cursorBlockPos;
 };
 
 struct RebasedPos

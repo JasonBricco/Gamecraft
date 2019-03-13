@@ -94,5 +94,5 @@ Capsule::Capsule(float radius, float h)
     yTop = h;
 }
 
-static void SpawnPlayer(GameState* state, Player* player, Rectf spawnBounds);
+static void SpawnPlayer(GameState* state, World* world, Player* player, Rectf spawnBound);
 static bool OverlapsBlock(Player* player, int bX, int bY, int bZ);

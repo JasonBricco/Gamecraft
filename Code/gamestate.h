@@ -40,4 +40,6 @@ struct GameState
 	PauseState pauseState;
 
 	char* savePath;
+
+	bool debugHudActive;
 };
