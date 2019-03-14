@@ -81,7 +81,7 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
 
                 // Value for mountainous terrain.
                 float mountain = GetNoiseValue2D(ridged, x, z);
-                mountain = (pow(mountain, 3.5f) * 60.0f) + 60.0f;
+                mountain = (pow(mountain, 3.5f) * 60.0f) + 20.0f;
 
                 float lower = 0.0f;
                 float upper = 0.6f;

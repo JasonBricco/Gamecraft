@@ -496,24 +496,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	int blockH = CeilToInt(col.yTop - col.yBase);
 	ivec3 bSize = ivec3(blockR, blockH, blockR);
 
-	float deltaLen = length(delta);
-
-	// If our move is too big, try to prevent skipping through terrain.
-	if (deltaLen >= 0.75f)
-	{
-		vec3 dir = normalize(delta);
-		Ray ray = { player->pos, dir };
-
-		// Move the player to the terrain if the ray hits it. If not, move the full distance.
-		vec3 result;
-		if (VoxelRaycast(world, ray, deltaLen, &result))
-		{
-			player->pos = result - dir * 0.5f;
-			player->velocity.y = 0.0f;
-		}
-		else player->pos = player->pos + delta;
-	}
-	else player->pos = player->pos + delta;
+	player->pos = player->pos + delta;
 
 	col.pos = player->pos;
 	LWorldPos newBlock = BlockPos(player->pos);
