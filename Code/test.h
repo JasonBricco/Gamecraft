@@ -22,6 +22,15 @@ static inline void _AssertEquals(T value, T expected, char* file, int line)
 #define AssertEquals(value, expected) _AssertEquals(value, expected, __FILE__, __LINE__)
 
 template <typename T>
+static inline void _AssertNotEquals(T value, T notExpected, char* file, int line)
+{
+	if (value == notExpected)
+		TestFailed(value, notExpected, file, line);
+}
+
+#define AssertNotEquals(value, notExpected) _AssertNotEquals(value, notExpected, __FILE__, __LINE__)
+
+template <typename T>
 static inline void _AssertArrayEquals(T* value, T* expected, int size, char* file, int line)
 {
 	for (int i = 0; i < size; i++)

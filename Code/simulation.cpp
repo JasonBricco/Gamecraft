@@ -2,24 +2,15 @@
 // Jason Bricco
 //
 
-// Returns the farthest point along an AABB in the given direction in world space.
-inline vec3 AABB::Support(vec3 dir)
+static inline AABB AABBFromCorner(vec3 corner, vec3 size)
 {
-	vec3 result;
-	result.x = dir.x > 0.0f ? max.x : min.x;
-	result.y = dir.y > 0.0f ? max.y : min.y;
-	result.z = dir.z > 0.0f ? max.z : min.z;
-
-	return pos + result;
+	return { corner, size };
 }
 
-// Returns the farthest point along a capsule in the given direction in world space.
-inline vec3 Capsule::Support(vec3 dir)
+static inline AABB AABBFromCenter(vec3 center, vec3 size)
 {
-	vec3 result = normalize(dir) * r;
-	result.y += dir.y > 0.0f ? yTop : yBase;
-
-	return pos + result;
+	vec3 corner = center - (size * 0.5f);
+	return { corner, size };
 }
 
 static float BlockRayIntersection(vec3 blockPos, Ray ray)
@@ -133,336 +124,99 @@ static HitInfo GetVoxelHit(GameState* state, Camera* cam, World* world)
 	return info;
 }
 
-// Updates the simplex for the three point (triangle) case. 'abc' must be in 
-// counterclockwise winding order.
-static void UpdateSimplex3(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& search)
+static float SweptAABB(AABB a, AABB b, vec3 vel, vec3& normal)
 {
-	// Triangle normal.
-	vec3 norm = cross(b - a, c - a);
+	normal = vec3(0.0f);
 
-	// Direction to the origin.
-	vec3 ao = -a;
+	// How far away the two closest edges and two farthest edges of the boxes
+	// are from each other, as inverse time of collision.
+	vec3 invEntry, invExit;
 
-	// Determine which feature of the triangle is closest to the origin and make it
-	// the new simplex - any of its edges, or in front of or behind it. 
-	dim = 2;
+	// Values between 0 and 1 representing when collisions occur on each axis.
+    vec3 entry, exit;
 
-	// Origin is closest to edge 'ab'.
-	if (dot(cross(b - a, norm), ao) > 0)
+   	vec3 nearP = b.pos - (a.pos + a.size);
+   	vec3 farP = (b.pos + b.size) - a.pos;
+
+    for (int i = 0; i < 3; i++) 
 	{
-		c = a;
-		search = cross(cross(b - a, ao), b - a);
-		return;
-	}
+		float v = vel[i];
 
-	// Origin is closest to edge 'ac'.
-	if (dot(cross(norm, c - a), ao) > 0)
-	{
-		b = a;
-		search = cross(cross(c - a, ao), c - a);
-		return;
-	}
-
-	dim = 3;
-
-	// Origin is above the triangle.
-	if (dot(norm, ao) > 0)
-	{
-		d = c;
-		c = b;
-		b = a;
-		search = norm;
-		return;
-	}
-
-	// Origin is below the triangle.
-	d = b;
-	b = a;
-	search = -norm;
-}
-
-// Updates the simplex for the four point (tetrahedron) case. 'a' is the top of the 
-// tetrahedron. 'bcd' is the base in counterclockwise winding order. We know the 
-// origin is above 'bcd' and below 'a' before calling.
-static bool UpdateSimplex4(vec3& a, vec3& b, vec3& c, vec3& d, int& dim, vec3& search)
-{
-	// Normals of the three non-base tetrahedron faces.
-	vec3 abc = cross(b - a, c - a);
-	vec3 acd = cross(c - a, d - a);
-	vec3 adb = cross(d - a, b - a);
-
-	vec3 ao = -a;
-	dim = 3;
-
-	// Origin is in front of 'abc'.
-	if (dot(abc, ao) > 0)
-	{
-		d = c;
-		c = b;
-		b = a;
-		search = abc;
-		return false;
-	}
-
-	// Origin is in front of 'acd'.
-	if (dot(acd, ao) > 0)
-	{
-		b = a;
-		search = acd;
-		return false;
-	}
-
-	// Origin is in front of 'adb'.
-	if (dot(adb, ao) > 0)
-	{
-		c = d;
-		d = b;
-		b = a;
-		search = adb;
-		return false;
-	}
-
-	return true;
-}
-
-// Expanding polytope algorithm for finding the minimum translation vector.
-static CollisionInfo EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* colA, Collider* colB)
-{
-	// Each triangle face has three vertices and a normal.
-	vec3 faces[64][4];
-
-	// Begin the array with the final simplex from GJK.
-	faces[0][0] = a;
-	faces[0][1] = b;
-	faces[0][2] = c;
-	faces[0][3] = normalize(cross(b - a, c - a)); 
-
-	faces[1][0] = a;
-	faces[1][1] = c;
-	faces[1][2] = d;
-	faces[1][3] = normalize(cross(c - a, d - a));
-
-	faces[2][0] = a;
-	faces[2][1] = d;
-	faces[2][2] = b;
-	faces[2][3] = normalize(cross(d - a, b - a));
-
-	faces[3][0] = b;
-	faces[3][1] = d;
-	faces[3][2] = c;
-	faces[3][3] = normalize(cross(d - b, c - b));
-
-	int faceCount = 4;
-	int closest;
-
-	for (int iter = 0; iter < 32; iter++)
-	{
-		// Find the face that's closest to the origin.
-		float minDist = dot(faces[0][0], faces[0][3]);
-		closest = 0;
-
-		for (int i = 1; i < faceCount; i++)
+		if (v > 0.0f)
 		{
-			float dist = dot(faces[i][0], faces[i][3]);
-
-			if (dist < minDist)
-			{
-				minDist = dist;
-				closest = i;
-			}
-		}
-
-		// Normal of the face closest to the origin.
-		vec3 search = faces[closest][3];
-
-		vec3 p = colB->Support(search) - colA->Support(-search);
-
-		// dot product between the vertex and normal gives the resolution of the collision along the normal. 
-		if (dot(p, search) - minDist < EPA_TOLERANCE)
-		{
-			vec3 mtv = faces[closest][3] * dot(p, search); 
-			return { mtv, faces[closest][3] };
-		}
-
-		// Tracks edges that must be fixed after removing faces.
-		vec3 looseEdges[32][2];
-		int looseCount = 0;
-
-		// Find all triangles facing point p.
-		for (int i = 0; i < faceCount; i++)
-		{
-			// If triangle i faces p, remove it.
-			if (dot(faces[i][3], p - faces[i][0]) > 0)
-			{
-				// Add removed triangle's edges to loose edge list but remove it if it's already there.
-				for (int j = 0; j < 3; j++)
-				{
-					vec3 currentEdge[2] = { faces[i][j], faces[i][(j + 1) % 3] };
-					bool found = false;
-
-					// Checks to see if the current edge is already in the list.
-					for (int k = 0; k < looseCount; k++)
-					{
-						if (looseEdges[k][1] == currentEdge[0] && looseEdges[k][0] == currentEdge[1])
-						{
-							// Edge is already in the list, remove it. 
-							looseEdges[k][0] = looseEdges[looseCount - 1][0];
-							looseEdges[k][1] = looseEdges[looseCount - 1][1];
-							looseCount--;
-							found = true;
-
-							// Exit loop as the edge can only be shared once.
-							k = looseCount; 
-						}
-					}
-
-					if (!found)
-					{
-						// Add current edge to the list.
-						if (looseCount > 32) break;
-
-						looseEdges[looseCount][0] = currentEdge[0];
-						looseEdges[looseCount][1] = currentEdge[1];
-						looseCount++;
-					}
-				}
-
-				faces[i][0] = faces[faceCount - 1][0];
-				faces[i][1] = faces[faceCount - 1][1];
-				faces[i][2] = faces[faceCount - 1][2];
-				faces[i][3] = faces[faceCount - 1][3];
-				faceCount--;
-				i--;
-			}
-		}
-
-		// Reconstruct the polytope with point p added.
-		for (int i = 0; i < looseCount; i++)
-		{
-			if (faceCount > 64) break;
-
-			faces[faceCount][0] = looseEdges[i][0];
-			faces[faceCount][1] = looseEdges[i][1];
-			faces[faceCount][2] = p;
-			faces[faceCount][3] = normalize(cross(looseEdges[i][0] - looseEdges[i][1], looseEdges[i][0] - p));
-
-			// Check for the wrong normal to maintain counterclockwise winding.
-			float bias = 0.00001f;
-
-			if (dot(faces[faceCount][0], faces[faceCount][3]) + bias < 0)
-			{
-				vec3 temp = faces[faceCount][0];
-				faces[faceCount][0] = faces[faceCount][1];
-				faces[faceCount][1] = temp;
-				faces[faceCount][3] = -faces[faceCount][3];
-			}
-
-			faceCount++;
-		}
-	}
-
-	vec3 mtv = faces[closest][3] * dot(faces[closest][0], faces[closest][3]);
-	return { mtv, faces[closest][3] };
-}
-
-// Returns true if two colliders are intersecting using the GJK algorithm. 
-// 'info', if given, will return a minimum translation vector and collision 
-// normal using EPA.
-static bool Intersect(Collider* colA, Collider* colB, CollisionInfo* info)
-{
-	vec3 a, b, c, d;
-	vec3 search = colA->pos - colB->pos;
-
-	// Initial simplex point.
-	c = colB->Support(search) - colA->Support(-search);
-
-	// Search in the direction of the origin.
-	search = -c;
-
-	// Second point to form a line segment of the simplex.
-	b = colB->Support(search) - colA->Support(-search);
-
-	// We haven't reached the origin, so we can't enclose it.
-	if (dot(b, search) < 0) return false;
-
-	// Search perpendicular to the line segment, toward the origin.
-	search = cross(cross(c - b, -b), c - b);
-
-	// Origin is on the line segment we created.
-	if (search == vec3(0.0f))
-	{
-		// Set search to an arbitrary normal vector. In this case, use the x-axis.
-		search = cross(c - b, vec3(1.0f, 0.0f, 0.0f));
-
-		// If we're still on the line segment, normal with the z-axis.
-		if (search == vec3(0.0f))
-			search = cross(c - b, vec3(0.0f, 0.0f, -1.0f)); 
-	}
-
-	// Number of simplex dimensions.
-	int dim = 2;
-
-	for (int iter = 0; iter < 32; iter++)
-	{
-		a = colB->Support(search) - colA->Support(-search);
-
-		// We cannot enclose the origin as we haven't reached it.
-		if (dot(a, search) < 0) return false;
-
-		dim++;
-
-		if (dim == 3) UpdateSimplex3(a, b, c, d, dim, search);
-		else
-		{
-			if (UpdateSimplex4(a, b, c, d, dim, search))
-			{
-				if (info != nullptr)
-					*info = EPA(a, b, c, d, colA, colB);
-				
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-static inline void AddColumnCollision(World* world, Player* player, int x, int z, int minY, int maxY)
-{
-	int startY = INT_MIN;
-	int size = 0;
-
-	for (int y = minY; y <= maxY; y++)
-	{
-		if (!IsPassable(world, GetBlock(world, x, y, z)))
-		{
-			if (startY == INT_MIN)
-				startY = y;
-
-			size++;
+			invEntry[i] = nearP[i];
+			invExit[i] = farP[i];
 		}
 		else
 		{
-			if (size > 0)
-			{
-				if (!IsPassable(world, GetBlock(world, x, y + 1, z)))
-					size++;
-				else
-				{
-					AABB bb = AABB(vec3(x - 0.5f, startY - 0.5f, z - 0.5f), vec3(0.0f), vec3(1.0f, (float)size, 1.0f));
-					player->possibleCollides.push_back(bb);
-					size = 0;
-					startY = INT_MIN;
-				}
-			}
+			invEntry[i] = farP[i];
+			invExit[i] = nearP[i];
+		}
+
+		if (v == 0.0f)
+		{
+			entry[i] = -INFINITY;
+			exit[i] = INFINITY;
+		}
+		else
+		{
+			entry[i] = invEntry[i] / v;
+       	 	exit[i] = invExit[i] / v;
 		}
 	}
 
-	if (size > 0)
+	// Earliest and latest times of collision. We use the maximum entry time since the
+	// farthest we have to move to be colliding ensures all axes are overlapping. If we
+	// only look at the shortest, we can only be sure that one axis intersects. Not that
+	// the others do. For exit time, we use the smallest axis that we can move along to
+	// get out of the collision. Once we're out, we're out for all axes.
+	float entryTime = -FLT_MAX;
+	int largest = 0;
+
+	for (int i = 0; i < 3; i++)
 	{
-		AABB bb = AABB(vec3(x - 0.5f, startY - 0.5f, z - 0.5f), vec3(0.0f), vec3(1.0f, (float)size, 1.0f));
-		player->possibleCollides.push_back(bb);
+		if (entry[i] > entryTime)
+		{
+			entryTime = entry[i];
+			largest = i;
+		}
 	}
+
+    float exitTime = Min(Min(exit.x, exit.y), exit.z);
+
+    // No collision.
+    if (entryTime > exitTime || entry.x < 0.0f && entry.y < 0.0f && entry.z < 0.0f || entry.x > 1.0f || entry.y > 1.0f || entry.z > 1.0f)
+        return 1.0f;
+    else
+    {
+    	normal[largest] = invEntry[largest] < 0.0f ? 1.0f : -1.0f;
+    	return entryTime;
+    }
+}
+
+static void ProcessCollisions(AABB a, vector<AABB>& collides, vec3& pos, vec3& vel, vec3& delta)
+{
+	float tRemaining = 1.0f;
+
+    for (int it = 0; it < 4 && tRemaining > 0.0f; it++)
+    {
+    	float tMin = 1.0f;
+    	vec3 normal = vec3(0.0f);
+
+    	for (int i = 0; i < collides.size(); i++)
+		{
+			AABB bb = collides[i];
+    		float t = SweptAABB(a, bb, delta, normal);
+    		tMin = Min(tMin, t);
+    	}
+
+    	vec3 move = tMin * delta;
+    	pos += move;
+    	a.pos += move;
+    	vel -= dot(vel, normal) * normal;
+    	delta -= dot(delta, normal) * normal;
+    	tRemaining -= tMin * tRemaining;
+    }
 }
 
 static void Move(World* world, Player* player, vec3 accel, float deltaTime)
@@ -488,33 +242,47 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	vec3 delta = accel * 0.5f * Square(deltaTime) + player->velocity * deltaTime;
 	player->velocity = accel * deltaTime + player->velocity;
 
+	vec3 target = player->pos + delta;
+
+	AABB playerBB = AABBFromCenter(player->pos, vec3(0.6f, 1.8f, 0.6f));
+
 	player->colFlags = HIT_NONE;
-	Capsule& col = player->collider;
 
 	// Player size in blocks.
-	int blockR = CeilToInt(col.r);
-	int blockH = CeilToInt(col.yTop - col.yBase);
-	ivec3 bSize = ivec3(blockR, blockH, blockR);
+	ivec3 bSize = CeilToInt(playerBB.size);
 
-	player->pos = player->pos + delta;
+	LWorldPos start = BlockPos(player->pos);
+	LWorldPos end = BlockPos(target);
 
-	col.pos = player->pos;
-	LWorldPos newBlock = BlockPos(player->pos);
+	vec3 inf = vec3(INFINITY);
+
+	if (distance2(GetV3(start), inf) > distance2(GetV3(end), inf))
+	{
+		ivec3 tmp = end;
+		end = start;
+		start = end;
+	}
 
 	// Compute the range of blocks we could touch with our movement. We'll test for collisions
 	// with the blocks in this range.
-	int minX = newBlock.x - bSize.x;
-	int minY = newBlock.y - bSize.y;
-	int minZ = newBlock.z - bSize.z;
+	ivec3 min = start - bSize;
+	ivec3 max = end + bSize;
 
-	int maxX = newBlock.x + bSize.x;
-	int maxY = newBlock.y + bSize.y;
-	int maxZ = newBlock.z + bSize.z;
-
-	for (int z = minZ; z <= maxZ; z++)
+	for (int z = min.z; z <= max.z; z++)
 	{
-		for (int x = minX; x <= maxX; x++)
-			AddColumnCollision(world, player, x, z, minY, maxY);
+		for (int y = min.y; y <= max.y; y++)
+		{
+			for (int x = min.x; x <= max.x; x++)
+			{
+				Block block = GetBlock(world, x, y, z);
+
+				if (!IsPassable(world, block))
+				{
+					AABB bb = AABBFromCenter(vec3(x, y, z), vec3(1.0f));
+					player->possibleCollides.push_back(bb);
+				}
+			}
+		}
 	}
 
 	sort(player->possibleCollides.begin(), player->possibleCollides.end(), [player](auto a, auto b) 
@@ -524,38 +292,13 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 		return distA < distB;
     });
 
-	CollisionInfo info;
-
-    for (int i = 0; i < player->possibleCollides.size(); i++)
-    {
-    	if (Intersect(&col, &player->possibleCollides[i], &info))
-    	{
-    		player->pos += info.mtv;
-    		col.pos = player->pos;
-
-			if (info.normal.y > 0.4f && player->velocity.y < 0.0f)
-			{
-				player->colFlags |= HIT_DOWN;
-				player->velocity.y = 0.0f;
-			}
-
-			if (info.normal.y < -0.6f && player->velocity.y > 0.0f)
-			{
-				player->colFlags |= HIT_UP;
-				player->velocity.y = 0.0f;
-			}
-    	}
-    }
-
+    ProcessCollisions(playerBB, player->possibleCollides, player->pos, player->velocity, delta);
     player->possibleCollides.clear();
 }
 
-static bool OverlapsBlock(Player* player, int bX, int bY, int bZ)
+static bool OverlapsBlock(Player*, int, int, int)
 {
-	Capsule col = player->collider;
-	AABB bb = AABB(vec3(bX - 0.5f, bY - 0.5f, bZ - 0.5f), vec3(0.0f), vec3(1.0f));
-
-	return Intersect(&col, &bb, nullptr);
+	return false;
 }
 
 static void Simulate(GameState* state, World* world, Player* player, float deltaTime)
@@ -651,7 +394,6 @@ static Player* NewPlayer()
 	Player* player = CallocStruct(Player);
 	Construct(player, Player);
 	
-	player->collider = Capsule(0.3f, 1.2f);
 	player->velocity = vec3(0.0f);
 	player->speed = 50.0f;
 	player->friction = -8.0f;

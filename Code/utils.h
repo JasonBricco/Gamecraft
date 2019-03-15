@@ -105,6 +105,11 @@ static inline int CeilToInt(float value)
     return (int)ceilf(value);
 }
 
+static inline ivec3 CeilToInt(vec3 value)
+{
+    return ivec3(CeilToInt(value.x), CeilToInt(value.y), CeilToInt(value.z));
+}
+
 static inline int RoundToInt(float value)
 {
     return (int)roundf(value);

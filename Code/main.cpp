@@ -243,9 +243,13 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 
 #if TESTING
 
+#include "algorithms_test.cpp"
+#include "simulation_test.cpp"
+
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
 	TestGenericAlgorithms();
+	TestCollision();
 }
 
 #else
