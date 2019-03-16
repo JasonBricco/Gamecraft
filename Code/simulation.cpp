@@ -13,6 +13,18 @@ static inline AABB AABBFromCenter(vec3 center, vec3 size)
 	return { corner, size };
 }
 
+static inline void ExpandAABB(AABB& bb, vec3 amount)
+{
+	bb.size += (amount * 2.0f);
+	bb.pos -= amount;
+}
+
+static inline void ShrinkAABB(AABB& bb, vec3 amount)
+{
+	bb.size -= (amount * 2.0f);
+	bb.pos += amount;
+}
+
 static float BlockRayIntersection(vec3 blockPos, Ray ray)
 {
 	float nearP = -FLT_MAX;
@@ -124,99 +136,97 @@ static HitInfo GetVoxelHit(GameState* state, Camera* cam, World* world)
 	return info;
 }
 
-static float SweptAABB(AABB a, AABB b, vec3 vel, vec3& normal)
+static void TestCollision(AABB a, AABB b, vec3 delta, float& tMin)
 {
-	normal = vec3(0.0f);
+	ExpandAABB(b, a.size * 0.5f);
+	ShrinkAABB(a, a.size * 0.5f);
 
-	// How far away the two closest edges and two farthest edges of the boxes
-	// are from each other, as inverse time of collision.
-	vec3 invEntry, invExit;
+	float epsilon = 0.0001f;
+	vec3 wMin = b.pos, wMax = b.pos + b.size;
 
-	// Values between 0 and 1 representing when collisions occur on each axis.
-    vec3 entry, exit;
-
-   	vec3 nearP = b.pos - (a.pos + a.size);
-   	vec3 farP = (b.pos + b.size) - a.pos;
-
-    for (int i = 0; i < 3; i++) 
+	// Test against top surface.
+	if (delta.y != 0.0f)
 	{
-		float v = vel[i];
+		float tResult = (wMax.y - a.pos.y) / delta.y;
+		float x = a.pos.x + tResult * delta.x;
+		float z = a.pos.z + tResult * delta.z;
 
-		if (v > 0.0f)
+		if (tResult > 0.0f && tResult < tMin)
 		{
-			invEntry[i] = nearP[i];
-			invExit[i] = farP[i];
-		}
-		else
-		{
-			invEntry[i] = farP[i];
-			invExit[i] = nearP[i];
-		}
-
-		if (v == 0.0f)
-		{
-			entry[i] = -INFINITY;
-			exit[i] = INFINITY;
-		}
-		else
-		{
-			entry[i] = invEntry[i] / v;
-       	 	exit[i] = invExit[i] / v;
+			if (x >= wMin.x && x <= wMax.x && z >= wMin.z && z <= wMax.z)
+				tMin = Max(0.0f, tResult - epsilon);
 		}
 	}
 
-	// Earliest and latest times of collision. We use the maximum entry time since the
-	// farthest we have to move to be colliding ensures all axes are overlapping. If we
-	// only look at the shortest, we can only be sure that one axis intersects. Not that
-	// the others do. For exit time, we use the smallest axis that we can move along to
-	// get out of the collision. Once we're out, we're out for all axes.
-	float entryTime = -FLT_MAX;
-	int largest = 0;
-
-	for (int i = 0; i < 3; i++)
+	// Test against bottom surface.
+	if (delta.y != 0.0f)
 	{
-		if (entry[i] > entryTime)
+		float tResult = (wMin.y - a.pos.y) / delta.y;
+		float x = a.pos.x + tResult * delta.x;
+		float z = a.pos.z + tResult * delta.z;
+
+		if (tResult > 0.0f && tResult < tMin)
 		{
-			entryTime = entry[i];
-			largest = i;
+			if (x >= wMin.x && x <= wMax.x && z >= wMin.z && z <= wMax.z)
+				tMin = Max(0.0f, tResult - epsilon);
 		}
 	}
 
-    float exitTime = Min(Min(exit.x, exit.y), exit.z);
+	// Test against left wall.
+	if (delta.x != 0.0f)
+	{
+		float tResult = (wMin.x - a.pos.x) / delta.x;
+		float y = a.pos.y + tResult * delta.y;
+		float z = a.pos.z + tResult * delta.z;
 
-    // No collision.
-    if (entryTime > exitTime || entry.x < 0.0f && entry.y < 0.0f && entry.z < 0.0f || entry.x > 1.0f || entry.y > 1.0f || entry.z > 1.0f)
-        return 1.0f;
-    else
-    {
-    	normal[largest] = invEntry[largest] < 0.0f ? 1.0f : -1.0f;
-    	return entryTime;
-    }
-}
-
-static void ProcessCollisions(AABB a, vector<AABB>& collides, vec3& pos, vec3& vel, vec3& delta)
-{
-	float tRemaining = 1.0f;
-
-    for (int it = 0; it < 4 && tRemaining > 0.0f; it++)
-    {
-    	float tMin = 1.0f;
-    	vec3 normal = vec3(0.0f);
-
-    	for (int i = 0; i < collides.size(); i++)
+		if (tResult > 0.0f && tResult < tMin)
 		{
-			AABB bb = collides[i];
-    		float t = SweptAABB(a, bb, delta, normal);
-    		tMin = Min(tMin, t);
-    	}
+			if (y >= wMin.y && y <= wMax.y && z >= wMin.z && z <= wMax.z)
+				tMin = Max(0.0f, tResult - epsilon);
+		}
+	}
 
-    	vec3 move = tMin * delta;
-    	pos += move;
-    	a.pos += move;
-    	vel -= dot(vel, normal) * normal;
-    	delta -= dot(delta, normal) * normal;
-    	tRemaining -= tMin * tRemaining;
-    }
+	// Test against right wall.
+	if (delta.x != 0.0f)
+	{
+		float tResult = (wMax.x - a.pos.x) / delta.x;
+		float y = a.pos.y + tResult * delta.y;
+		float z = a.pos.z + tResult * delta.z;
+
+		if (tResult > 0.0f && tResult < tMin)
+		{
+			if (y >= wMin.y && y <= wMax.y && z >= wMin.z && z <= wMax.z)
+				tMin = Max(0.0f, tResult - epsilon);
+		}
+	}
+
+	// Test against front wall.
+	if (delta.z != 0.0f)
+	{
+		float tResult = (wMax.z - a.pos.z) / delta.z;
+		float y = a.pos.y + tResult * delta.y;
+		float x = a.pos.x + tResult * delta.x;
+
+		if (tResult > 0.0f && tResult < tMin)
+		{
+			if (y >= wMin.y && y <= wMax.y && x >= wMin.x && x <= wMax.x)
+				tMin = Max(0.0f, tResult - epsilon);
+		}
+	}
+
+	// Test against back wall.
+	if (delta.z != 0.0f)
+	{
+		float tResult = (wMin.z - a.pos.z) / delta.z;
+		float y = a.pos.y + tResult * delta.y;
+		float x = a.pos.x + tResult * delta.x;
+
+		if (tResult > 0.0f && tResult < tMin)
+		{
+			if (y >= wMin.y && y <= wMax.y && x >= wMin.x && x <= wMax.x)
+				tMin = Max(0.0f, tResult - epsilon);
+		}
+	}
 }
 
 static void Move(World* world, Player* player, vec3 accel, float deltaTime)
@@ -292,7 +302,15 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 		return distA < distB;
     });
 
-    ProcessCollisions(playerBB, player->possibleCollides, player->pos, player->velocity, delta);
+	float tMin = 1.0f;
+
+	for (int i = 0; i < player->possibleCollides.size(); i++)
+	{
+		AABB bb = player->possibleCollides[i];
+		TestCollision(playerBB, bb, delta, tMin);
+ 	}
+
+ 	player->pos += delta * tMin;
     player->possibleCollides.clear();
 }
 

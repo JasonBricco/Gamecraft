@@ -7,18 +7,20 @@ static void TestDiagonalCollision()
 	AABB a = AABBFromCorner(vec3(5.0f), vec3(2.0f));
 	AABB b = AABBFromCorner(vec3(10.0f), vec3(2.0f));
 
-	vec3 vel = vec3(2.0f);
-	vec3 normal;
-	float result = SweptAABB(a, b, vel, normal);
-	AssertEquals(result, 1.0f);
+	float tMin = 1.0f;
+	vec3 delta = vec3(2.0f);
+	TestCollision(a, b, delta, tMin);
+	AssertEquals(tMin, 1.0f);
 
-	vel = vec3(4.0f);
-	result = SweptAABB(a, b, vel, normal);
-	AssertNotEquals(result, 1.0f);
+	tMin = 1.0f;
+	delta = vec3(5.5f);
+	TestCollision(a, b, delta, tMin);
+	AssertNotEquals(tMin, 1.0f);
 
-	vel = vec3(10.0f);
-	result = SweptAABB(a, b, vel, normal);
-	AssertNotEquals(result, 1.0f);
+	tMin = 1.0f;
+	delta = vec3(10.0f);
+	TestCollision(a, b, delta, tMin);
+	AssertNotEquals(tMin, 1.0f);
 }
 
 static void TestNegativeDiagonalCollision()
@@ -26,18 +28,20 @@ static void TestNegativeDiagonalCollision()
 	AABB a = AABBFromCorner(vec3(-5.0f), vec3(2.0f));
 	AABB b = AABBFromCorner(vec3(-10.0f), vec3(2.0f));
 
-	vec3 vel = vec3(-2.0f);
-	vec3 normal;
-	float result = SweptAABB(a, b, vel, normal);
-	AssertEquals(result, 1.0f);
+	float tMin = 1.0f;
+	vec3 delta = vec3(-2.0f);
+	TestCollision(a, b, delta, tMin);
+	AssertEquals(tMin, 1.0f);
 
-	vel = vec3(-4.0f);
-	result = SweptAABB(a, b, vel, normal);
-	AssertNotEquals(result, 1.0f);
+	tMin = 1.0f;
+	delta = vec3(-5.5f);
+	TestCollision(a, b, delta, tMin);
+	AssertNotEquals(tMin, 1.0f);
 
-	vel = vec3(-10.0f);
-	result = SweptAABB(a, b, vel, normal);
-	AssertNotEquals(result, 1.0f);
+	tMin = 1.0f;
+	delta = vec3(-10.0f);
+	TestCollision(a, b, delta, tMin);
+	AssertNotEquals(tMin, 1.0f);
 }
 
 static void TestPositiveCollision(int axis)
@@ -48,21 +52,21 @@ static void TestPositiveCollision(int axis)
 	cornerB[axis] = 5.0f;
 	AABB b = AABBFromCorner(cornerB, vec3(1.0f));
 
-	vec3 vel = vec3(0.0f);
-	vel[axis] = 3.0f;
-	vec3 normal;
-	float result = SweptAABB(a, b, vel, normal);
-	AssertEquals(result, 1.0f);
+	vec3 delta = vec3(0.0f);
+	float tMin = 1.0f;
+	delta[axis] = 3.0f;
+	TestCollision(a, b, delta, tMin);
+	AssertEquals(tMin, 1.0f);
 
-	vel[axis] = 4.05f;
-	result = SweptAABB(a, b, vel, normal);
-	AssertNotEquals(result, 1.0f);
-	AssertEquals(normal[axis], -1.0f);
+	delta[axis] = 5.05f;
+	tMin = 1.0f;
+	TestCollision(a, b, delta, tMin);
+	AssertNotEquals(tMin, 1.0f);
 
-	vel[axis] = 20.0f;
-	result = SweptAABB(a, b, vel, normal);
-	AssertNotEquals(result, 1.0f);
-	AssertEquals(normal[axis], -1.0f);
+	delta[axis] = 20.0f;
+	tMin = 1.0f;
+	TestCollision(a, b, delta, tMin);
+	AssertNotEquals(tMin, 1.0f);
 }
 
 static void TestNegativeCollision(int axis)
@@ -73,21 +77,32 @@ static void TestNegativeCollision(int axis)
 	cornerB[axis] = -5.0f;
 	AABB b = AABBFromCorner(cornerB, vec3(1.0f));
 
-	vec3 vel = vec3(0.0f);
-	vel[axis] = -3.0f;
-	vec3 normal;
-	float result = SweptAABB(a, b, vel, normal);
-	AssertEquals(result, 1.0f);
+	vec3 delta = vec3(0.0f);
+	float tMin = 1.0f;
+	delta[axis] = -3.0f;
+	TestCollision(a, b, delta, tMin);
+	AssertEquals(tMin, 1.0f);
 
-	vel[axis] = -4.05f;
-	result = SweptAABB(a, b, vel, normal);
-	AssertNotEquals(result, 1.0f);
-	AssertEquals(normal[axis], 1.0f);
+	delta[axis] = -5.05f;
+	tMin = 1.0f;
+	TestCollision(a, b, delta, tMin);
+	AssertNotEquals(tMin, 1.0f);
 
-	vel[axis] = -20.0f;
-	result = SweptAABB(a, b, vel, normal);
-	AssertNotEquals(result, 1.0f);
-	AssertEquals(normal[axis], 1.0f);
+	delta[axis] = -20.0f;
+	tMin = 1.0f;
+	TestCollision(a, b, delta, tMin);
+	AssertNotEquals(tMin, 1.0f);
+}
+
+static void TestSmallCollision()
+{
+	AABB a = AABBFromCorner(vec3(0.0f), vec3(0.6f, 1.8f, 0.6f));
+	AABB b = AABBFromCorner(vec3(0.61f, 0.0f, 0.0f), vec3(1.0f));
+
+	vec3 delta = vec3(0.02f, 0.0f, 0.0f);
+	float tMin = 1.0f;
+	TestCollision(a, b, delta, tMin);
+	AssertNotEquals(tMin, 1.0f);
 }
 
 static void TestCollision()
@@ -103,15 +118,5 @@ static void TestCollision()
 	TestNegativeCollision(1);
 	TestNegativeCollision(2);
 
-	AABB a = AABBFromCorner(vec3(5.0f), vec3(1.0f));
-	AABB ground = AABBFromCorner(vec3(0.0f), vec3(10.0f, 1.0f, 10.0f));
-
-	vector<AABB> collides;
-	collides.push_back(ground);
-
-	vec3 delta = vec3(10.0f, 20.0f, 0.0f);
-	vec3 vel = delta;
-	vec3 pos = a.pos;
-
-	ProcessCollisions(a, collides, pos, vel, delta);
+	TestSmallCollision();
 }
