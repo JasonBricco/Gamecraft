@@ -118,7 +118,6 @@ using namespace std;
 static void Pause(GameState* state, GLFWwindow* window, World* world, PauseState pauseState);
 static void Unpause(GameState* state, GLFWwindow* window);
 
-#include "algorithms.cpp"
 #include "audio.cpp"
 #include "assets.cpp"
 #include "async.cpp"
@@ -242,6 +241,8 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 }
 
 #if TESTING
+
+#include "algorithms.cpp"
 
 #include "algorithms_test.cpp"
 #include "simulation_test.cpp"
