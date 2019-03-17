@@ -3,7 +3,7 @@
 //
 
 #define PI 3.141592653f
-#define EPSILON 0.001f
+#define EPSILON 0.00001f
 
 #define ArrayLength(array) (sizeof(array) / sizeof((array)[0]))
 
@@ -123,6 +123,11 @@ static inline int FloorToInt(float value)
 static inline bool Approx(float a, float b)
 {
     return abs(a - b) < EPSILON;
+}
+
+static inline bool Approx(vec3 a, vec3 b)
+{
+    return length2(a - b) < EPSILON * EPSILON;
 }
 
 static inline bool InRange(float val, float min, float max) 

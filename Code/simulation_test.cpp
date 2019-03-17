@@ -96,10 +96,10 @@ static void TestNegativeCollision(int axis)
 
 static void TestSmallCollision()
 {
-	AABB a = AABBFromCorner(vec3(0.0f), vec3(0.6f, 1.8f, 0.6f));
-	AABB b = AABBFromCorner(vec3(0.61f, 0.0f, 0.0f), vec3(1.0f));
+	AABB a = AABBFromCorner(vec3(240.0f, 0.0f, 0.0f), vec3(0.6f, 1.8f, 0.6f));
+	AABB b = AABBFromCorner(vec3(240.601f, 0.0f, 0.0f), vec3(1.0f));
 
-	vec3 delta = vec3(0.02f, 0.0f, 0.0f);
+	vec3 delta = vec3(0.00101f, 0.0f, 0.0f);
 	float tMin = 1.0f;
 	TestCollision(a, b, delta, tMin);
 	AssertNotEquals(tMin, 1.0f);

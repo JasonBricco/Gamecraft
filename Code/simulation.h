@@ -23,10 +23,10 @@ struct HitInfo
 
 struct AABB
 {
-    // Position is the bottom, left, back corner and size 
-    // is the full extents from the position.
+    // Position is the center of the AABB.
+    // Radius is the distance from the center to an edge.
     vec3 pos;
-    vec3 size;
+    vec3 radius;
 };
 
 struct Player

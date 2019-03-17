@@ -4,25 +4,23 @@
 
 static inline AABB AABBFromCorner(vec3 corner, vec3 size)
 {
-	return { corner, size };
+	vec3 radius = size * 0.5f;
+	return { corner + radius, radius };
 }
 
 static inline AABB AABBFromCenter(vec3 center, vec3 size)
 {
-	vec3 corner = center - (size * 0.5f);
-	return { corner, size };
+	return { center, size * 0.5f };
 }
 
 static inline void ExpandAABB(AABB& bb, vec3 amount)
 {
-	bb.size += (amount * 2.0f);
-	bb.pos -= amount;
+	bb.radius += amount;
 }
 
 static inline void ShrinkAABB(AABB& bb, vec3 amount)
 {
-	bb.size -= (amount * 2.0f);
-	bb.pos += amount;
+	bb.radius -= amount;
 }
 
 static float BlockRayIntersection(vec3 blockPos, Ray ray)
@@ -136,13 +134,13 @@ static HitInfo GetVoxelHit(GameState* state, Camera* cam, World* world)
 	return info;
 }
 
-static void TestCollision(AABB a, AABB b, vec3 delta, float& tMin)
+static void TestCollision(AABB a, AABB b, vec3 delta, float& tMin, vec3& normal)
 {
-	ExpandAABB(b, a.size * 0.5f);
-	ShrinkAABB(a, a.size * 0.5f);
+	ExpandAABB(b, a.radius);
+	ShrinkAABB(a, a.radius);
 
-	float epsilon = 0.0001f;
-	vec3 wMin = b.pos, wMax = b.pos + b.size;
+	float epsilon = 0.001f;
+	vec3 wMin = b.pos - b.radius, wMax = b.pos + b.radius;
 
 	// Test against top surface.
 	if (delta.y != 0.0f)
@@ -154,7 +152,10 @@ static void TestCollision(AABB a, AABB b, vec3 delta, float& tMin)
 		if (tResult > 0.0f && tResult < tMin)
 		{
 			if (x >= wMin.x && x <= wMax.x && z >= wMin.z && z <= wMax.z)
+			{
 				tMin = Max(0.0f, tResult - epsilon);
+				normal = vec3(0.0f, 1.0f, 0.0f);
+			}
 		}
 	}
 
@@ -168,7 +169,10 @@ static void TestCollision(AABB a, AABB b, vec3 delta, float& tMin)
 		if (tResult > 0.0f && tResult < tMin)
 		{
 			if (x >= wMin.x && x <= wMax.x && z >= wMin.z && z <= wMax.z)
+			{
 				tMin = Max(0.0f, tResult - epsilon);
+				normal = vec3(0.0f, -1.0f, 0.0f);
+			}
 		}
 	}
 
@@ -182,7 +186,10 @@ static void TestCollision(AABB a, AABB b, vec3 delta, float& tMin)
 		if (tResult > 0.0f && tResult < tMin)
 		{
 			if (y >= wMin.y && y <= wMax.y && z >= wMin.z && z <= wMax.z)
+			{
 				tMin = Max(0.0f, tResult - epsilon);
+				normal = vec3(-1.0f, 0.0f, 0.0f);
+			}
 		}
 	}
 
@@ -196,7 +203,10 @@ static void TestCollision(AABB a, AABB b, vec3 delta, float& tMin)
 		if (tResult > 0.0f && tResult < tMin)
 		{
 			if (y >= wMin.y && y <= wMax.y && z >= wMin.z && z <= wMax.z)
+			{
 				tMin = Max(0.0f, tResult - epsilon);
+				normal = vec3(1.0f, 0.0f, 0.0f);
+			}
 		}
 	}
 
@@ -210,7 +220,10 @@ static void TestCollision(AABB a, AABB b, vec3 delta, float& tMin)
 		if (tResult > 0.0f && tResult < tMin)
 		{
 			if (y >= wMin.y && y <= wMax.y && x >= wMin.x && x <= wMax.x)
+			{
 				tMin = Max(0.0f, tResult - epsilon);
+				normal = vec3(0.0f, 0.0f, 1.0f);
+			}
 		}
 	}
 
@@ -224,7 +237,10 @@ static void TestCollision(AABB a, AABB b, vec3 delta, float& tMin)
 		if (tResult > 0.0f && tResult < tMin)
 		{
 			if (y >= wMin.y && y <= wMax.y && x >= wMin.x && x <= wMax.x)
+			{
 				tMin = Max(0.0f, tResult - epsilon);
+				normal = vec3(0.0f, 0.0f, -1.0f);
+			}
 		}
 	}
 }
@@ -259,7 +275,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	player->colFlags = HIT_NONE;
 
 	// Player size in blocks.
-	ivec3 bSize = CeilToInt(playerBB.size);
+	ivec3 bSize = CeilToInt(playerBB.radius * 2.0f);
 
 	LWorldPos start = BlockPos(player->pos);
 	LWorldPos end = BlockPos(target);
@@ -302,15 +318,29 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 		return distA < distB;
     });
 
-	float tMin = 1.0f;
+	float tRemaining = 1.0f;
 
-	for (int i = 0; i < player->possibleCollides.size(); i++)
+	for (int it = 0; it < 4 && tRemaining > 0.0f; it++)
 	{
-		AABB bb = player->possibleCollides[i];
-		TestCollision(playerBB, bb, delta, tMin);
- 	}
+		float tMin = 1.0f;
+		vec3 normal = vec3(0.0f);
 
- 	player->pos += delta * tMin;
+		for (int i = 0; i < player->possibleCollides.size(); i++)
+		{
+			AABB bb = player->possibleCollides[i];
+			TestCollision(playerBB, bb, delta, tMin, normal);
+	 	}
+
+	 	player->pos += delta * tMin;
+
+	 	// Subtract away the component of the velocity that collides with the wall and leave the
+	 	// remaining velocity intact.
+	 	player->velocity -= dot(player->velocity, normal) * normal;
+	 	delta -= dot(delta, normal) * normal;
+
+	 	tRemaining -= (tMin * tRemaining);
+	}
+
     player->possibleCollides.clear();
 }
 
