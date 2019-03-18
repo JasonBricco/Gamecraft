@@ -134,118 +134,69 @@ static HitInfo GetVoxelHit(GameState* state, Camera* cam, World* world)
 	return info;
 }
 
-static void TestCollision(AABB a, AABB b, vec3 delta, float& tMin, vec3& normal)
+static inline bool TestWall(vec3 delta, vec3 p, float wallP, vec3 wMin, vec3 wMax, int axis0, int axis1, int axis2, float& tMin)
+{
+	if (delta[axis0] != 0.0f)
+	{
+		float tResult = (wallP - p[axis0]) / delta[axis0];
+
+		if (tResult > 0.0f && tResult < tMin)
+		{
+			float o1 = p[axis1] + tResult * delta[axis1];
+			float o2 = p[axis2] + tResult * delta[axis2];
+
+			if (o1 >= wMin[axis1] && o1 <= wMax[axis1] && o2 >= wMin[axis2] && o2 <= wMax[axis2])
+			{
+				tMin = tResult;
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+static void TestCollision(World* world, AABB a, AABB b, vec3 delta, float& tMin, vec3& normal)
 {
 	ExpandAABB(b, a.radius);
 	ShrinkAABB(a, a.radius);
 
-	float epsilon = 0.001f;
+	ivec3 bPos = BlockPos(b.pos);
 	vec3 wMin = b.pos - b.radius, wMax = b.pos + b.radius;
 
-	// Test against top surface.
-	if (delta.y != 0.0f)
-	{
-		float tResult = (wMax.y - a.pos.y) / delta.y;
-		float x = a.pos.x + tResult * delta.x;
-		float z = a.pos.z + tResult * delta.z;
+	bool upPassable = IsPassable(world, GetBlock(world, bPos.x, bPos.y + 1, bPos.z));
+	bool downPassable = IsPassable(world, GetBlock(world, bPos.x, bPos.y - 1, bPos.z));
+	bool leftPassable = IsPassable(world, GetBlock(world, bPos.x - 1, bPos.y, bPos.z));
+	bool rightPassable = IsPassable(world, GetBlock(world, bPos.x + 1, bPos.y, bPos.z));
+	bool frontPassable = IsPassable(world, GetBlock(world, bPos.x, bPos.y, bPos.z + 1));
+	bool backPassable = IsPassable(world, GetBlock(world, bPos.x, bPos.y, bPos.z - 1));
 
-		if (tResult > 0.0f && tResult < tMin)
-		{
-			if (x >= wMin.x && x <= wMax.x && z >= wMin.z && z <= wMax.z)
-			{
-				tMin = Max(0.0f, tResult - epsilon);
-				normal = vec3(0.0f, 1.0f, 0.0f);
-			}
-		}
-	}
+	// Top surface.
+	if (upPassable && TestWall(delta, a.pos, wMax.y, wMin, wMax, 1, 0, 2, tMin))
+		normal = vec3(0.0f, 1.0f, 0.0f);
 
-	// Test against bottom surface.
-	if (delta.y != 0.0f)
-	{
-		float tResult = (wMin.y - a.pos.y) / delta.y;
-		float x = a.pos.x + tResult * delta.x;
-		float z = a.pos.z + tResult * delta.z;
+	// Bottom surface.
+	if (downPassable && TestWall(delta, a.pos, wMin.y, wMin, wMax, 1, 0, 2, tMin))
+		normal = vec3(0.0f, -1.0f, 0.0f);
 
-		if (tResult > 0.0f && tResult < tMin)
-		{
-			if (x >= wMin.x && x <= wMax.x && z >= wMin.z && z <= wMax.z)
-			{
-				tMin = Max(0.0f, tResult - epsilon);
-				normal = vec3(0.0f, -1.0f, 0.0f);
-			}
-		}
-	}
+	// Left wall.
+	if (leftPassable && TestWall(delta, a.pos, wMin.x, wMin, wMax, 0, 1, 2, tMin))
+		normal = vec3(-1.0f, 0.0f, 0.0f);
 
-	// Test against left wall.
-	if (delta.x != 0.0f)
-	{
-		float tResult = (wMin.x - a.pos.x) / delta.x;
-		float y = a.pos.y + tResult * delta.y;
-		float z = a.pos.z + tResult * delta.z;
+	// Right wall.
+	if (rightPassable && TestWall(delta, a.pos, wMax.x, wMin, wMax, 0, 1, 2, tMin))
+		normal = vec3(1.0f, 0.0f, 0.0f);
 
-		if (tResult > 0.0f && tResult < tMin)
-		{
-			if (y >= wMin.y && y <= wMax.y && z >= wMin.z && z <= wMax.z)
-			{
-				tMin = Max(0.0f, tResult - epsilon);
-				normal = vec3(-1.0f, 0.0f, 0.0f);
-			}
-		}
-	}
+	// Front wall.
+	if (frontPassable && TestWall(delta, a.pos, wMax.z, wMin, wMax, 2, 0, 1, tMin))
+		normal = vec3(0.0f, 0.0f, 1.0f);
 
-	// Test against right wall.
-	if (delta.x != 0.0f)
-	{
-		float tResult = (wMax.x - a.pos.x) / delta.x;
-		float y = a.pos.y + tResult * delta.y;
-		float z = a.pos.z + tResult * delta.z;
-
-		if (tResult > 0.0f && tResult < tMin)
-		{
-			if (y >= wMin.y && y <= wMax.y && z >= wMin.z && z <= wMax.z)
-			{
-				tMin = Max(0.0f, tResult - epsilon);
-				normal = vec3(1.0f, 0.0f, 0.0f);
-			}
-		}
-	}
-
-	// Test against front wall.
-	if (delta.z != 0.0f)
-	{
-		float tResult = (wMax.z - a.pos.z) / delta.z;
-		float y = a.pos.y + tResult * delta.y;
-		float x = a.pos.x + tResult * delta.x;
-
-		if (tResult > 0.0f && tResult < tMin)
-		{
-			if (y >= wMin.y && y <= wMax.y && x >= wMin.x && x <= wMax.x)
-			{
-				tMin = Max(0.0f, tResult - epsilon);
-				normal = vec3(0.0f, 0.0f, 1.0f);
-			}
-		}
-	}
-
-	// Test against back wall.
-	if (delta.z != 0.0f)
-	{
-		float tResult = (wMin.z - a.pos.z) / delta.z;
-		float y = a.pos.y + tResult * delta.y;
-		float x = a.pos.x + tResult * delta.x;
-
-		if (tResult > 0.0f && tResult < tMin)
-		{
-			if (y >= wMin.y && y <= wMax.y && x >= wMin.x && x <= wMax.x)
-			{
-				tMin = Max(0.0f, tResult - epsilon);
-				normal = vec3(0.0f, 0.0f, -1.0f);
-			}
-		}
-	}
+	// Back wall.
+	if (backPassable && TestWall(delta, a.pos, wMin.z, wMin, wMax, 2, 0, 1, tMin))
+		normal = vec3(0.0f, 0.0f, -1.0f);
 }
 
-static void Move(World* world, Player* player, vec3 accel, float deltaTime)
+static void Move(Input& input, World* world, Player* player, vec3 accel, float deltaTime)
 {
 	accel = accel * player->speed;
 	accel = accel + ((player->velocity * player->friction));
@@ -268,6 +219,21 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	vec3 delta = accel * 0.5f * Square(deltaTime) + player->velocity * deltaTime;
 	player->velocity = accel * deltaTime + player->velocity;
 
+	static vec3 savedPos;
+
+	if (KeyPressed(input, KEY_F1))
+		delta = vec3(5.0f, -3.0f, 0.0f);
+
+	if (KeyPressed(input, KEY_F2))
+		savedPos = player->pos;
+
+	if (KeyPressed(input, KEY_F4))
+	{
+		player->pos = savedPos;
+		player->velocity = vec3(0.0f);
+		delta = vec3(0.0f);
+	}
+
 	vec3 target = player->pos + delta;
 
 	AABB playerBB = AABBFromCenter(player->pos, vec3(0.6f, 1.8f, 0.6f));
@@ -280,25 +246,21 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	LWorldPos start = BlockPos(player->pos);
 	LWorldPos end = BlockPos(target);
 
-	vec3 inf = vec3(INFINITY);
-
-	if (distance2(GetV3(start), inf) > distance2(GetV3(end), inf))
-	{
-		ivec3 tmp = end;
-		end = start;
-		start = end;
-	}
-
 	// Compute the range of blocks we could touch with our movement. We'll test for collisions
 	// with the blocks in this range.
-	ivec3 min = start - bSize;
-	ivec3 max = end + bSize;
+	int minX = Min(start.x, end.x) - bSize.x;
+	int minY = Min(start.y, end.y) - bSize.y;
+	int minZ = Min(start.z, end.z) - bSize.z;
 
-	for (int z = min.z; z <= max.z; z++)
+	int maxX = Max(start.x, end.x) + bSize.x;
+	int maxY = Max(start.y, end.y) + bSize.y;
+	int maxZ = Max(start.z, end.z) + bSize.z;
+
+	for (int z = minZ; z <= maxZ; z++)
 	{
-		for (int y = min.y; y <= max.y; y++)
+		for (int y = minY; y <= maxY; y++)
 		{
-			for (int x = min.x; x <= max.x; x++)
+			for (int x = minX; x <= maxX; x++)
 			{
 				Block block = GetBlock(world, x, y, z);
 
@@ -328,17 +290,17 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 		for (int i = 0; i < player->possibleCollides.size(); i++)
 		{
 			AABB bb = player->possibleCollides[i];
-			TestCollision(playerBB, bb, delta, tMin, normal);
+			TestCollision(world, playerBB, bb, delta, tMin, normal);
 	 	}
 
-	 	player->pos += delta * tMin;
+	 	player->pos += delta * tMin + (normal * 0.001f);
 
 	 	// Subtract away the component of the velocity that collides with the wall and leave the
 	 	// remaining velocity intact.
 	 	player->velocity -= dot(player->velocity, normal) * normal;
 	 	delta -= dot(delta, normal) * normal;
 
-	 	tRemaining -= (tMin * tRemaining);
+	 	tRemaining -= tMin;
 	}
 
     player->possibleCollides.clear();
@@ -387,7 +349,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 			player->velocity.y = 10.0f;
 	}
 
-	Move(world, player, accel, deltaTime);
+	Move(input, world, player, accel, deltaTime);
 
 	float min = 0.0f, max = (float)(world->size * CHUNK_SIZE_H - 1);
 	player->pos.x = std::clamp(player->pos.x, min, max);

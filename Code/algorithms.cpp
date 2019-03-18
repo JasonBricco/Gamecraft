@@ -96,7 +96,7 @@ static inline void SwapInArray(T* items, int a, int b)
 template <typename T>
 static int QuickSortPartition(T* items, int start, int end)
 {
-	int pivot = items[end];
+	T pivot = items[end];
 	int left = start;
 	int right = end - 1;
 

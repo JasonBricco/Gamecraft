@@ -449,9 +449,13 @@ static void CreateDebugHUD(GameState* state, World* world)
         WorldPos p = LWorldToWorldPos(world, lwP);
 
         char blockText[64];
-        sprintf_s(blockText, 64, "Block: %s, Position: %i, %i, %i", name, p.x, p.y, p.z);
+        sprintf_s(blockText, 64, "Block: %s", name);
+
+        char posText[64];
+        sprintf_s(posText, 64, "Position: %i, %i, %i (%i, %i, %i)", lwP.x, lwP.y, lwP.z, p.x, p.y, p.z);
 
         ImGui::Text(blockText);
+        ImGui::Text(posText);
     }
 
     ImGui::End();

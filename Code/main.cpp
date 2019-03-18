@@ -24,9 +24,6 @@ static int g_buildID = 187;
 #include <windows.h>
 #include <shlwapi.h>
 #include <xaudio2.h>
-#include <mfapi.h>
-#include <mfidl.h>
-#include <mfreadwrite.h>
 #include <time.h>
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"

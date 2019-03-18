@@ -9,17 +9,18 @@ static void TestDiagonalCollision()
 
 	float tMin = 1.0f;
 	vec3 delta = vec3(2.0f);
-	TestCollision(a, b, delta, tMin);
+	vec3 normal = vec3(0.0f);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertEquals(tMin, 1.0f);
 
 	tMin = 1.0f;
 	delta = vec3(5.5f);
-	TestCollision(a, b, delta, tMin);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertNotEquals(tMin, 1.0f);
 
 	tMin = 1.0f;
 	delta = vec3(10.0f);
-	TestCollision(a, b, delta, tMin);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertNotEquals(tMin, 1.0f);
 }
 
@@ -30,17 +31,18 @@ static void TestNegativeDiagonalCollision()
 
 	float tMin = 1.0f;
 	vec3 delta = vec3(-2.0f);
-	TestCollision(a, b, delta, tMin);
+	vec3 normal = vec3(0.0f);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertEquals(tMin, 1.0f);
 
 	tMin = 1.0f;
 	delta = vec3(-5.5f);
-	TestCollision(a, b, delta, tMin);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertNotEquals(tMin, 1.0f);
 
 	tMin = 1.0f;
 	delta = vec3(-10.0f);
-	TestCollision(a, b, delta, tMin);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertNotEquals(tMin, 1.0f);
 }
 
@@ -53,19 +55,20 @@ static void TestPositiveCollision(int axis)
 	AABB b = AABBFromCorner(cornerB, vec3(1.0f));
 
 	vec3 delta = vec3(0.0f);
+	vec3 normal = vec3(0.0f);
 	float tMin = 1.0f;
 	delta[axis] = 3.0f;
-	TestCollision(a, b, delta, tMin);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertEquals(tMin, 1.0f);
 
 	delta[axis] = 5.05f;
 	tMin = 1.0f;
-	TestCollision(a, b, delta, tMin);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertNotEquals(tMin, 1.0f);
 
 	delta[axis] = 20.0f;
 	tMin = 1.0f;
-	TestCollision(a, b, delta, tMin);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertNotEquals(tMin, 1.0f);
 }
 
@@ -78,19 +81,20 @@ static void TestNegativeCollision(int axis)
 	AABB b = AABBFromCorner(cornerB, vec3(1.0f));
 
 	vec3 delta = vec3(0.0f);
+	vec3 normal = vec3(0.0f);
 	float tMin = 1.0f;
 	delta[axis] = -3.0f;
-	TestCollision(a, b, delta, tMin);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertEquals(tMin, 1.0f);
 
 	delta[axis] = -5.05f;
 	tMin = 1.0f;
-	TestCollision(a, b, delta, tMin);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertNotEquals(tMin, 1.0f);
 
 	delta[axis] = -20.0f;
 	tMin = 1.0f;
-	TestCollision(a, b, delta, tMin);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertNotEquals(tMin, 1.0f);
 }
 
@@ -100,8 +104,9 @@ static void TestSmallCollision()
 	AABB b = AABBFromCorner(vec3(240.601f, 0.0f, 0.0f), vec3(1.0f));
 
 	vec3 delta = vec3(0.00101f, 0.0f, 0.0f);
+	vec3 normal = vec3(0.0f);
 	float tMin = 1.0f;
-	TestCollision(a, b, delta, tMin);
+	TestCollision(a, b, delta, tMin, normal);
 	AssertNotEquals(tMin, 1.0f);
 }
 
