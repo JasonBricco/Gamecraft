@@ -23,6 +23,11 @@ static inline void ShrinkAABB(AABB& bb, vec3 amount)
 	bb.radius -= amount;
 }
 
+static inline AABB GetPlayerAABB(Player* player)
+{
+	return AABBFromCenter(player->pos, vec3(0.6f, 1.8f, 0.6f));
+}
+
 static float BlockRayIntersection(vec3 blockPos, Ray ray)
 {
 	float nearP = -FLT_MAX;
@@ -156,7 +161,7 @@ static inline bool TestWall(vec3 delta, vec3 p, float wallP, vec3 wMin, vec3 wMa
 	return false;
 }
 
-static void TestCollision(World* world, AABB a, AABB b, vec3 delta, float& tMin, vec3& normal)
+static void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 delta, float& tMin, vec3& normal)
 {
 	ExpandAABB(b, a.radius);
 	ShrinkAABB(a, a.radius);
@@ -173,27 +178,45 @@ static void TestCollision(World* world, AABB a, AABB b, vec3 delta, float& tMin,
 
 	// Top surface.
 	if (upPassable && TestWall(delta, a.pos, wMax.y, wMin, wMax, 1, 0, 2, tMin))
+	{
 		normal = vec3(0.0f, 1.0f, 0.0f);
+		player->colFlags |= HIT_DOWN;
+	}
 
 	// Bottom surface.
 	if (downPassable && TestWall(delta, a.pos, wMin.y, wMin, wMax, 1, 0, 2, tMin))
+	{
 		normal = vec3(0.0f, -1.0f, 0.0f);
+		player->colFlags |= HIT_UP;
+	}
 
 	// Left wall.
 	if (leftPassable && TestWall(delta, a.pos, wMin.x, wMin, wMax, 0, 1, 2, tMin))
+	{
 		normal = vec3(-1.0f, 0.0f, 0.0f);
+		player->colFlags |= HIT_OTHER;
+	}
 
 	// Right wall.
 	if (rightPassable && TestWall(delta, a.pos, wMax.x, wMin, wMax, 0, 1, 2, tMin))
+	{
 		normal = vec3(1.0f, 0.0f, 0.0f);
+		player->colFlags |= HIT_OTHER;
+	}
 
 	// Front wall.
 	if (frontPassable && TestWall(delta, a.pos, wMax.z, wMin, wMax, 2, 0, 1, tMin))
+	{
 		normal = vec3(0.0f, 0.0f, 1.0f);
+		player->colFlags |= HIT_OTHER;
+	}
 
 	// Back wall.
 	if (backPassable && TestWall(delta, a.pos, wMin.z, wMin, wMax, 2, 0, 1, tMin))
+	{
 		normal = vec3(0.0f, 0.0f, -1.0f);
+		player->colFlags |= HIT_OTHER;
+	}
 }
 
 static void Move(Input& input, World* world, Player* player, vec3 accel, float deltaTime)
@@ -222,12 +245,9 @@ static void Move(Input& input, World* world, Player* player, vec3 accel, float d
 	static vec3 savedPos;
 
 	if (KeyPressed(input, KEY_F1))
-		delta = vec3(5.0f, -3.0f, 0.0f);
-
-	if (KeyPressed(input, KEY_F2))
 		savedPos = player->pos;
 
-	if (KeyPressed(input, KEY_F4))
+	if (KeyPressed(input, KEY_F2))
 	{
 		player->pos = savedPos;
 		player->velocity = vec3(0.0f);
@@ -236,7 +256,7 @@ static void Move(Input& input, World* world, Player* player, vec3 accel, float d
 
 	vec3 target = player->pos + delta;
 
-	AABB playerBB = AABBFromCenter(player->pos, vec3(0.6f, 1.8f, 0.6f));
+	AABB playerBB = GetPlayerAABB(player);
 
 	player->colFlags = HIT_NONE;
 
@@ -275,14 +295,14 @@ static void Move(Input& input, World* world, Player* player, vec3 accel, float d
 
 	sort(player->possibleCollides.begin(), player->possibleCollides.end(), [player](auto a, auto b) 
     { 
-        float distA = distance2(vec3(a.pos.x + 0.5f, a.pos.y + 0.5f, a.pos.z + 0.5f), player->pos);
-        float distB = distance2(vec3(b.pos.x + 0.5f, b.pos.y + 0.5f, b.pos.z + 0.5f), player->pos);
+        float distA = distance2(vec3(a.pos.x, a.pos.y, a.pos.z), player->pos);
+        float distB = distance2(vec3(b.pos.x, b.pos.y, b.pos.z), player->pos);
 		return distA < distB;
     });
 
 	float tRemaining = 1.0f;
 
-	for (int it = 0; it < 4 && tRemaining > 0.0f; it++)
+	for (int it = 0; it < 3 && tRemaining > 0.0f; it++)
 	{
 		float tMin = 1.0f;
 		vec3 normal = vec3(0.0f);
@@ -290,17 +310,20 @@ static void Move(Input& input, World* world, Player* player, vec3 accel, float d
 		for (int i = 0; i < player->possibleCollides.size(); i++)
 		{
 			AABB bb = player->possibleCollides[i];
-			TestCollision(world, playerBB, bb, delta, tMin, normal);
+			TestCollision(world, player, playerBB, bb, delta, tMin, normal);
 	 	}
 
 	 	player->pos += delta * tMin + (normal * 0.001f);
+	 	playerBB = GetPlayerAABB(player);
 
 	 	// Subtract away the component of the velocity that collides with the wall and leave the
 	 	// remaining velocity intact.
 	 	player->velocity -= dot(player->velocity, normal) * normal;
-	 	delta -= dot(delta, normal) * normal;
 
-	 	tRemaining -= tMin;
+	 	delta -= dot(delta, normal) * normal;
+	 	delta -= (delta * tMin);
+
+	 	tRemaining -= (tMin * tRemaining);
 	}
 
     player->possibleCollides.clear();
@@ -356,6 +379,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 	player->pos.z = std::clamp(player->pos.z, min, max);
 
 	MoveCamera(cam, player->pos);
+	UpdateCameraVectors(cam);
 
 	// Tint the screen if the camera is in water. Subtract 0.1 to account
 	// for the near clip plane of the camera.
@@ -429,5 +453,7 @@ static void SpawnPlayer(GameState* state, World* world, Player* player, Rectf sp
 	player->pos = spawn;
 
 	MoveCamera(state->camera, player->pos);
+	UpdateCameraVectors(state->camera);
+
 	player->spawned = true;
 }

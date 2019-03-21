@@ -216,13 +216,13 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
 	double cX = state->windowWidth * 0.5f, cY = state->windowHeight * 0.5f;
+	glfwSetCursorPos(window, cX, cY);
+	
 	Camera* cam = state->camera;
 
 	float rotX = (float)(cX - mouseX) * cam->sensitivity;
 	float rotY = (float)(cY - mouseY) * cam->sensitivity;
-
 	RotateCamera(cam, rotX, rotY);
-	glfwSetCursorPos(window, cX, cY);
 
 	Simulate(state, world, player, deltaTime);
 
@@ -240,14 +240,14 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 #if TESTING
 
 #include "algorithms.cpp"
-
 #include "algorithms_test.cpp"
-#include "simulation_test.cpp"
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
+	if (!glfwInit())
+		Error("GLFW failed to initialize.\n");
+
 	TestGenericAlgorithms();
-	TestCollision();
 }
 
 #else

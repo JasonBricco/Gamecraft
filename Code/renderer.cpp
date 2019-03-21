@@ -218,13 +218,11 @@ static void RotateCamera(Camera* cam, float yaw, float pitch)
 	cam->pitch += radians(pitch);
 
 	cam->pitch = glm::clamp(cam->pitch, -PI / 2.0f + 0.1f, PI / 2.0f - 0.1f);
-	UpdateCameraVectors(cam);
 }
 
 static inline void MoveCamera(Camera* cam, vec3 pos)
 {	
 	cam->pos = vec3(pos.x, pos.y + 1.15f, pos.z);
-	UpdateCameraVectors(cam);
 }
 
 static inline void UpdateViewMatrix(Camera* cam)

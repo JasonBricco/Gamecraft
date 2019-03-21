@@ -563,6 +563,7 @@ static void CheckWorld(GameState* state, World* world, Player* player)
     {
         player->pos = pos;
         MoveCamera(state->camera, player->pos);
+        UpdateCameraVectors(state->camera);
         ShiftWorld(state, world);
     }
 }
