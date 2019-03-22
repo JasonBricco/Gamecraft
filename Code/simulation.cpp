@@ -139,13 +139,24 @@ static HitInfo GetVoxelHit(GameState* state, Camera* cam, World* world)
 	return info;
 }
 
+static inline bool InApproxRange(float& value, float min, float max)
+{
+	if (value > (min - EPSILON) && value < (max + EPSILON))
+	{
+		value = Clamp(value, min, max);
+		return true;
+	}
+
+	return false;
+}
+
 static inline bool TestWall(vec3 delta, vec3 p, float wallP, vec3 wMin, vec3 wMax, int axis0, int axis1, int axis2, float& tMin)
 {
 	if (delta[axis0] != 0.0f)
 	{
 		float tResult = (wallP - p[axis0]) / delta[axis0];
 
-		if (tResult > 0.0f && tResult < tMin)
+		if (InApproxRange(tResult, 0.0f, tMin))
 		{
 			float o1 = p[axis1] + tResult * delta[axis1];
 			float o2 = p[axis2] + tResult * delta[axis2];
@@ -253,10 +264,7 @@ static void Move(Input& input, World* world, Player* player, vec3 accel, float d
 		player->velocity = vec3(0.0f);
 		delta = vec3(0.0f);
 	}
-
-	if (KeyPressed(input, KEY_F4))
-		delta = vec3(1.0f, 0.0f, WALL_EPSILON);
-
+	
 	vec3 target = player->pos + delta;
 	AABB playerBB = GetPlayerAABB(player);
 

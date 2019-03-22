@@ -3,7 +3,7 @@
 //
 
 #define PI 3.141592653f
-#define EPSILON 0.00001f
+#define EPSILON 0.0001f
 
 #define ArrayLength(array) (sizeof(array) / sizeof((array)[0]))
 
