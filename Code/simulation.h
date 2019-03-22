@@ -2,7 +2,7 @@
 // Jason Bricco
 //
 
-#define EPA_TOLERANCE 0.001f
+#define WALL_EPSILON 0.001953125f
 
 // Provides information about which side of an entity collided.
 enum CollisionFlags

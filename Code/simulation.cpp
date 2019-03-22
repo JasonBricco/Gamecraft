@@ -221,8 +221,8 @@ static void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 del
 
 static void Move(Input& input, World* world, Player* player, vec3 accel, float deltaTime)
 {
-	accel = accel * player->speed;
-	accel = accel + ((player->velocity * player->friction));
+	accel *= player->speed;
+	accel += player->velocity * player->friction;
 
 	// Gravity.
 	if (!player->flying) accel.y = -30.0f;
@@ -254,8 +254,10 @@ static void Move(Input& input, World* world, Player* player, vec3 accel, float d
 		delta = vec3(0.0f);
 	}
 
-	vec3 target = player->pos + delta;
+	if (KeyPressed(input, KEY_F4))
+		delta = vec3(1.0f, 0.0f, WALL_EPSILON);
 
+	vec3 target = player->pos + delta;
 	AABB playerBB = GetPlayerAABB(player);
 
 	player->colFlags = HIT_NONE;
@@ -313,7 +315,20 @@ static void Move(Input& input, World* world, Player* player, vec3 accel, float d
 			TestCollision(world, player, playerBB, bb, delta, tMin, normal);
 	 	}
 
-	 	player->pos += delta * tMin + (normal * 0.001f);
+	 	player->pos += delta * tMin;
+
+	 	if (normal != vec3(0.0f))
+	 	{
+	 		vec3 nOffset = (normal * WALL_EPSILON);
+	 		vec3 dOffset = (normalize(delta) * -WALL_EPSILON);
+
+	 		float offX = fabs(nOffset.x) > fabs(dOffset.x) ? nOffset.x : dOffset.x;
+	 		float offY = fabs(nOffset.y) > fabs(dOffset.y) ? nOffset.y : dOffset.y;
+	 		float offZ = fabs(nOffset.z) > fabs(dOffset.z) ? nOffset.z : dOffset.z;
+
+	 		player->pos += vec3(offX, offY, offZ);
+	 	}
+
 	 	playerBB = GetPlayerAABB(player);
 
 	 	// Subtract away the component of the velocity that collides with the wall and leave the
