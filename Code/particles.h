@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 #define MAX_PARTICLES 8192

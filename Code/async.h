@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 using AsyncCallback = void(*)(World*, void*);

@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 #define WALL_EPSILON 0.001953125f
@@ -27,6 +27,12 @@ struct AABB
     // Radius is the distance from the center to an edge.
     vec3 pos;
     vec3 radius;
+};
+
+struct MinMaxAABB
+{
+    vec3 min;
+    vec3 max;
 };
 
 struct Player

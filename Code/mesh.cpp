@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 static inline int CalculateMeshDataSize(int vertices, int indices)

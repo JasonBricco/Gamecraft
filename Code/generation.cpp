@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 static inline float GetNoiseValue2D(float* noiseSet, int x, int z)

@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 static Texture GetTexture(GameState* state, ImageID id)

@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 #define DEBUG_MEMORY 0
@@ -13,7 +13,7 @@ static char* g_buildType = "DEBUG";
 static char* g_buildType = "RELEASE";
 #endif
 
-static int g_buildID = 187;
+static int g_buildID = 196;
 
 #pragma warning(push, 0)
 

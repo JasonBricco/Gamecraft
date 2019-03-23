@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 // 
 
 #if PROFILING

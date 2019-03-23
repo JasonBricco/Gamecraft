@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 static void* ReadFileData(char* path, uint32_t* sizePtr)

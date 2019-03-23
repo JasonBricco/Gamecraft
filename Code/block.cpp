@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 static inline uint16_t* GetTextures(World* world, Block block)

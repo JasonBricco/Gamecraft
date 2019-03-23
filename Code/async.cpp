@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 static inline bool DoNextAsync(GameState* state, AsyncWorkQueue& queue)

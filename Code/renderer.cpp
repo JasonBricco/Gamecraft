@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 static inline void SetUniform(GLint loc, GLfloat f)
@@ -222,7 +222,7 @@ static void RotateCamera(Camera* cam, float yaw, float pitch)
 
 static inline void MoveCamera(Camera* cam, vec3 pos)
 {	
-	cam->pos = vec3(pos.x, pos.y + 1.15f, pos.z);
+	cam->pos = vec3(pos.x, pos.y + 0.45f, pos.z);
 }
 
 static inline void UpdateViewMatrix(Camera* cam)

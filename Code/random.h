@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 // Returns a random number between 0 and max, exclusive.

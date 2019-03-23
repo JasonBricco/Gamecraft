@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 static inline AABB AABBFromCorner(vec3 corner, vec3 size)
@@ -26,6 +26,25 @@ static inline void ShrinkAABB(AABB& bb, vec3 amount)
 static inline AABB GetPlayerAABB(Player* player)
 {
 	return AABBFromCenter(player->pos, vec3(0.6f, 1.8f, 0.6f));
+}
+
+static inline MinMaxAABB GetMinMaxAABB(AABB bb)
+{
+	vec3 min = bb.pos - bb.radius;
+	vec3 max = bb.pos + bb.radius;
+	return { min, max };
+}
+
+static inline bool OverlapAABB(AABB a, AABB b)
+{
+	MinMaxAABB mmA = GetMinMaxAABB(a);
+	MinMaxAABB mmB = GetMinMaxAABB(b);
+
+	bool overlapX = mmA.min.x <= mmB.max.x && mmA.max.x >= mmB.min.x;
+	bool overlapY = mmA.min.y <= mmB.max.y && mmA.max.y >= mmB.min.y;
+	bool overlapZ = mmA.min.z <= mmB.max.z && mmA.max.z >= mmB.min.z;
+
+	return overlapX && overlapY && overlapZ;
 }
 
 static float BlockRayIntersection(vec3 blockPos, Ray ray)
@@ -131,7 +150,7 @@ static HitInfo GetVoxelHit(GameState* state, Camera* cam, World* world)
 	{
 		info.hit = true;
 		info.hitPos = BlockPos(point + ray.dir * 0.01f);
-		point = point - (ray.dir * 0.01f);
+		point -= (ray.dir * 0.01f);
 		info.adjPos = BlockPos(point);
 		info.normal = GetV3(info.hitPos - info.adjPos);
 	}
@@ -352,9 +371,17 @@ static void Move(Input& input, World* world, Player* player, vec3 accel, float d
     player->possibleCollides.clear();
 }
 
-static bool OverlapsBlock(Player*, int, int, int)
+static bool OverlapsBlock(Player* player, int x, int y, int z)
 {
-	return false;
+	AABB playerBB = GetPlayerAABB(player);
+	AABB block = AABBFromCenter(vec3(x, y, z), vec3(1.0f));
+	return OverlapAABB(playerBB, block);
+}
+
+static void SetBlockFromInput(World* world, ivec3 pos, Input& input, Block block)
+{
+	SetBlock(world, pos, block);
+	input.blockSetDelay = 0.15f;
 }
 
 static void Simulate(GameState* state, World* world, Player* player, float deltaTime)
@@ -420,7 +447,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 		cam->disableFluidCull = false;
 	}
 
-	int op = MousePressed(input, 0) ? 0 : MousePressed(input, 1) ? 1 : -1;
+	input.blockSetDelay -= deltaTime;
 
 	world->cursorOnBlock = false;
 	HitInfo info = GetVoxelHit(state, cam, world);
@@ -430,17 +457,16 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 		world->cursorOnBlock = true;
 		world->cursorBlockPos = info.hitPos;
 
-		ivec3 setPos;
-
-		if (op == 0)
-		{
-			setPos = info.adjPos;
-			SetBlock(world, setPos, world->blockToSet);
-		}
-		else if (op == 1)
-		{
-			setPos = info.hitPos;
-			SetBlock(world, setPos, BLOCK_AIR);
+		if (MousePressed(input, 0))
+			SetBlockFromInput(world, info.adjPos, input, world->blockToSet);
+		else if (MousePressed(input, 1))
+			SetBlockFromInput(world, info.hitPos, input, BLOCK_AIR);
+		else if (input.blockSetDelay < 0.0f)
+		{	
+			if (MouseHeld(input, 0))
+				SetBlockFromInput(world, info.adjPos, input, world->blockToSet);
+			else if (MouseHeld(input, 1))
+				SetBlockFromInput(world, info.hitPos, input, BLOCK_AIR);
 		}
 	}
 }

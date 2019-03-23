@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float radius)

@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 static inline bool BlockInsideChunk(int x, int y, int z)

@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 static inline bool KeyHeld(Input& input, KeyType type)

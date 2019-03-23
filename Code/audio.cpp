@@ -1,5 +1,5 @@
 //
-// Jason Bricco
+// Gamecraft
 //
 
 #define CheckForError(hr, ...) if (FAILED(hr)) Error(__VA_ARGS__)
