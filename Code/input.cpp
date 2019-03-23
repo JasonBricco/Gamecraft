@@ -79,6 +79,10 @@ static void OnKey(GLFWwindow* window, int key, int, int action, int mode)
 			SetKey(input, KEY_RIGHT, action);
 			break;
 
+		case GLFW_KEY_C:
+			SetKey(input, KEY_C, action);
+			break;
+
 		case GLFW_KEY_SPACE:
 			SetKey(input, KEY_SPACE, action);
 			break;

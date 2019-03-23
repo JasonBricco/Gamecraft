@@ -384,6 +384,35 @@ static void SetBlockFromInput(World* world, ivec3 pos, Input& input, Block block
 	input.blockSetDelay = 0.15f;
 }
 
+static void HandleEditInput(GameState* state, Input& input, World* world, float deltaTime)
+{
+	input.blockSetDelay -= deltaTime;
+
+	world->cursorOnBlock = false;
+	HitInfo info = GetVoxelHit(state, state->camera, world);
+
+	if (info.hit)
+	{
+		world->cursorOnBlock = true;
+		world->cursorBlockPos = info.hitPos;
+
+		if (KeyPressed(input, KEY_R))
+			world->blockToSet = (BlockType)GetBlock(world, world->cursorBlockPos);
+
+		if (MousePressed(input, 0))
+			SetBlockFromInput(world, info.adjPos, input, world->blockToSet);
+		else if (MousePressed(input, 1))
+			SetBlockFromInput(world, info.hitPos, input, BLOCK_AIR);
+		else if (input.blockSetDelay < 0.0f)
+		{	
+			if (MouseHeld(input, 0))
+				SetBlockFromInput(world, info.adjPos, input, world->blockToSet);
+			else if (MouseHeld(input, 1))
+				SetBlockFromInput(world, info.hitPos, input, BLOCK_AIR);
+		}
+	}
+}
+
 static void Simulate(GameState* state, World* world, Player* player, float deltaTime)
 {
 	Input& input = state->input;
@@ -447,28 +476,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 		cam->disableFluidCull = false;
 	}
 
-	input.blockSetDelay -= deltaTime;
-
-	world->cursorOnBlock = false;
-	HitInfo info = GetVoxelHit(state, cam, world);
-
-	if (info.hit)
-	{
-		world->cursorOnBlock = true;
-		world->cursorBlockPos = info.hitPos;
-
-		if (MousePressed(input, 0))
-			SetBlockFromInput(world, info.adjPos, input, world->blockToSet);
-		else if (MousePressed(input, 1))
-			SetBlockFromInput(world, info.hitPos, input, BLOCK_AIR);
-		else if (input.blockSetDelay < 0.0f)
-		{	
-			if (MouseHeld(input, 0))
-				SetBlockFromInput(world, info.adjPos, input, world->blockToSet);
-			else if (MouseHeld(input, 1))
-				SetBlockFromInput(world, info.hitPos, input, BLOCK_AIR);
-		}
-	}
+	HandleEditInput(state, input, world, deltaTime);
 }
 
 // Creates and spawns the player. The player is spawned within the center local space chunk.
