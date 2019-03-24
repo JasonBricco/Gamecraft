@@ -476,6 +476,15 @@ static void RenderScene(GameState* state, Camera* cam)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+	// Transparent pass.
+	count = cam->meshLists[MESH_TYPE_TRANSPARENT].count;
+
+	for (int i = 0; i < count; i++)
+	{
+		ChunkMesh cM = cam->meshLists[MESH_TYPE_TRANSPARENT].meshes[i];
+		DrawMesh(cM.mesh, shader, cM.pos);
+	}
+
 	// Fluid pass.
 	shader = GetShader(state, SHADER_FLUID_ARRAY);
 

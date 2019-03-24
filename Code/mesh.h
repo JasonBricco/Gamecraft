@@ -2,12 +2,12 @@
 // Gamecraft
 //
 
-#define CHUNK_MESH_COUNT 2
-
 enum BlockMeshType
 {
     MESH_TYPE_OPAQUE,
-    MESH_TYPE_FLUID
+    MESH_TYPE_TRANSPARENT,
+    MESH_TYPE_FLUID,
+    MESH_TYPE_COUNT
 };
 
 enum MeshFlags

@@ -78,8 +78,6 @@ static inline void SetUVs(MeshData* meshData, uint16_t w)
     meshData->uvs[count + 3] = u16vec3(1, 1, w);
 }
 
-static void DestroyMesh(Mesh& mesh);
-
 static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, int32_t flags)
 {
 	BEGIN_TIMED_BLOCK(FILL_MESH);

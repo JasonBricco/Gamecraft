@@ -70,7 +70,7 @@ struct Camera
 
     mat4 perspective, view;
 
-    ChunkMeshList meshLists[CHUNK_MESH_COUNT];
+    ChunkMeshList meshLists[MESH_TYPE_COUNT];
 
     Graphic* crosshair;
 

@@ -22,5 +22,5 @@ void main()
 	vec3 amb = vec3(ambient) * vertColor.rgb;
 	outColor.xyz *= amb;
     outColor.xyz = mix(fogColor, outColor.xyz, fogFactor);
-    outColor.a = 0.5;
+    outColor.a = vertColor.a;
 }

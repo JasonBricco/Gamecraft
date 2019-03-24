@@ -38,6 +38,11 @@ static inline Colori NewColori(uint8_t value)
     return { value, value, value, value };
 }
 
+static inline Colori NewColori(u8vec3 rgb, uint8_t a)
+{
+    return { rgb.r, rgb.g, rgb.b, a };
+}
+
 static inline Colori NewColori(int r, int g, int b, int a)
 {
     return { (uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)a };
@@ -170,46 +175,6 @@ static inline float Lerp(float a, float b, float t)
 static inline float SCurve3(float a)
 {
     return (a * a * (3.0f - 2.0f * a));
-}
-
-static inline Color AverageColor(Color first, Color second, Color third, Color fourth)
-{
-    float r = (first.r + second.r + third.r + fourth.r) / 4.0f;
-    float b = (first.b + second.b + third.b + fourth.b) / 4.0f;
-    float g = (first.g + second.g + third.g + fourth.g) / 4.0f;
-    float a = (first.a + second.a + third.a + fourth.a) / 4.0f;
-    
-    return vec4(r, b, g, a);
-}
-
-static inline Color AverageColor(Color first, Color second, Color third)
-{
-    float r = (first.r + second.r + third.r) / 3.0f;
-    float b = (first.b + second.b + third.b) / 3.0f;
-    float g = (first.g + second.g + third.g) / 3.0f;
-    float a = (first.a + second.a + third.a) / 3.0f;
-    
-    return vec4(r, b, g, a);
-}
-
-static inline Colori AverageColor(Colori first, Colori second, Colori third, Colori fourth)
-{
-    int r = (first.r + second.r + third.r + fourth.r) >> 2;
-    int b = (first.b + second.b + third.b + fourth.b) >> 2;
-    int g = (first.g + second.g + third.g + fourth.g) >> 2;
-    int a = (first.a + second.a + third.a + fourth.a) >> 2;
-    
-    return NewColori(r, g, b, a);
-}
-
-static inline Colori AverageColor(Colori first, Colori second, Colori third)
-{
-    int r = (first.r + second.r + third.r) / 3;
-    int b = (first.b + second.b + third.b) / 3;
-    int g = (first.g + second.g + third.g) / 3;
-    int a = (first.a + second.a + third.a) / 3;
-    
-    return NewColori(r, b, g, a);
 }
 
 struct Rectf

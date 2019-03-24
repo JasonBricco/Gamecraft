@@ -42,6 +42,11 @@ static inline char* GetBlockName(World* world, Block block)
     return world->blockData[block].name;
 }
 
+static inline uint8_t GetBlockAlpha(World* world, Block block)
+{
+    return world->blockData[block].alpha;
+}
+
 static inline void SetBlockTextures(BlockData& data, uint16_t top, uint16_t bottom, uint16_t front, uint16_t back, uint16_t right, uint16_t left)
 {
     data.textures[FACE_TOP] = top;
@@ -90,6 +95,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
 
     BlockData& water = data[BLOCK_WATER];
     SetBlockTextures(water, IMAGE_WATER);
+    water.alpha = 127;
     water.meshType = MESH_TYPE_FLUID;
     water.buildFunc = BuildBlock;
     water.cull = CULL_TRANSPARENT;
@@ -144,4 +150,13 @@ static void CreateBlockData(GameState* state, BlockData* data)
     snow.buildFunc = BuildBlock;
     snow.onSetSound = GetSound(state, SOUND_STONE);
     snow.name = "Snow";
+
+    BlockData& ice = data[BLOCK_ICE];
+    SetBlockTextures(ice, IMAGE_ICE);
+    ice.cull = CULL_TRANSPARENT;
+    ice.alpha = 204;
+    ice.meshType = MESH_TYPE_TRANSPARENT;
+    ice.buildFunc = BuildBlock;
+    ice.onSetSound = GetSound(state, SOUND_STONE);
+    ice.name = "Ice";
 }

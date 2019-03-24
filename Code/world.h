@@ -62,8 +62,8 @@ struct Chunk
 
     Block blocks[CHUNK_SIZE_3];
 
-    Mesh meshes[CHUNK_MESH_COUNT];
-    MeshData* meshData[CHUNK_MESH_COUNT];
+    Mesh meshes[MESH_TYPE_COUNT];
+    MeshData* meshData[MESH_TYPE_COUNT];
 
     bool pendingUpdate;
 

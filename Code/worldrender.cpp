@@ -41,7 +41,7 @@ static void BuildChunk(World* world, void* chunkPtr)
 
 static void FillChunkMeshes(Chunk* chunk)
 {
-    for (int i = 0; i < CHUNK_MESH_COUNT; i++)
+    for (int i = 0; i < MESH_TYPE_COUNT; i++)
     {
         MeshData* data = chunk->meshData[i];
 
@@ -62,7 +62,7 @@ static void FillChunkMeshes(Chunk* chunk)
 
 static void DestroyChunkMeshes(Chunk* chunk)
 {
-    for (int i = 0; i < CHUNK_MESH_COUNT; i++)
+    for (int i = 0; i < MESH_TYPE_COUNT; i++)
         DestroyMesh(chunk->meshes[i]);
 }
 
@@ -93,7 +93,7 @@ static bool NeighborsLoaded(World* world, Chunk* chunk)
 
 static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
 {
-    for (int i = 0; i < CHUNK_MESH_COUNT; i++)
+    for (int i = 0; i < MESH_TYPE_COUNT; i++)
     {
         ChunkMeshList& list = cam->meshLists[i];
         list.meshes = AllocTempArray(world->visibleCount, ChunkMesh);
@@ -138,7 +138,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
                 if (chunk->pendingUpdate)
                     RebuildChunk(world, chunk);
 
-                for (int m = 0; m < CHUNK_MESH_COUNT; m++)
+                for (int m = 0; m < MESH_TYPE_COUNT; m++)
                 {
                     Mesh mesh = chunk->meshes[m];
 
@@ -191,18 +191,43 @@ static void GetVisibleChunks(World* world, Camera* cam)
 
 // Returns true if the current block should draw its face when placed
 // next to the adjacent block.
-static inline bool CanDrawFace(World* world, CullType cur, Block adjBlock)
+static inline bool CanDrawFace(World* world, CullType cur, Block block, Block adjBlock)
 {
     CullType adj = GetCullType(world, adjBlock);
 
-    if (cur == CULL_OPAQUE)
-        return adj >= CULL_TRANSPARENT;
-    else return adj == CULL_ALL;
+    switch (cur)
+    {
+        case CULL_OPAQUE:
+            return adj >= CULL_TRANSPARENT;
+        
+        case CULL_TRANSPARENT:
+            return adj >= CULL_TRANSPARENT && adjBlock != block;
+    }
+
+    return false;
+}
+
+static inline u8vec3 AverageColor(u8vec3 first, u8vec3 second, u8vec3 third, u8vec3 fourth)
+{
+    int r = (first.r + second.r + third.r + fourth.r) >> 2;
+    int b = (first.b + second.b + third.b + fourth.b) >> 2;
+    int g = (first.g + second.g + third.g + fourth.g) >> 2;
+    
+    return u8vec3(r, g, b);
+}
+
+static inline u8vec3 AverageColor(u8vec3 first, u8vec3 second, u8vec3 third)
+{
+    int r = (first.r + second.r + third.r) / 3;
+    int b = (first.b + second.b + third.b) / 3;
+    int g = (first.g + second.g + third.g) / 3;
+    
+    return u8vec3(r, b, g);
 }
 
 #define BLOCK_TRANSPARENT(pos) GetCullType(world, GetBlockSafe(world, chunk, pos)) >= CULL_TRANSPARENT
 
-static inline Colori VertexLight(World* world, Chunk* chunk, Axis axis, RelPos pos, int dx, int dy, int dz)
+static inline ivec3 VertexLight(World* world, Chunk* chunk, Axis axis, RelPos pos, int dx, int dy, int dz)
 {
     RelPos a, b, c, d;
 
@@ -235,24 +260,24 @@ static inline Colori VertexLight(World* world, Chunk* chunk, Axis axis, RelPos p
 
     if (t1 || t2) 
     {
-        Colori c1 = BLOCK_TRANSPARENT(a) ? NewColori(255) : NewColori(65);
-        Colori c2 = BLOCK_TRANSPARENT(b) ? NewColori(255) : NewColori(65);
-        Colori c3 = BLOCK_TRANSPARENT(c) ? NewColori(255) : NewColori(65);
-        Colori c4 = BLOCK_TRANSPARENT(d) ? NewColori(255) : NewColori(65);
+        u8vec3 c1 = BLOCK_TRANSPARENT(a) ? u8vec3(255) : u8vec3(65);
+        u8vec3 c2 = BLOCK_TRANSPARENT(b) ? u8vec3(255) : u8vec3(65);
+        u8vec3 c3 = BLOCK_TRANSPARENT(c) ? u8vec3(255) : u8vec3(65);
+        u8vec3 c4 = BLOCK_TRANSPARENT(d) ? u8vec3(255) : u8vec3(65);
 
         return AverageColor(c1, c2, c3, c4);
     }
     else 
     {
-        Colori c1 = BLOCK_TRANSPARENT(a) ? NewColori(255) : NewColori(65);
-        Colori c2 = BLOCK_TRANSPARENT(b) ? NewColori(255) : NewColori(65);
-        Colori c3 = BLOCK_TRANSPARENT(c) ? NewColori(255) : NewColori(65);
+        u8vec3 c1 = BLOCK_TRANSPARENT(a) ? u8vec3(255) : u8vec3(65);
+        u8vec3 c2 = BLOCK_TRANSPARENT(b) ? u8vec3(255) : u8vec3(65);
+        u8vec3 c3 = BLOCK_TRANSPARENT(c) ? u8vec3(255) : u8vec3(65);
 
         return AverageColor(c1, c2, c3);
     }
 }
 
-#define LIGHT(a, o1, o2, o3) VertexLight(world, chunk, AXIS_##a, rP, o1, o2, o3)
+#define LIGHT(a, o1, o2, o3) NewColori(VertexLight(world, chunk, AXIS_##a, rP, o1, o2, o3), alpha)
 
 static inline void SetFaceVertexData(MeshData* data, int index, float x, float y, float z, Colori c)
 {
@@ -269,9 +294,10 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     RelPos rP = ivec3(xi, yi, zi);
     float x = (float)xi, y = (float)yi, z = (float)zi;
 
+    uint8_t alpha = GetBlockAlpha(world, block);
     CullType cull = GetCullType(world, block);
 
-    if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi, yi + 1, zi)))
+    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, xi, yi + 1, zi)))
     {
         int count = data->vertCount;
 
@@ -287,7 +313,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi, yi - 1, zi)))
+    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, xi, yi - 1, zi)))
     {
         int count = data->vertCount;
 
@@ -303,7 +329,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi, yi, zi + 1)))
+    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, xi, yi, zi + 1)))
     {
         int count = data->vertCount;
 
@@ -319,7 +345,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi, yi, zi - 1)))
+    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, xi, yi, zi - 1)))
     {
         int count = data->vertCount;
 
@@ -335,7 +361,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi + 1, yi, zi)))
+    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, xi + 1, yi, zi)))
     {
         int count = data->vertCount;
 
@@ -351,7 +377,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (CanDrawFace(world, cull, GetBlockSafe(world, chunk, xi - 1, yi, zi)))
+    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, xi - 1, yi, zi)))
     {
         int count = data->vertCount;
 

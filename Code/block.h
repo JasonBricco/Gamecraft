@@ -22,6 +22,7 @@ enum BlockType : Block
     BLOCK_LEAVES,
     BLOCK_CLAY,
     BLOCK_SNOW,
+    BLOCK_ICE,
     BLOCK_COUNT
 };
 
@@ -51,6 +52,7 @@ struct BlockData
     BlockMeshType meshType;
     CullType cull;
     BuildBlockFunc buildFunc;
+    uint8_t alpha;
     Sound onSetSound;
     char* name;
 };
