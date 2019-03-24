@@ -45,6 +45,9 @@ struct Player
     bool flying, speedMode;
     bool spawned;
 
+    // The surface the player is standing on.
+    BlockSurface surface;
+
     vector<AABB> possibleCollides;
 };
 

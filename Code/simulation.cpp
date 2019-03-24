@@ -199,53 +199,71 @@ static void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 del
 	ivec3 bPos = BlockPos(b.pos);
 	vec3 wMin = b.pos - b.radius, wMax = b.pos + b.radius;
 
-	bool upPassable = IsPassable(world, GetBlock(world, bPos.x, bPos.y + 1, bPos.z));
-	bool downPassable = IsPassable(world, GetBlock(world, bPos.x, bPos.y - 1, bPos.z));
-	bool leftPassable = IsPassable(world, GetBlock(world, bPos.x - 1, bPos.y, bPos.z));
-	bool rightPassable = IsPassable(world, GetBlock(world, bPos.x + 1, bPos.y, bPos.z));
-	bool frontPassable = IsPassable(world, GetBlock(world, bPos.x, bPos.y, bPos.z + 1));
-	bool backPassable = IsPassable(world, GetBlock(world, bPos.x, bPos.y, bPos.z - 1));
+	Block up = GetBlock(world, bPos.x, bPos.y + 1, bPos.z);
+	Block down = GetBlock(world, bPos.x, bPos.y - 1, bPos.z);
+	Block left = GetBlock(world, bPos.x - 1, bPos.y, bPos.z);
+	Block right = GetBlock(world, bPos.x + 1, bPos.y, bPos.z);
+	Block front = GetBlock(world, bPos.x, bPos.y, bPos.z + 1);
+	Block back = GetBlock(world, bPos.x, bPos.y, bPos.z - 1);
 
 	// Top surface.
-	if (upPassable && TestWall(delta, a.pos, wMax.y, wMin, wMax, 1, 0, 2, tMin))
+	if (IsPassable(world, up) && TestWall(delta, a.pos, wMax.y, wMin, wMax, 1, 0, 2, tMin))
 	{
 		normal = vec3(0.0f, 1.0f, 0.0f);
 		player->colFlags |= HIT_DOWN;
+		player->surface = GetBlockSurface(world, GetBlock(world, bPos));
 	}
 
 	// Bottom surface.
-	if (downPassable && TestWall(delta, a.pos, wMin.y, wMin, wMax, 1, 0, 2, tMin))
+	if (IsPassable(world, down) && TestWall(delta, a.pos, wMin.y, wMin, wMax, 1, 0, 2, tMin))
 	{
 		normal = vec3(0.0f, -1.0f, 0.0f);
 		player->colFlags |= HIT_UP;
 	}
 
 	// Left wall.
-	if (leftPassable && TestWall(delta, a.pos, wMin.x, wMin, wMax, 0, 1, 2, tMin))
+	if (IsPassable(world, left) && TestWall(delta, a.pos, wMin.x, wMin, wMax, 0, 1, 2, tMin))
 	{
 		normal = vec3(-1.0f, 0.0f, 0.0f);
 		player->colFlags |= HIT_OTHER;
 	}
 
 	// Right wall.
-	if (rightPassable && TestWall(delta, a.pos, wMax.x, wMin, wMax, 0, 1, 2, tMin))
+	if (IsPassable(world, right) && TestWall(delta, a.pos, wMax.x, wMin, wMax, 0, 1, 2, tMin))
 	{
 		normal = vec3(1.0f, 0.0f, 0.0f);
 		player->colFlags |= HIT_OTHER;
 	}
 
 	// Front wall.
-	if (frontPassable && TestWall(delta, a.pos, wMax.z, wMin, wMax, 2, 0, 1, tMin))
+	if (IsPassable(world, front) && TestWall(delta, a.pos, wMax.z, wMin, wMax, 2, 0, 1, tMin))
 	{
 		normal = vec3(0.0f, 0.0f, 1.0f);
 		player->colFlags |= HIT_OTHER;
 	}
 
 	// Back wall.
-	if (backPassable && TestWall(delta, a.pos, wMin.z, wMin, wMax, 2, 0, 1, tMin))
+	if (IsPassable(world, back) && TestWall(delta, a.pos, wMin.z, wMin, wMax, 2, 0, 1, tMin))
 	{
 		normal = vec3(0.0f, 0.0f, -1.0f);
 		player->colFlags |= HIT_OTHER;
+	}
+}
+
+static void ProcessBlockSurface(Player* player, vec3 accel, float deltaTime)
+{
+	switch (player->surface)
+	{
+		case SURFACE_NORMAL:
+			player->velocity = accel * deltaTime + player->velocity;
+			break;
+
+		case SURFACE_ICE:
+		{
+			player->velocity.x = (accel.x * 0.1f) * deltaTime + player->velocity.x;
+			player->velocity.y = accel.y * deltaTime + player->velocity.y;
+			player->velocity.z = (accel.z * 0.1f) * deltaTime + player->velocity.z;
+		} break;
 	}
 }
 
@@ -270,7 +288,7 @@ static void Move(Input& input, World* world, Player* player, vec3 accel, float d
 	// to go from position down to velocity and then down to acceleration to see how 
 	// we can integrate back up.
 	vec3 delta = accel * 0.5f * Square(deltaTime) + player->velocity * deltaTime;
-	player->velocity = accel * deltaTime + player->velocity;
+	ProcessBlockSurface(player, accel, deltaTime);
 
 	static vec3 savedPos;
 

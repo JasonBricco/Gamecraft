@@ -43,6 +43,12 @@ enum CullType
     CULL_ALL
 };
 
+enum BlockSurface
+{
+    SURFACE_NORMAL,
+    SURFACE_ICE
+};
+
 using BuildBlockFunc = void(*)(World*, Chunk*, MeshData*, int, int, int, Block);
 
 struct BlockData
@@ -54,5 +60,6 @@ struct BlockData
     BuildBlockFunc buildFunc;
     uint8_t alpha;
     Sound onSetSound;
+    BlockSurface surface;
     char* name;
 };

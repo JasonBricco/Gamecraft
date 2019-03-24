@@ -47,6 +47,11 @@ static inline uint8_t GetBlockAlpha(World* world, Block block)
     return world->blockData[block].alpha;
 }
 
+static inline BlockSurface GetBlockSurface(World* world, Block block)
+{
+    return world->blockData[block].surface;
+}
+
 static inline void SetBlockTextures(BlockData& data, uint16_t top, uint16_t bottom, uint16_t front, uint16_t back, uint16_t right, uint16_t left)
 {
     data.textures[FACE_TOP] = top;
@@ -158,5 +163,6 @@ static void CreateBlockData(GameState* state, BlockData* data)
     ice.meshType = MESH_TYPE_TRANSPARENT;
     ice.buildFunc = BuildBlock;
     ice.onSetSound = GetSound(state, SOUND_STONE);
+    ice.surface = SURFACE_ICE;
     ice.name = "Ice";
 }
