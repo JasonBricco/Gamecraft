@@ -579,7 +579,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     {
         LChunkP cP = LWorldToLChunkP(player->pos);
 
-        if (GetGroup(world, cP.x, cP.y)->loaded)
+        if (!ChunkInsideGroup(cP.y) || GetGroup(world, cP.x, cP.y)->loaded)
         {
             ivec3 bP = BlockPos(player->pos);
 
