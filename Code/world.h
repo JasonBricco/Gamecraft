@@ -91,6 +91,7 @@ struct Region;
 struct WorldProperties
 {
     int seed, radius, biome;
+    WorldLocation homePos;
 };
 
 struct World

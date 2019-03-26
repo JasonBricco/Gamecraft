@@ -363,7 +363,7 @@ static inline void SetBlock(World* world, LWorldP wPos, Block block)
 {
     if (wPos.y < 0 || wPos.y >= WORLD_BLOCK_HEIGHT) return;
 
-    if (OverlapsBlock(world->player, wPos.x, wPos.y, wPos.z))
+    if (OverlapsBlock(world->player, wPos.x, wPos.y, wPos.z) && !IsPassable(world, block))
         return;
     
 	LChunkP lP = LWorldToLChunkP(wPos);
@@ -580,7 +580,15 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
         LChunkP cP = LWorldToLChunkP(player->pos);
 
         if (GetGroup(world, cP.x, cP.y)->loaded)
+        {
+            ivec3 bP = BlockPos(player->pos);
+
+            // Ensure there are no blocks the player will be inside upon being unsuspended.
+            for (int i = -1; i < 2; i++)
+                SetBlock(world, bP.x, bP.y + i, bP.z, BLOCK_AIR);
+
             player->suspended = false;
+        }
     }
 
     if (!player->spawned)
@@ -695,6 +703,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         world->properties.seed = rand();
         world->properties.radius = config.infinite ? INT_MAX : config.radius;
         world->properties.biome = config.biome;
+        world->properties.homePos = {};
     }
 
     world->falloffRadius = world->properties.radius - (CHUNK_SIZE_H * 2);

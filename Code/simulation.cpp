@@ -166,6 +166,7 @@ static void TeleportPlayer(GameState* state, World* world, Player* player, World
 	UpdateWorldRef(world, cP);
 
 	player->pos = vec3(p.lP.x, p.lP.y, p.lP.z);
+
 	world->playerRegion = LWorldToRegionP(player->pos, world->ref);
 
 	MoveCamera(state->camera, player->pos);
@@ -509,11 +510,16 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 	{
 		LWorldP lW = BlockPos(player->pos);
 		lW.y++;
-		player->homePos = { LWorldToWorldP(world, player->pos), lW };
+		world->properties.homePos = { LWorldToWorldP(world, player->pos), lW };
 	}
 
 	if (KeyPressed(input, KEY_F2))
-		TeleportPlayer(state, world, player, player->homePos);
+	{
+		WorldLocation home = world->properties.homePos;
+
+		if (home.lP != ivec3(0))
+			TeleportPlayer(state, world, player, world->properties.homePos);
+	}
 }
 
 // Creates and spawns the player. The player is spawned within the center local space chunk.
