@@ -5,7 +5,7 @@
 #define DEBUG_MEMORY 0
 #define PROFILING 0
 #define MULTITHREADING 1
-#define TESTING 0
+#define TESTING 1
 
 #if _DEBUG
 static char* g_buildType = "DEBUG";
@@ -85,27 +85,27 @@ using namespace std;
 }
 #endif
 
-#include "mem.h"
-#include "random.h"
-#include "utils.h"
-#include "profiling.h"
-#include "ui.h"
-#include "audio.h"
-#include "filehelper.h"
-#include "assetbuilder.h"
-#include "assets.h"
-#include "input.h"
-#include "mesh.h"
-#include "block.h"
-#include "generation.h"
-#include "world.h"
-#include "worldio.h"
-#include "renderer.h"
-#include "worldrender.h"
-#include "simulation.h"
-#include "async.h"
-#include "particles.h"
-#include "gamestate.h"
+#include "Mem.h"
+#include "Random.h"
+#include "Utils.h"
+#include "Profiling.h"
+#include "UI.h"
+#include "Audio.h"
+#include "FileHelper.h"
+#include "AssetBuilder.h"
+#include "Assets.h"
+#include "Input.h"
+#include "Mesh.h"
+#include "Block.h"
+#include "Generation.h"
+#include "World.h"
+#include "WorldIO.h"
+#include "Renderer.h"
+#include "WorldRender.h"
+#include "Simulation.h"
+#include "Async.h"
+#include "Particles.h"
+#include "Gamestate.h"
 
 #if TESTING
 #include <string>
@@ -115,20 +115,20 @@ using namespace std;
 static void Pause(GameState* state, GLFWwindow* window, World* world, PauseState pauseState);
 static void Unpause(GameState* state, GLFWwindow* window);
 
-#include "audio.cpp"
-#include "assets.cpp"
-#include "async.cpp"
-#include "input.cpp"
-#include "mesh.cpp"
-#include "renderer.cpp"
-#include "block.cpp"
-#include "world.cpp"
-#include "worldrender.cpp"
-#include "generation.cpp"
-#include "worldio.cpp"
-#include "simulation.cpp"
-#include "particles.cpp"
-#include "ui.cpp"
+#include "Audio.cpp"
+#include "Assets.cpp"
+#include "Async.cpp"
+#include "Input.cpp"
+#include "Mesh.cpp"
+#include "Renderer.cpp"
+#include "Block.cpp"
+#include "World.cpp"
+#include "WorldRender.cpp"
+#include "Generation.cpp"
+#include "WorldIO.cpp"
+#include "Simulation.cpp"
+#include "Particles.cpp"
+#include "UI.cpp"
 
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT windowPos = { sizeof(windowPos) };
@@ -239,15 +239,14 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 
 #if TESTING
 
-#include "algorithms.cpp"
-#include "algorithms_test.cpp"
+#include "Extra/Import.cpp"
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
 	if (!glfwInit())
 		Error("GLFW failed to initialize.\n");
 
-	TestGenericAlgorithms();
+	RunExtraTests();
 }
 
 #else

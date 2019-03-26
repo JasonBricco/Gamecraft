@@ -79,7 +79,20 @@ static void TestQuickSort()
 	AssertArrayEquals(items2, expected2, ArrayLength(items2));
 }
 
-static void TestGenericAlgorithms()
+static void TestMergeSort()
+{
+	int items[10] = { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+	int expected[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+	MergeSort(items, ArrayLength(items));
+	AssertArrayEquals(items, expected, ArrayLength(items));
+
+	int items2[10] = { 9, 3, 5, 1, 4, 10, 2, 8, 6, 7 };
+	int expected2[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+	MergeSort(items2, ArrayLength(items2));
+	AssertArrayEquals(items2, expected2, ArrayLength(items2));
+}
+
+static void TestSorting()
 {
 	TestBinarySearch();
 	TestBubbleSort();
@@ -87,4 +100,5 @@ static void TestGenericAlgorithms()
 	TestSelectionSort();
 	TestPQSort();
 	TestQuickSort();
+	TestMergeSort();
 }

@@ -33,7 +33,7 @@ set link=/LIBPATH:W:\Common\Lib /ignore:4099 /SUBSYSTEM:WINDOWS
 REM Compile the engine.
 :compile
 
-cl -I Common\Include %cf% %f% %def% Code\main.cpp /link %clb% %lb% %link%
+cl -I Common\Include %cf% %f% %def% Code\Main.cpp /link %clb% %lb% %link%
 
 GOTO end
 
@@ -43,7 +43,7 @@ REM Asset builder debug build.
 set f=-nologo -Gm- -GR- -W4 -wd4201 -wd4505 -wd4390 -FC -std:c++17 -FeBuildAssets.exe -MDd -Od -Zi
 set lb=-incremental:no -opt:ref /LIBPATH:W:\Common\Lib stb_vorbis-d.lib
 
-cl -I Common\Include %f% -D_CRT_SECURE_NO_WARNINGS=1 -D_HAS_EXCEPTIONS=0 Code\assetbuilder.cpp /link %lb%
+cl -I Common\Include %f% -D_CRT_SECURE_NO_WARNINGS=1 -D_HAS_EXCEPTIONS=0 Code\AssetBuilder.cpp /link %lb%
 
 GOTO end
 
@@ -53,7 +53,7 @@ REM Asset builder release build.
 set f=-nologo -Gm- -GR- -W4 -wd4201 -wd4505 -wd4390 -FC -std:c++17 -FeBuildAssets.exe -MD -O2
 set lb=-incremental:no -opt:ref /LIBPATH:W:\Common\Lib stb_vorbis.lib
 
-cl -I Common\Include %f% -D_CRT_SECURE_NO_WARNINGS=1 -D_HAS_EXCEPTIONS=0 Code\assetbuilder.cpp /link %lb%
+cl -I Common\Include %f% -D_CRT_SECURE_NO_WARNINGS=1 -D_HAS_EXCEPTIONS=0 Code\AssetBuilder.cpp /link %lb%
 
 del /Q BuildAssets.pdb > nul 2> nul
 
