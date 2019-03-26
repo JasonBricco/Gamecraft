@@ -441,6 +441,13 @@ static void CreateDebugHUD(GameState* state, World* world)
     sprintf(buildText, "Build: %i, Mode: %s", g_buildID, g_buildType);
 
     ImGui::Text(buildText);
+
+    WorldP playerBlock = LWorldToWorldP(world, BlockPos(world->player->pos));
+
+    char playerP[64];
+    sprintf(playerP, "Player Position: %i, %i, %i", playerBlock.x, playerBlock.y, playerBlock.z);
+
+    ImGui::Text(playerP);
     
     if (world->cursorOnBlock)
     {

@@ -267,7 +267,7 @@ static void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 del
 	}
 }
 
-static void ProcessBlockSurface(Player* player, vec3 accel, float deltaTime)
+static void SetPlayerVelocity(Player* player, vec3 accel, float deltaTime)
 {
 	switch (player->surface)
 	{
@@ -282,6 +282,8 @@ static void ProcessBlockSurface(Player* player, vec3 accel, float deltaTime)
 			player->velocity.z = (accel.z * 0.1f) * deltaTime + player->velocity.z;
 		} break;
 	}
+
+	player->velocity.y = Max(player->velocity.y, -100.0f);
 }
 
 static void Move(World* world, Player* player, vec3 accel, float deltaTime)
@@ -305,7 +307,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	// to go from position down to velocity and then down to acceleration to see how 
 	// we can integrate back up.
 	vec3 delta = accel * 0.5f * Square(deltaTime) + player->velocity * deltaTime;
-	ProcessBlockSurface(player, accel, deltaTime);
+	SetPlayerVelocity(player, accel, deltaTime);
 	
 	vec3 target = player->pos + delta;
 	AABB playerBB = GetPlayerAABB(player);
