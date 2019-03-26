@@ -12,7 +12,7 @@ static inline int RegionIndex(ivec3 p)
     return RegionIndex(p.x, p.y, p.z);
 }
 
-static Region* LoadRegionFile(World* world, RegionPos p)
+static Region* LoadRegionFile(World* world, RegionP p)
 {
     Region* region = CallocStruct(Region);
     region->pos = p;
@@ -85,7 +85,7 @@ static void SaveRegion(World* world, Region* region)
         return;
 
     assert(region->hasData);
-    RegionPos p = region->pos;
+    RegionP p = region->pos;
 
     char path[MAX_PATH];
     sprintf(path, "%s\\%i%i.txt", world->savePath, p.x, p.z);
@@ -183,7 +183,7 @@ static void UnloadDistantRegions(World* world)
 
     while (region != nullptr)
     {
-        RegionPos p = region->pos;
+        RegionP p = region->pos;
         ivec3 diff = p - world->playerRegion;
 
         Region* next = region->next;
@@ -198,7 +198,7 @@ static void UnloadDistantRegions(World* world)
     }
 }
 
-static Region* GetRegion(World* world, RegionPos pos)
+static Region* GetRegion(World* world, RegionP pos)
 {
     for (Region* region = world->firstRegion; region != nullptr; region = region->next)
     {
@@ -209,7 +209,7 @@ static Region* GetRegion(World* world, RegionPos pos)
     return nullptr;
 }
 
-static Region* GetOrLoadRegion(World* world, RegionPos pos)
+static Region* GetOrLoadRegion(World* world, RegionP pos)
 {
     Region* region = GetRegion(world, pos);
 
@@ -227,8 +227,8 @@ static Region* GetOrLoadRegion(World* world, RegionPos pos)
 
 static bool LoadGroupFromDisk(World* world, ChunkGroup* group)
 {
-    ChunkPos p = group->pos;
-    RegionPos regionP = ChunkToRegionPos(p);
+    ChunkP p = group->pos;
+    RegionP regionP = ChunkToRegionP(p);
 
     EnterCriticalSection(&world->regionCS);
     Region* region = GetOrLoadRegion(world, regionP);
@@ -281,7 +281,7 @@ static bool LoadGroupFromDisk(World* world, ChunkGroup* group)
 static void SaveGroup(World* world, void* groupPtr)
 {
     ChunkGroup* group = (ChunkGroup*)groupPtr;
-    ChunkPos p = group->pos;
+    ChunkP p = group->pos;
 
     for (int y = 0; y < WORLD_CHUNK_HEIGHT; y++)
     {
@@ -290,7 +290,7 @@ static void SaveGroup(World* world, void* groupPtr)
         if (!chunk->modified)
             continue;
 
-        RegionPos regionP = ChunkToRegionPos(p);
+        RegionP regionP = ChunkToRegionP(p);
 
         Region* region = GetRegion(world, regionP);
         assert(region != nullptr);

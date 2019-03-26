@@ -158,6 +158,22 @@ static HitInfo GetVoxelHit(GameState* state, Camera* cam, World* world)
 	return info;
 }
 
+static void TeleportPlayer(GameState* state, World* world, Player* player, WorldLocation p)
+{
+	player->suspended = true;
+
+	ChunkP cP = WorldToChunkP(p.wP);
+	UpdateWorldRef(world, cP);
+
+	player->pos = vec3(p.lP.x, p.lP.y, p.lP.z);
+	world->playerRegion = LWorldToRegionP(player->pos, world->ref);
+
+	MoveCamera(state->camera, player->pos);
+	UpdateCameraVectors(state->camera);
+
+	ShiftWorld(state, world);
+}
+
 static inline bool InApproxRange(float& value, float min, float max)
 {
 	if (value > (min - EPSILON) && value < (max + EPSILON))
@@ -267,7 +283,7 @@ static void ProcessBlockSurface(Player* player, vec3 accel, float deltaTime)
 	}
 }
 
-static void Move(Input& input, World* world, Player* player, vec3 accel, float deltaTime)
+static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 {
 	accel *= player->speed;
 	accel += player->velocity * player->friction;
@@ -289,18 +305,6 @@ static void Move(Input& input, World* world, Player* player, vec3 accel, float d
 	// we can integrate back up.
 	vec3 delta = accel * 0.5f * Square(deltaTime) + player->velocity * deltaTime;
 	ProcessBlockSurface(player, accel, deltaTime);
-
-	static vec3 savedPos;
-
-	if (KeyPressed(input, KEY_F1))
-		savedPos = player->pos;
-
-	if (KeyPressed(input, KEY_F2))
-	{
-		player->pos = savedPos;
-		player->velocity = vec3(0.0f);
-		delta = vec3(0.0f);
-	}
 	
 	vec3 target = player->pos + delta;
 	AABB playerBB = GetPlayerAABB(player);
@@ -310,8 +314,8 @@ static void Move(Input& input, World* world, Player* player, vec3 accel, float d
 	// Player size in blocks.
 	ivec3 bSize = CeilToInt(playerBB.radius * 2.0f);
 
-	LWorldPos start = BlockPos(player->pos);
-	LWorldPos end = BlockPos(target);
+	LWorldP start = BlockPos(player->pos);
+	LWorldP end = BlockPos(target);
 
 	// Compute the range of blocks we could touch with our movement. We'll test for collisions
 	// with the blocks in this range.
@@ -386,6 +390,9 @@ static void Move(Input& input, World* world, Player* player, vec3 accel, float d
 	 	tRemaining -= (tMin * tRemaining);
 	}
 
+	if (!(player->colFlags & HIT_DOWN))
+		player->surface = SURFACE_NORMAL;
+
     player->possibleCollides.clear();
 }
 
@@ -433,6 +440,8 @@ static void HandleEditInput(GameState* state, Input& input, World* world, float 
 
 static void Simulate(GameState* state, World* world, Player* player, float deltaTime)
 {
+	if (player->suspended) return;
+
 	Input& input = state->input;
 	Camera* cam = state->camera;
 
@@ -469,7 +478,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 			player->velocity.y = 10.0f;
 	}
 
-	Move(input, world, player, accel, deltaTime);
+	Move(world, player, accel, deltaTime);
 
 	float min = 0.0f, max = (float)(world->size * CHUNK_SIZE_H - 1);
 	player->pos.x = std::clamp(player->pos.x, min, max);
@@ -495,6 +504,16 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 	}
 
 	HandleEditInput(state, input, world, deltaTime);
+
+	if (KeyPressed(input, KEY_F1))
+	{
+		LWorldP lW = BlockPos(player->pos);
+		lW.y++;
+		player->homePos = { LWorldToWorldP(world, player->pos), lW };
+	}
+
+	if (KeyPressed(input, KEY_F2))
+		TeleportPlayer(state, world, player, player->homePos);
 }
 
 // Creates and spawns the player. The player is spawned within the center local space chunk.

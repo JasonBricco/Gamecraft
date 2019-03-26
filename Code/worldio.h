@@ -40,7 +40,7 @@ struct SerializedChunk
 
 struct Region
 {
-    RegionPos pos;
+    RegionP pos;
     SerializedChunk chunks[REGION_SIZE_3];
     bool hasData, modified;
     Region* next;

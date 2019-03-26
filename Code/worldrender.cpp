@@ -77,11 +77,11 @@ static void RebuildChunk(World* world, Chunk* chunk)
 
 static bool NeighborsLoaded(World* world, Chunk* chunk)
 {
-    LChunkPos p = chunk->lcPos;
+    LChunkP p = chunk->lcPos;
 
     for (int i = 0; i < 8; i++)
     {
-        LChunkPos next = p + DIRS_2D[i];
+        LChunkP next = p + DIRS_2D[i];
         ChunkGroup* group = GetGroupSafe(world, next.x, next.z);
 
         if (group == nullptr || !group->loaded)
@@ -177,7 +177,7 @@ static void GetVisibleChunks(World* world, Camera* cam)
                 continue;
             }
             
-            ivec3 cP = LChunkToLWorldPos(chunk->lcPos);
+            ivec3 cP = LChunkToLWorldP(chunk->lcPos);
             vec3 min = vec3(cP.x, cP.y, cP.z);
             vec3 max = min + (vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H) - 1.0f);
 
@@ -227,9 +227,9 @@ static inline u8vec3 AverageColor(u8vec3 first, u8vec3 second, u8vec3 third)
 
 #define BLOCK_TRANSPARENT(pos) GetCullType(world, GetBlockSafe(world, chunk, pos)) >= CULL_TRANSPARENT
 
-static inline ivec3 VertexLight(World* world, Chunk* chunk, Axis axis, RelPos pos, int dx, int dy, int dz)
+static inline ivec3 VertexLight(World* world, Chunk* chunk, Axis axis, RelP pos, int dx, int dy, int dz)
 {
-    RelPos a, b, c, d;
+    RelP a, b, c, d;
 
     switch (axis)
     {
@@ -291,7 +291,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
 {
     uint16_t* textures = GetTextures(world, block);
 
-    RelPos rP = ivec3(xi, yi, zi);
+    RelP rP = ivec3(xi, yi, zi);
     float x = (float)xi, y = (float)yi, z = (float)zi;
 
     uint8_t alpha = GetBlockAlpha(world, block);

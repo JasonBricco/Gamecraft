@@ -7,7 +7,7 @@ static inline bool BlockInsideChunk(int x, int y, int z)
     return x >= 0 && x < CHUNK_SIZE_H && y >= 0 && y < CHUNK_SIZE_V && z >= 0 && z < CHUNK_SIZE_H;
 }
 
-static inline bool BlockInsideChunk(RelPos p)
+static inline bool BlockInsideChunk(RelP p)
 {
     return BlockInsideChunk(p.x, p.y, p.z);
 }
@@ -33,71 +33,76 @@ static inline bool ChunkInsideWorld(World* world, int x, int y, int z)
     return GroupInsideWorld(world, x, z) && ChunkInsideGroup(y);
 }
 
-static inline RelPos LWorldToRelPos(int lwX, int lwY, int lwZ)
+static inline RelP LWorldToRelP(int lwX, int lwY, int lwZ)
 {
 	return ivec3(lwX & CHUNK_H_MASK, lwY & CHUNK_V_MASK, lwZ & CHUNK_H_MASK);
 }
 
-static inline RelPos LWorldToRelPos(LWorldPos wPos)
+static inline RelP LWorldToRelP(LWorldP wPos)
 {
-	return LWorldToRelPos(wPos.x, wPos.y, wPos.z);
+	return LWorldToRelP(wPos.x, wPos.y, wPos.z);
 }
 
-static inline LChunkPos LWorldToLChunkPos(int lwX, int lwY, int lwZ)
+static inline LChunkP LWorldToLChunkP(int lwX, int lwY, int lwZ)
 {
 	return ivec3(lwX >> CHUNK_H_BITS, lwY >> CHUNK_V_BITS, lwZ >> CHUNK_H_BITS);
 }
 
-static inline LChunkPos LWorldToLChunkPos(LWorldPos pos)
+static inline LChunkP LWorldToLChunkP(LWorldP pos)
 {
-	return LWorldToLChunkPos(pos.x, pos.y, pos.z);
+	return LWorldToLChunkP(pos.x, pos.y, pos.z);
 }
 
-static inline LChunkPos LWorldToLChunkPos(vec3 wPos)
+static inline LChunkP LWorldToLChunkP(vec3 wPos)
 {
-	return LWorldToLChunkPos((int)wPos.x, (int)wPos.y, (int)wPos.z);
+	return LWorldToLChunkP((int)wPos.x, (int)wPos.y, (int)wPos.z);
 }
 
-static inline LChunkPos ChunkToLChunkPos(ChunkPos pos, ChunkPos ref)
+static inline LChunkP ChunkToLChunkP(ChunkP pos, ChunkP ref)
 {
     return pos - ref;
 }
 
-static inline ChunkPos LChunkToChunkPos(LChunkPos pos, ChunkPos ref)
+static inline ChunkP LChunkToChunkP(LChunkP pos, ChunkP ref)
 {
     return ref + pos;
 }
 
-static inline LWorldPos LChunkToLWorldPos(LChunkPos p)
+static inline LWorldP LChunkToLWorldP(LChunkP p)
 {
     return ivec3(p.x * CHUNK_SIZE_H, p.y * CHUNK_SIZE_V, p.z * CHUNK_SIZE_H);
 }
 
-static inline WorldPos ChunkToWorldPos(ChunkPos p)
+static inline WorldP ChunkToWorldP(ChunkP p)
 {
-    return LChunkToLWorldPos(p);
+    return LChunkToLWorldP(p);
 }
 
-static inline RegionPos ChunkToRegionPos(ChunkPos pos)
+static inline ChunkP WorldToChunkP(WorldP p)
+{
+    return LWorldToLChunkP(p);
+}
+
+static inline RegionP ChunkToRegionP(ChunkP pos)
 {
     // We must use division instead of shifting since region positions can be negative.
     vec3 tmp = vec3(pos.x / (float)REGION_SIZE, 0.0f, pos.z / (float)REGION_SIZE);
     return ivec3(FloorToInt(tmp.x), 0, FloorToInt(tmp.z));
 }
 
-static inline RegionPos LWorldToRegionPos(vec3 wPos, ChunkPos ref)
+static inline RegionP LWorldToRegionP(vec3 wPos, ChunkP ref)
 {
-    LChunkPos lP = LWorldToLChunkPos(wPos);
-    ChunkPos cP = LChunkToChunkPos(lP, ref);
-    return ChunkToRegionPos(cP);
+    LChunkP lP = LWorldToLChunkP(wPos);
+    ChunkP cP = LChunkToChunkP(lP, ref);
+    return ChunkToRegionP(cP);
 }
 
-static inline WorldPos LWorldToWorldPos(World* world, LWorldPos p)
+static inline WorldP LWorldToWorldP(World* world, LWorldP p)
 {
-    LChunkPos lcP = LWorldToLChunkPos(p);
-    ChunkPos cP = LChunkToChunkPos(lcP, world->ref);
-    WorldPos wP = ChunkToWorldPos(cP);
-    RelPos rel = LWorldToRelPos(p);
+    LChunkP lcP = LWorldToLChunkP(p);
+    ChunkP cP = LChunkToChunkP(lcP, world->ref);
+    WorldP wP = ChunkToWorldP(cP);
+    RelP rel = LWorldToRelP(p);
     return ivec3(wP.x + rel.x, p.y, wP.z + rel.z);
 }
 
@@ -127,7 +132,7 @@ static inline Chunk* GetChunk(World* world, int32_t lcX, int32_t lcY, int32_t lc
     return GetGroup(world, lcX, lcZ)->chunks + lcY;
 }
 
-static inline Chunk* GetChunk(World* world, LChunkPos pos)
+static inline Chunk* GetChunk(World* world, LChunkP pos)
 {
 	return GetChunk(world, pos.x, pos.y, pos.z);
 }
@@ -137,7 +142,7 @@ static inline Chunk* GetChunk(ChunkGroup* group, int y)
     return group->chunks + y;
 }
 
-static inline Chunk* GetChunkSafe(World* world, LChunkPos pos)
+static inline Chunk* GetChunkSafe(World* world, LChunkP pos)
 {
     if (!ChunkInsideWorld(world, pos.x, pos.y, pos.z))
         return nullptr;
@@ -151,7 +156,7 @@ static inline uint32_t GroupHashBucket(int32_t x, int32_t z)
 	return hashValue & (GROUP_HASH_SIZE - 1);
 }
 
-static inline uint32_t GroupHashBucket(ChunkPos p)
+static inline uint32_t GroupHashBucket(ChunkP p)
 {
     return GroupHashBucket(p.x, p.z);
 }
@@ -160,7 +165,7 @@ static inline uint32_t GroupHashBucket(ChunkPos p)
 // pulled out from the table to fill the new world section if applicable.
 // Otherwise, new chunks will be created and the ones remaining in the pool
 // will be destroyed.
-static ChunkGroup* GroupFromHash(World* world, uint32_t bucket, ChunkPos pos)
+static ChunkGroup* GroupFromHash(World* world, uint32_t bucket, ChunkP pos)
 {
     ChunkGroup* group = world->groupHash[bucket];
 
@@ -192,7 +197,7 @@ static ChunkGroup* GroupFromHash(World* world, uint32_t bucket, ChunkPos pos)
     }
 }
 
-static inline ChunkGroup* GroupFromHash(World* world, ChunkPos p)
+static inline ChunkGroup* GroupFromHash(World* world, ChunkP p)
 {
 	return GroupFromHash(world, GroupHashBucket(p.x, p.z), p);
 }
@@ -222,7 +227,7 @@ static inline void AddGroupToHash(World* world, ChunkGroup* group)
     world->groupHash[bucket] = group;
 }
 
-static inline RebasedPos Rebase(World* world, LChunkPos lP, int rX, int rY, int rZ)
+static inline RebasedPos Rebase(World* world, LChunkP lP, int rX, int rY, int rZ)
 {
     assert(ChunkInsideWorld(world, lP.x, lP.y, lP.z));
     
@@ -240,7 +245,7 @@ static inline RebasedPos Rebase(World* world, LChunkPos lP, int rX, int rY, int 
 
     if (rY < 0)
     {
-        LChunkPos tar = lP + DIR_DOWN;
+        LChunkP tar = lP + DIR_DOWN;
 
         if (tar.y >= 0 && tar.y < WORLD_CHUNK_HEIGHT)
             return Rebase(world, lP + DIR_DOWN, rX, CHUNK_SIZE_V + rY, rZ);
@@ -249,7 +254,7 @@ static inline RebasedPos Rebase(World* world, LChunkPos lP, int rX, int rY, int 
 
     if (rY >= CHUNK_SIZE_V)
     {
-        LChunkPos tar = lP + DIR_UP;
+        LChunkP tar = lP + DIR_UP;
         
         if (tar.y >= 0 && tar.y < WORLD_CHUNK_HEIGHT)
             return Rebase(world, lP + DIR_UP, rX, rY - CHUNK_SIZE_V, rZ);
@@ -259,7 +264,7 @@ static inline RebasedPos Rebase(World* world, LChunkPos lP, int rX, int rY, int 
     return { GetChunk(world, lP), rX, rY, rZ };
 }
 
-static inline RebasedPos Rebase(World* world, LChunkPos lP, RelPos rP)
+static inline RebasedPos Rebase(World* world, LChunkP lP, RelP rP)
 {
     return Rebase(world, lP, rP.x, rP.y, rP.z);
 }
@@ -274,7 +279,7 @@ static inline Block GetBlock(Chunk* chunk, int rX, int rY, int rZ)
     return block;
 }
 
-static inline Block GetBlock(Chunk* chunk, RelPos pos)
+static inline Block GetBlock(Chunk* chunk, RelP pos)
 {
     return GetBlock(chunk, pos.x, pos.y, pos.z);
 }
@@ -293,7 +298,7 @@ static inline Block GetBlockSafe(World* world, Chunk* chunk, int rX, int rY, int
     return GetBlock(p.chunk, p.rX, p.rY, p.rZ);
 }
 
-static inline Block GetBlockSafe(World* world, Chunk* chunk, RelPos p)
+static inline Block GetBlockSafe(World* world, Chunk* chunk, RelP p)
 {
     return GetBlockSafe(world, chunk, p.x, p.y, p.z);
 }
@@ -305,17 +310,17 @@ static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
 
     assert(BlockInsideWorldH(world, lwX, lwZ));
 
-    LChunkPos lcPos = LWorldToLChunkPos(lwX, lwY, lwZ);
+    LChunkP lcPos = LWorldToLChunkP(lwX, lwY, lwZ);
     ChunkGroup* group = GetGroup(world, lcPos.x, lcPos.z);
 
     if (group == nullptr || !group->loaded)
         return BLOCK_STONE;
 
-    RelPos rPos = LWorldToRelPos(lwX, lwY, lwZ);
+    RelP rPos = LWorldToRelP(lwX, lwY, lwZ);
     return GetBlock(GetChunk(group, lcPos.y), rPos);
 }
 
-static inline Block GetBlock(World* world, LWorldPos pos)
+static inline Block GetBlock(World* world, LWorldP pos)
 {
     return GetBlock(world, pos.x, pos.y, pos.z);
 }
@@ -328,12 +333,12 @@ static inline void SetBlock(Chunk* chunk, int rX, int rY, int rZ, Block block)
     chunk->blocks[index] = block;
 }
 
-static inline void SetBlock(Chunk* chunk, RelPos pos, Block block)
+static inline void SetBlock(Chunk* chunk, RelP pos, Block block)
 {
     SetBlock(chunk, pos.x, pos.y, pos.z, block);
 }
 
-static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkPos lP, RelPos rP)
+static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkP lP, RelP rP)
 {
     chunk->pendingUpdate = true;
     chunk->modified = true;
@@ -341,8 +346,8 @@ static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkPos lP, RelPos 
     Chunk* chunkA = Rebase(world, lP, rP + DIR_LEFT_DOWN_BACK).chunk;
     Chunk* chunkB = Rebase(world, lP, rP + DIR_RIGHT_UP_FRONT).chunk;
 
-    LChunkPos a = chunkA == nullptr ? chunk->lcPos : chunkA->lcPos;
-    LChunkPos b = chunkB == nullptr ? chunk->lcPos : chunkB->lcPos;
+    LChunkP a = chunkA == nullptr ? chunk->lcPos : chunkA->lcPos;
+    LChunkP b = chunkB == nullptr ? chunk->lcPos : chunkB->lcPos;
 
     for (int z = a.z; z <= b.z; z++)
     {
@@ -354,14 +359,14 @@ static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkPos lP, RelPos 
     }
 }
 
-static inline void SetBlock(World* world, LWorldPos wPos, Block block)
+static inline void SetBlock(World* world, LWorldP wPos, Block block)
 {
     if (wPos.y < 0 || wPos.y >= WORLD_BLOCK_HEIGHT) return;
 
     if (OverlapsBlock(world->player, wPos.x, wPos.y, wPos.z))
         return;
     
-	LChunkPos lP = LWorldToLChunkPos(wPos);
+	LChunkP lP = LWorldToLChunkP(wPos);
 
     // We cannot set a block to an edge chunk - the edges are buffer chunks and should
     // not have their meshes built.
@@ -370,7 +375,7 @@ static inline void SetBlock(World* world, LWorldPos wPos, Block block)
 	Chunk* chunk = GetChunk(world, lP);
 	assert(chunk != nullptr);
 
-	RelPos rP = LWorldToRelPos(wPos);
+	RelP rP = LWorldToRelP(wPos);
 
     if (GetBlock(chunk, rP.x, rP.y, rP.z) != block)
     {
@@ -431,7 +436,7 @@ static ChunkGroup* CreateChunkGroup(GameState* state, World* world, int lcX, int
         {
             Chunk* chunk = group->chunks + i;
             chunk->lcPos = ivec3(lcX, i, lcZ);
-            chunk->lwPos = LChunkToLWorldPos(chunk->lcPos);
+            chunk->lwPos = LChunkToLWorldP(chunk->lcPos);
         }
 
         QueueAsync(state, LoadGroup, world, group);
@@ -485,7 +490,7 @@ static void ShiftWorld(GameState* state, World* world)
                 {
                     Chunk* chunk = group->chunks + i;
     				chunk->lcPos = ivec3(x, chunk->lcPos.y, z);
-                    chunk->lwPos = LChunkToLWorldPos(chunk->lcPos);
+                    chunk->lwPos = LChunkToLWorldP(chunk->lcPos);
                 }
 
                 world->groups[GroupIndex(world, x, z)] = group;
@@ -570,9 +575,17 @@ static void CheckWorld(GameState* state, World* world, Player* player)
 
 static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* player)
 {
+    if (player->suspended)
+    {
+        LChunkP cP = LWorldToLChunkP(player->pos);
+
+        if (GetGroup(world, cP.x, cP.y)->loaded)
+            player->suspended = false;
+    }
+
     if (!player->spawned)
     {
-        LChunkPos lP = ChunkToLChunkPos(world->spawnGroup, world->ref);
+        LChunkP lP = ChunkToLChunkP(world->spawnGroup, world->ref);
         ChunkGroup* spawnGroup = GetGroup(world, lP.x, lP.z);
 
         if (spawnGroup->loaded)
@@ -580,7 +593,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     }
     else
     {
-        world->playerRegion = LWorldToRegionPos(player->pos, world->ref);
+        world->playerRegion = LWorldToRegionP(player->pos, world->ref);
 
         if (world->buildCount == 0)
             CheckWorld(state, world, player);
@@ -607,6 +620,14 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
 
         destroyLim++;
     }
+}
+
+static inline void UpdateWorldRef(World* world, ChunkP p)
+{
+    ivec3 ref;
+    ref.x = p.x - world->loadRange;
+    ref.z = p.z - world->loadRange;
+    world->ref = ref;
 }
 
 static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, World* existing = nullptr)
@@ -679,12 +700,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
     world->falloffRadius = world->properties.radius - (CHUNK_SIZE_H * 2);
 
     world->spawnGroup = ivec3(0, 0, 0);
-
-    ivec3 ref;
-    ref.x = world->spawnGroup.x - loadRange;
-    ref.z = world->spawnGroup.z - loadRange;
-    world->ref = ref;
-
+    UpdateWorldRef(world, world->spawnGroup);
     ShiftWorld(state, world);
 
     return world;

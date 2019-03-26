@@ -24,24 +24,24 @@
 
 // The position of the chunk in local space around the player.
 // All loaded chunks are in a local array. This indexes into it.
-typedef ivec3 LChunkPos;
+typedef ivec3 LChunkP;
 
 // The world (block) position within the local space around the player.
-typedef ivec3 LWorldPos;
+typedef ivec3 LWorldP;
 
 // The actual position of the chunk in the entire world space.
 // This allows the chunk to store its intended position irrespective of where it is
 // in the array of loaded chunks.
-typedef ivec3 ChunkPos;
+typedef ivec3 ChunkP;
 
 // The block position in actual world space.
-typedef ivec3 WorldPos;
+typedef ivec3 WorldP;
 
 // A position relative to a specific chunk.
-typedef ivec3 RelPos;
+typedef ivec3 RelP;
 
 // The position in terms of chunk region files.
-typedef ivec3 RegionPos;
+typedef ivec3 RegionP;
 
 typedef FastNoiseSIMD Noise;
 
@@ -57,8 +57,8 @@ enum ChunkState
 
 struct Chunk
 {
-    LChunkPos lcPos;
-    LWorldPos lwPos;
+    LChunkP lcPos;
+    LWorldP lwPos;
 
     Block blocks[CHUNK_SIZE_3];
 
@@ -74,9 +74,15 @@ struct Chunk
 
 struct ChunkGroup
 {
-    ChunkPos pos;
+    ChunkP pos;
     Chunk chunks[WORLD_CHUNK_HEIGHT];
     bool active, loaded;
+};
+
+struct WorldLocation
+{
+    WorldP wP;
+    LWorldP lP;
 };
 
 struct Player;
@@ -120,8 +126,8 @@ struct World
     vector<ChunkGroup*> destroyList;
 
     // Spawn and reference corner in world chunk coordinates.
-    ChunkPos spawnGroup;
-    ChunkPos ref;
+    ChunkP spawnGroup;
+    ChunkP ref;
 
     // Specifies the area in float space that the player exists within.
     // This is the area within the center local chunk.
@@ -140,7 +146,7 @@ struct World
     Player* player;
 
     // The region the player is in.
-    RegionPos playerRegion;
+    RegionP playerRegion;
 
     WorldProperties properties;
 

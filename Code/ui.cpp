@@ -448,7 +448,7 @@ static void CreateDebugHUD(GameState* state, World* world)
         char* name = GetBlockName(world, block);
 
         ivec3 lwP = world->cursorBlockPos;
-        WorldPos p = LWorldToWorldPos(world, lwP);
+        WorldP p = LWorldToWorldP(world, lwP);
 
         char blockText[64];
         sprintf_s(blockText, 64, "Block: %s", name);

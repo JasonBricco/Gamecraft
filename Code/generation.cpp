@@ -38,7 +38,7 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
 {
     BEGIN_TIMED_BLOCK(CHUNK_GEN);
 
-    WorldPos start = ChunkToWorldPos(group->pos);
+    WorldP start = ChunkToWorldP(group->pos);
 
     Noise* noise = Noise::NewFastNoiseSIMD();
     noise->SetSeed(world->properties.seed);
@@ -119,7 +119,7 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
         Chunk* chunk = group->chunks + i;
-        LWorldPos lwP = chunk->lwPos;
+        LWorldP lwP = chunk->lwPos;
 
         if (lwP.y > maxY || chunk->state == CHUNK_LOADED_DATA)
             continue;
@@ -172,7 +172,7 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
 
 static void GenerateGridTerrain(World* world, ChunkGroup* group)
 {
-    WorldPos start = ChunkToWorldPos(group->pos);
+    WorldP start = ChunkToWorldP(group->pos);
 
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
@@ -216,7 +216,7 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
 {
     BEGIN_TIMED_BLOCK(CHUNK_GEN);
 
-    WorldPos start = ChunkToWorldPos(group->pos);
+    WorldP start = ChunkToWorldP(group->pos);
 
     Noise* noise = Noise::NewFastNoiseSIMD();
     noise->SetSeed(world->properties.seed);
@@ -265,7 +265,7 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
         Chunk* chunk = group->chunks + i;
-        LWorldPos lwP = chunk->lwPos;
+        LWorldP lwP = chunk->lwPos;
 
         if (lwP.y > maxY || chunk->state == CHUNK_LOADED_DATA)
             continue;
@@ -316,7 +316,7 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
 
 static void GenerateFlatTerrain(World* world, ChunkGroup* group)
 {
-    WorldPos start = ChunkToWorldPos(group->pos);
+    WorldP start = ChunkToWorldP(group->pos);
 
     int surfaceMap[CHUNK_SIZE_2];
     int maxY = 0;
@@ -349,7 +349,7 @@ static void GenerateFlatTerrain(World* world, ChunkGroup* group)
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
         Chunk* chunk = group->chunks + i;
-        LWorldPos lwP = chunk->lwPos;
+        LWorldP lwP = chunk->lwPos;
 
         if (lwP.y > maxY || chunk->state == CHUNK_LOADED_DATA)
             continue;

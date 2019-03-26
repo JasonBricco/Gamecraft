@@ -43,10 +43,13 @@ struct Player
     float friction;
     uint8_t colFlags;
     bool flying, speedMode;
-    bool spawned;
+    bool spawned, suspended;
 
     // The surface the player is standing on.
     BlockSurface surface;
+
+    // A saved location the player can return to at any time.
+    WorldLocation homePos;
 
     vector<AABB> possibleCollides;
 };
