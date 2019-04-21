@@ -23,6 +23,8 @@ enum BlockType : Block
     BLOCK_CLAY,
     BLOCK_SNOW,
     BLOCK_ICE,
+    BLOCK_LANTERN,
+    BLOCK_TRAMPOLINE,
     BLOCK_COUNT
 };
 

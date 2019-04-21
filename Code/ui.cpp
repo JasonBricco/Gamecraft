@@ -212,7 +212,7 @@ static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
     ImGui::SameLine();
     BlockButton(world, window, state, IMAGE_WATER, BLOCK_WATER, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_WOOD_TOP, BLOCK_WOOD, &blockName);
+    BlockButton(world, window, state, IMAGE_WOOD, BLOCK_WOOD, &blockName);
     ImGui::SameLine();
     BlockButton(world, window, state, IMAGE_LEAVES, BLOCK_LEAVES, &blockName);
     ImGui::Spacing();
@@ -221,6 +221,10 @@ static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
     BlockButton(world, window, state, IMAGE_SNOW_SIDE, BLOCK_SNOW, &blockName);
     ImGui::SameLine();
     BlockButton(world, window, state, IMAGE_ICE, BLOCK_ICE, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, window, state, IMAGE_LANTERN_ON, BLOCK_LANTERN, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, window, state, IMAGE_TRAMPOLINE, BLOCK_TRAMPOLINE, &blockName);
  
     ImGui::PopStyleColor();
 

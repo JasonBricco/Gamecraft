@@ -133,7 +133,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
     metalCrate.name = "Metal Crate";
 
     BlockData& wood = data[BLOCK_WOOD];
-    SetBlockTextures(wood, IMAGE_WOOD_TOP, IMAGE_WOOD_TOP, IMAGE_WOOD_SIDE);
+    SetBlockTextures(wood, IMAGE_WOOD_TOP, IMAGE_WOOD_TOP, IMAGE_WOOD);
     wood.buildFunc = BuildBlock;
     wood.onSetSound = GetSound(state, SOUND_STONE);
     wood.name = "Wood";
@@ -165,4 +165,16 @@ static void CreateBlockData(GameState* state, BlockData* data)
     ice.onSetSound = GetSound(state, SOUND_STONE);
     ice.surface = SURFACE_ICE;
     ice.name = "Ice";
+
+    BlockData& lantern = data[BLOCK_LANTERN];
+    SetBlockTextures(lantern, IMAGE_LANTERN_ON);
+    lantern.buildFunc = BuildBlock;
+    lantern.onSetSound = GetSound(state, SOUND_STONE);
+    lantern.name = "Lantern";
+
+    BlockData& trampoline = data[BLOCK_TRAMPOLINE];
+    SetBlockTextures(trampoline, IMAGE_TRAMPOLINE);
+    trampoline.buildFunc = BuildBlock;
+    trampoline.onSetSound = GetSound(state, SOUND_STONE);
+    trampoline.name = "Trampoline";
 }
