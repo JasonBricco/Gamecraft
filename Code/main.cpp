@@ -5,7 +5,6 @@
 #define DEBUG_MEMORY 0
 #define PROFILING 0
 #define MULTITHREADING 1
-#define TESTING 1
 
 #if _DEBUG
 static char* g_buildType = "DEBUG";
@@ -237,20 +236,6 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 	#endif
 }
 
-#if TESTING
-
-#include "Extra/Import.cpp"
-
-int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
-{
-	if (!glfwInit())
-		Error("GLFW failed to initialize.\n");
-
-	RunExtraTests();
-}
-
-#else
-
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
 	if (!glfwInit())
@@ -364,5 +349,3 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	return 0;
 }
-
-#endif

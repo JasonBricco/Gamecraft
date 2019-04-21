@@ -464,7 +464,7 @@ static void RenderScene(GameState* state, Camera* cam)
 	SetUniform(shader->proj, cam->perspective);
 	SetUniform(shader->ambient, state->ambient);
 
-	glBindTexture(GL_TEXTURE_2D_ARRAY, GetTextureArray(state, IMAGE_ARRAY_BLOCKS).id);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, GetBlockTextureArray(state).id);
 	int count = cam->meshLists[MESH_TYPE_OPAQUE].count;
 
 	for (int i = 0; i < count; i++)

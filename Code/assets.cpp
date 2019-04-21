@@ -7,9 +7,9 @@ static Texture GetTexture(GameState* state, ImageID id)
     return state->assets.images[id];
 }
 
-static Texture GetTextureArray(GameState* state, ImageArrayID id)
+static Texture GetBlockTextureArray(GameState* state)
 {
-    return state->assets.imageArrays[id];
+    return state->assets.blockArray;
 }
 
 static Sound GetSound(GameState* state, SoundID id)
@@ -36,41 +36,50 @@ static void LoadAssets(GameState* state)
     char* data = (char*)dataPtr;
     AssetFileHeader* header = (AssetFileHeader*)data;
 
-    if (header->code != (FORMAT_CODE('g', 'c', 'a', 'f')))
+    if (header->code != (FORMAT_CODE('g', 'c', 'a')))
         Error("Invalid asset file. The file may be damaged.\n");
 
     if (header->version > 1)
         Error("Asset file version is unsupported.\n");
 
-    ImageData* imageData = (ImageData*)(data + header->images);
-    SoundData* soundData = (SoundData*)(data + header->sounds);
-    ShaderData* shaderData = (ShaderData*)(data + header->shaders);
-
     AssetDatabase& db = state->assets;
 
-    ImageData* array = AllocTempArray(header->arrayCount, ImageData);
-    int arrayCount = 0;
+    // Load block images.
+    ImageData* blockData = (ImageData*)(data + header->blockImages);
+    ImageData* texArray = AllocTempArray(header->blockImageCount, ImageData);
+    
+    int count = 0;
+
+    for (uint32_t i = 0; i < header->blockImageCount; i++)
+    {
+        ImageData image = *(blockData + i);
+        texArray[count++] = image;
+        db.images[i] = LoadTexture(image.width, image.height, (uint8_t*)(data + image.pixels));
+    }
+       
+    db.blockArray = LoadTextureArray(texArray, count, data);
+
+    // Load images.
+    ImageData* imageData = (ImageData*)(data + header->images);
 
     for (uint32_t i = 0; i < header->imageCount; i++)
     {
         ImageData image = *(imageData + i);
-
-        if (image.array != INT_MAX)
-            array[arrayCount++] = image;
-        
-        db.images[i] = LoadTexture(image.width, image.height, (uint8_t*)(data + image.pixels));
+        db.images[header->blockImageCount + i] = LoadTexture(image.width, image.height, (uint8_t*)(data + image.pixels));
     }
 
-    for (uint32_t i = 0; i < header->arrayCount; i++)
-        db.imageArrays[i] = LoadTextureArray(array, arrayCount, data);
-
+    // Load sounds.
     AudioEngine* audio = &state->audio;
-    
+    SoundData* soundData = (SoundData*)(data + header->sounds);
+
     for (uint32_t i = 0; i < header->soundCount; i++)
     {
         SoundData sound = *(soundData + i);
         db.sounds[i] = { audio, (int16_t*)(data + sound.samples), sound.sampleCount, sound.sampleRate };
     }
+
+    // Load shaders.
+    ShaderData* shaderData = (ShaderData*)(data + header->shaders);
 
     for (uint32_t i = 0; i < header->shaderCount; i += 2)
     {

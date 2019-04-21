@@ -2,7 +2,7 @@
 // Gamecraft
 //
 
-#define FORMAT_CODE(a, b, c, d) (uint32_t)(a) | ((uint32_t)(b) << 8) | ((uint32_t)(c) << 16) | ((uint32_t(d) << 24))
+#define FORMAT_CODE(a, b, c) (uint32_t)(a) | ((uint32_t)(b) << 8) | ((uint32_t)(c) << 16)
 
 #pragma pack(push, 1)
 
@@ -11,7 +11,8 @@ struct AssetFileHeader
 	uint32_t code;
 	uint32_t version;
 
-	uint32_t arrayCount;
+	uint32_t blockImageCount;
+	uint32_t blockImages;
 
 	uint32_t imageCount;
 	uint32_t images;
@@ -25,7 +26,7 @@ struct AssetFileHeader
 
 struct ImageData
 {
-	uint32_t width, height, array;
+	uint32_t width, height;
 	uint32_t pixels;
 };
 

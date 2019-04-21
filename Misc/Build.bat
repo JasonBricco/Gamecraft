@@ -41,7 +41,7 @@ REM Asset builder debug build.
 :asset_builder_debug
 
 set f=-nologo -Gm- -GR- -W4 -wd4201 -wd4505 -wd4390 -FC -std:c++17 -FeBuildAssets.exe -MDd -Od -Zi
-set lb=-incremental:no -opt:ref /LIBPATH:W:\Common\Lib stb_vorbis-d.lib
+set lb=-incremental:no -opt:ref /LIBPATH:W:\Common\Lib stb_vorbis-d.lib shlwapi.lib
 
 cl -I Common\Include %f% -D_CRT_SECURE_NO_WARNINGS=1 -D_HAS_EXCEPTIONS=0 Code\AssetBuilder.cpp /link %lb%
 
@@ -51,7 +51,7 @@ REM Asset builder release build.
 :asset_builder_release
 
 set f=-nologo -Gm- -GR- -W4 -wd4201 -wd4505 -wd4390 -FC -std:c++17 -FeBuildAssets.exe -MD -O2
-set lb=-incremental:no -opt:ref /LIBPATH:W:\Common\Lib stb_vorbis.lib
+set lb=-incremental:no -opt:ref /LIBPATH:W:\Common\Lib stb_vorbis.lib shlwapi.lib
 
 cl -I Common\Include %f% -D_CRT_SECURE_NO_WARNINGS=1 -D_HAS_EXCEPTIONS=0 Code\AssetBuilder.cpp /link %lb%
 
