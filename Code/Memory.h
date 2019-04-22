@@ -216,3 +216,33 @@ static void DumpMemoryInfo()
 #define UntrackGLAllocs(count)
 
 #endif
+
+template <typename T>
+struct ObjectPool
+{
+	int size, free, capacity;	
+	T** items;
+
+	T* Get()
+	{
+		T* item = size == 0 ? AllocStruct(T) : items[--size];
+		free++;
+		assert(free <= capacity - size);
+		return item;
+	}
+	
+	void Return(T* item)
+	{
+		items[size++] = item;
+		free--;
+		assert(size <= capacity);
+	}
+};
+
+template <typename T>
+static ObjectPool<T> CreatePool(int capacity)
+{
+	ObjectPool<T> pool = { 0, 0, capacity };
+	pool.items = AllocArray(capacity, T*);
+	return pool;
+}

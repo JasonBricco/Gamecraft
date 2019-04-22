@@ -84,7 +84,7 @@ using namespace std;
 }
 #endif
 
-#include "Mem.h"
+#include "Memory.h"
 #include "Random.h"
 #include "Utils.h"
 #include "Profiling.h"

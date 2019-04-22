@@ -396,21 +396,6 @@ static void FillChunk(Chunk* chunk, Block block)
         chunk->blocks[i] = block;
 }
 
-static inline void AddGroupToPool(World* world, ChunkGroup* group)
-{
-    assert(world->poolSize + 1 <= world->maxPoolSize);
-	memset(group, 0, sizeof(ChunkGroup));
-	world->pool[world->poolSize++] = group;
-}
-
-static inline ChunkGroup* GroupFromPool(World* world)
-{
-    assert(world->poolSize > 0);
-	ChunkGroup* group = world->pool[world->poolSize - 1];
-	world->poolSize--;
-	return group;
-}
-
 static void LoadGroup(World* world, void* groupPtr)
 {
     ChunkGroup* group = (ChunkGroup*)groupPtr;
@@ -428,7 +413,9 @@ static ChunkGroup* CreateChunkGroup(GameState* state, World* world, int lcX, int
 
 	if (group == nullptr)
 	{
-        group = GroupFromPool(world);
+        group = world->groupPool.Get();
+        memset(group, 0, sizeof(ChunkGroup));
+        
         group->pos = ivec3(cX, 0, cZ);
         group->active = true;
 
@@ -453,7 +440,7 @@ static void DestroyGroup(World* world, void* groupPtr)
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
         DestroyChunkMeshes(group->chunks + i);
 
-    AddGroupToPool(world, group);
+    world->groupPool.Return(group);
 }
 
 // To allow "infinite" terrain, the world is always located near the origin.
@@ -659,18 +646,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
         world->loadRange = loadRange;
 
-        // Allocate extra groups for the pool for world shifting. We create new groups
-        // before we destroy the old ones.
-        int targetPoolSize = world->totalGroups * 2;
-        world->pool = AllocArray(targetPoolSize, ChunkGroup*);
-        world->poolSize = 0;
-        world->maxPoolSize = targetPoolSize;
-
-        for (int i = 0; i < targetPoolSize; i++)
-        {
-            ChunkGroup* group = AllocStruct(ChunkGroup);
-            AddGroupToPool(world, group);
-        }
+        world->groupPool = CreatePool<ChunkGroup>(world->totalGroups * 2);
 
         float min = (float)(loadRange * CHUNK_SIZE_H);
         float max = min + CHUNK_SIZE_H;

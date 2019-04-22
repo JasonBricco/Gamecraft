@@ -106,8 +106,7 @@ struct World
     int falloffRadius;
 
     // Chunk pool to avoid constant allocating/freeing.
-    ChunkGroup** pool;
-    int poolSize, maxPoolSize;
+    ObjectPool<ChunkGroup> groupPool;
 
     // All actively loaded chunk groups around the player.
     ChunkGroup** groups;
