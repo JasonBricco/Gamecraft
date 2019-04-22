@@ -13,3 +13,6 @@ Current features:
 - Audio with XAudio2
 - Multithreaded work queue
 - Antialiasing
+- OpenGL Renderer
+
+Target OS: Windows 10
