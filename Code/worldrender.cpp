@@ -96,22 +96,23 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
     {
         ChunkMeshList& list = cam->meshLists[i];
-        list.meshes = AllocTempArray(world->visibleCount, ChunkMesh);
+        list.meshes = AllocTempArray(world->visibleChunks.size, ChunkMesh);
         list.count = 0;
     }
 
     vec2 playerChunk = vec2(world->loadRange, world->loadRange);
 
-    sort(world->visibleChunks, world->visibleChunks + world->visibleCount, [playerChunk](auto a, auto b) 
-    { 
+    List<Chunk*> visible = world->visibleChunks;
+    sort(visible.items, visible.items + visible.size, [playerChunk](auto a, auto b)
+    {
         float distA = distance2(vec2(a->lcPos.x, a->lcPos.z), playerChunk);
         float distB = distance2(vec2(b->lcPos.x, b->lcPos.z), playerChunk);
         return distA < distB;
     });
 
-    for (int i = 0; i < world->visibleCount; i++)
+    for (int i = 0; i < visible.size; i++)
     {
-        Chunk* chunk = world->visibleChunks[i];
+        Chunk* chunk = visible[i];
 
         switch (chunk->state)
         {
@@ -156,7 +157,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Camera* cam)
 
 static void GetVisibleChunks(World* world, Camera* cam)
 {    
-    world->visibleCount = 0;
+    world->visibleChunks.Clear();
 
     for (int g = 0; g < world->totalGroups; g++)
     {
@@ -173,7 +174,7 @@ static void GetVisibleChunks(World* world, Camera* cam)
             // begins building but is no longer visible at the time of needing to be filled.
             if (chunk->state == CHUNK_NEEDS_FILL)
             {
-                world->visibleChunks[world->visibleCount++] = chunk;
+                world->visibleChunks.AddLast(chunk);
                 continue;
             }
             
@@ -184,7 +185,7 @@ static void GetVisibleChunks(World* world, Camera* cam)
             FrustumVisibility visibility = TestFrustum(cam, min, max);
 
             if (visibility >= FRUSTUM_VISIBLE)
-                world->visibleChunks[world->visibleCount++] = chunk;
+                world->visibleChunks.AddLast(chunk);
         }
     }
 }

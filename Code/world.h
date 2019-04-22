@@ -119,11 +119,10 @@ struct World
     // Chunk hash table to store chunks that need to transition.
     ChunkGroup* groupHash[GROUP_HASH_SIZE];
 
-    Chunk** visibleChunks;
-    int visibleCount;
+    List<Chunk*> visibleChunks;
 
     // Chunks currently awaiting destruction.
-    vector<ChunkGroup*> destroyList;
+    Queue<ChunkGroup*> destroyQueue;
 
     // Spawn and reference corner in world chunk coordinates.
     ChunkP spawnGroup;

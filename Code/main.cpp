@@ -85,6 +85,7 @@ using namespace std;
 #endif
 
 #include "Memory.h"
+#include "Containers.h"
 #include "Random.h"
 #include "Utils.h"
 #include "Profiling.h"

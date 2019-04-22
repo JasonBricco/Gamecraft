@@ -508,7 +508,7 @@ static void ShiftWorld(GameState* state, World* world)
 		ChunkGroup* group = world->groupHash[c];
 
         if (group != nullptr && !group->active)
-            world->destroyList.push_back(group);
+            world->destroyQueue.Enqueue(group);
 
         world->groupHash[c] = nullptr;
 	}
@@ -602,16 +602,16 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
 
     ProcessVisibleChunks(state, world, cam);
 
+    Queue<ChunkGroup*>& destroyQueue = world->destroyQueue;
     int destroyLim = 0;
 
-    while (world->destroyList.size() > 0 && destroyLim < 4)
+    while (!destroyQueue.IsEmpty() && destroyLim < 4)
     {
-        ChunkGroup* group = world->destroyList.back();
-        world->destroyList.pop_back();
+        ChunkGroup* group = destroyQueue.Dequeue();
 
         if (group->loaded)
             QueueAsync(state, SaveGroup, world, group, DestroyGroup);
-        else world->destroyList.push_back(group);
+        else destroyQueue.Enqueue(group);
 
         destroyLim++;
     }
@@ -642,7 +642,8 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         world->totalGroups = Square(world->size);
         world->groups = CallocArray(world->totalGroups, ChunkGroup*);
 
-        world->visibleChunks = AllocArray(world->totalGroups * WORLD_CHUNK_HEIGHT, Chunk*);
+        world->visibleChunks = List<Chunk*>(world->totalGroups * WORLD_CHUNK_HEIGHT);
+        world->destroyQueue = Queue<ChunkGroup*>(world->totalGroups);
 
         world->loadRange = loadRange;
 
