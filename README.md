@@ -17,4 +17,11 @@ Current features:
 
 Target OS: Windows 10
 
-Libraries Required: GLFW, GLM, GLEW, stb_vorbis, stb_image, Dear IMGUI, FastNoise SIMD.
+Libraries Required  
+GLFW  
+GLM  
+GLEW  
+stb_vorbis  
+stb_image  
+Dear IMGUI  
+FastNoise SIMD  
