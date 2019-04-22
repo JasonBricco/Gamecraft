@@ -35,6 +35,8 @@ struct GameState
 	float ambient;
 	vec3 clearColor;
 
+	float deltaTime;
+
 	ParticleEmitter rain;
 
 	PauseState pauseState;

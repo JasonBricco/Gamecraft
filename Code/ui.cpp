@@ -175,21 +175,27 @@ static inline void BlockButton(World* world, GLFWwindow* window, GameState* stat
         *name = GetBlockName(world, type);
 }
 
-static ImVec2 CreateUIWindow(float width, float height)
+static ImVec2 UIWindow(float width, float height, ImVec2 pos)
+{
+    ImVec2 panelSize = ImVec2(width, height);
+    ImGui::SetNextWindowSize(panelSize);
+    ImGui::SetNextWindowPos(pos);
+    return panelSize;
+}
+
+static ImVec2 CenteredUIWindow(float width, float height, float offsetX = 0.0f, float offsetY = 0.0f)
 {
     ImGuiIO& io = ImGui::GetIO();
     ImVec2 displaySize = io.DisplaySize;
-
-    ImVec2 panelSize = ImVec2(width, height);
-    ImGui::SetNextWindowSize(panelSize);
-    ImGui::SetNextWindowPos(ImVec2(displaySize.x * 0.5f - (panelSize.x * 0.5f), displaySize.y * 0.5f - (panelSize.y * 0.5f)));
-
-    return panelSize;
+    ImVec2 p = ImVec2(displaySize.x * 0.5f - (width * 0.5f), displaySize.y * 0.5f - (height * 0.5f));
+    p.x += offsetX;
+    p.y += offsetY;
+    return UIWindow(width, height, p);
 }
 
 static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
 {
-    ImVec2 size = CreateUIWindow(248.0f, 200.0f);
+    ImVec2 size = CenteredUIWindow(248.0f, 200.0f);
 
     char* blockName = NULL;
 
@@ -259,7 +265,7 @@ static inline ImVec2 GetButtonLoc(ImVec2 btnSize, float winW, float y)
 
 static void CreatePauseUI(GameState* state, GLFWwindow* window)
 {
-    ImVec2 size = CreateUIWindow(175.0f, 220.0f);
+    ImVec2 size = CenteredUIWindow(175.0f, 220.0f);
 
     ImGui::Begin("Pause", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
     WindowHeader("Paused", size.x);
@@ -306,7 +312,7 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
 
 static void CreateSettingsUI(GameState* state)
 {
-    ImVec2 size = CreateUIWindow(200.0f, 150.0f);
+    ImVec2 size = CenteredUIWindow(200.0f, 150.0f);
 
     ImGui::Begin("Settings", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
     WindowHeader("Settings", size.x);
@@ -340,7 +346,17 @@ static void CreateSettingsUI(GameState* state)
 
 static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, WorldConfig& config, Player* player)
 {
-    ImVec2 size = CreateUIWindow(300.0f, 135.0f);
+    if (config.errorTime > 0.0f)
+    {   
+        config.errorTime -= state->deltaTime;
+        ImVec2 textSize = ImGui::CalcTextSize(config.error);
+        CenteredUIWindow(textSize.x + 15.0f, textSize.y, 0.0f, -115.0f);
+        ImGui::Begin("WorldConfigError", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
+        ImGui::Text(config.error);
+        ImGui::End();
+    }
+
+    ImVec2 size = CenteredUIWindow(300.0f, 135.0f);
 
     ImGui::Begin("WorldConfig", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
     WindowHeader("World Settings", size.x);
@@ -389,7 +405,17 @@ static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, Wo
         int radius = atoi(config.radiusBuffer);
         memset(config.radiusBuffer, 0, sizeof(config.radiusBuffer));
 
-        if (radius >= 32 || config.infinite)
+        if (world->buildCount > 0)
+        {
+            config.error = "Please wait for the current island to finish generating.";
+            config.errorTime = 3.0f;
+        }
+        else if (radius < 32 && !config.infinite)
+        {
+            config.error = "Island radius must be 32+ or infinite.";
+            config.errorTime = 3.0f;
+        }
+        else
         {
             config.radius = radius;
             RegenerateWorld(state, world, config);

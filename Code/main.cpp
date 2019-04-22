@@ -336,6 +336,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
+		state->deltaTime = deltaTime;
 		cam->animTime = fmodf(cam->animTime + (deltaTime * 0.5f), 1.0f);
 		lastTime = endTime;
 	}

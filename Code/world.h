@@ -174,4 +174,7 @@ struct WorldConfig
     int radius;
     bool infinite;
     BiomeType biome;
+
+    float errorTime;
+    char* error;
 };
