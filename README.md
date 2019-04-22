@@ -3,7 +3,7 @@ Gamecraft is a voxel engine written in C++. It is primarily intended to be a lea
 
 The game is inspired by voxel engines such as Minecraft and Eden: World Builder. It will be focused on building interactive, game-like worlds that can be uploaded and shared with others.
 
-Current features:
+## Current Features ##
 - Basic world generation (grassy, flat, snow)
 - Collision
 - Rain
@@ -14,10 +14,9 @@ Current features:
 - Multithreaded work queue
 - Antialiasing
 - OpenGL Renderer
+- Supports Windows 10
 
-Target OS: Windows 10
-
-Libraries Required  
+## Libraries Required ##
 - GLFW  
 - GLM  
 - GLEW  
