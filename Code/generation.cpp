@@ -314,6 +314,86 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
     END_TIMED_BLOCK(CHUNK_GEN);
 }
 
+static void GenerateDesertTerrain(World* world, ChunkGroup* group)
+{
+    BEGIN_TIMED_BLOCK(CHUNK_GEN);
+
+    WorldP start = ChunkToWorldP(group->pos);
+
+    Noise* noise = Noise::NewFastNoiseSIMD();
+    noise->SetSeed(world->properties.seed);
+
+    noise->SetFrequency(0.05f);
+    noise->SetFractalType(Noise::Billow);
+    float* base = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.25f);
+
+    int surfaceMap[CHUNK_SIZE_2];
+    int maxY = 0;
+
+    for (int x = 0; x < CHUNK_SIZE_H; x++)
+    {
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
+        {
+            int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
+
+            if (valueInCircle < world->properties.radius)
+            {
+                float p = 1.0f;
+
+                if (valueInCircle > world->falloffRadius)
+                    p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->properties.radius - world->falloffRadius));
+
+                float terrainVal = GetNoiseValue2D(base, x, z);
+                terrainVal = ((terrainVal * 0.2f) * 30.0f) + 20.0f;
+
+                int height = (int)(terrainVal * p);
+                surfaceMap[z * CHUNK_SIZE_H + x] = height;
+
+                maxY = Max(maxY, Max(height, SEA_LEVEL));
+            }
+            else 
+            {
+                surfaceMap[z * CHUNK_SIZE_H + x] = 0;
+                maxY = Max(maxY, SEA_LEVEL);
+            }
+        }
+    }
+
+    for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
+    {
+        Chunk* chunk = group->chunks + i;
+        LWorldP lwP = chunk->lwPos;
+
+        if (lwP.y > maxY || chunk->state == CHUNK_LOADED_DATA)
+            continue;
+
+        int limY = Min(lwP.y + CHUNK_V_MASK, maxY);
+
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
+        {
+            for (int wY = lwP.y; wY <= limY; wY++)
+            {
+                int y = wY & CHUNK_V_MASK;
+
+                for (int x = 0; x < CHUNK_SIZE_H; x++)
+                {
+                    int height = surfaceMap[z * CHUNK_SIZE_H + x];
+
+                    if (wY <= height)
+                        SetBlock(chunk, x, y, z, BLOCK_SAND);
+                    else if (wY > height && wY <= SEA_LEVEL)
+                        SetBlock(chunk, x, y, z, BLOCK_WATER);
+                }
+            }
+        }
+    }
+
+    Noise::FreeNoiseSet(base);
+    delete noise;
+
+    END_TIMED_BLOCK(CHUNK_GEN);
+}
+
 static void GenerateFlatTerrain(World* world, ChunkGroup* group)
 {
     WorldP start = ChunkToWorldP(group->pos);
@@ -392,6 +472,11 @@ static void CreateBiomes(World* world)
     snow.name = "Snow";
     snow.type = BIOME_SNOW;
     snow.func = GenerateSnowTerrain;
+
+    Biome& desert = world->biomes[BIOME_DESERT];
+    desert.name = "Desert";
+    desert.type = BIOME_DESERT;
+    desert.func = GenerateDesertTerrain;
 
     Biome& grid = world->biomes[BIOME_GRID];
     grid.name = "Grid";

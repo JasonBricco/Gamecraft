@@ -356,7 +356,7 @@ static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, Wo
         ImGui::End();
     }
 
-    ImVec2 size = CenteredUIWindow(300.0f, 135.0f);
+    ImVec2 size = CenteredUIWindow(300.0f, 155.0f);
 
     ImGui::Begin("WorldConfig", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
     WindowHeader("World Settings", size.x);
@@ -384,16 +384,29 @@ static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, Wo
 
     MultiSpacing(2);
     ImGui::Text("Biome");
+    ImVec2 btSize = ImGui::CalcTextSize("Biome ");
     ImGui::SameLine();
 
-    for (int i = 0; i < BIOME_COUNT; i++)
+    int numPerLine[] = { 3, 2 };
+    int curBiome = 0;
+
+    for (int n = 0; n < ArrayLength(numPerLine); n++)
     {
-        Biome& biome = world->biomes[i];
+        for (int i = 0; i < numPerLine[n]; i++)
+        {
+            Biome& biome = world->biomes[curBiome];
 
-        if (ImGui::Checkbox(biome.name, &biomes[i]))
-            config.biome = (BiomeType)i;
+            if (ImGui::Checkbox(biome.name, &biomes[curBiome]))
+                config.biome = (BiomeType)curBiome;
 
-        ImGui::SameLine();
+            curBiome++;
+            ImGui::SameLine();
+        }
+
+        ImGui::NewLine();
+        ImVec2 cursor = ImGui::GetCursorPos();
+        cursor.x += btSize.x;
+        ImGui::SetCursorPos(cursor);
     }
 
     ImVec2 btnSize = ImVec2(85.0f, 25.0f);
