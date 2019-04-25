@@ -80,8 +80,6 @@ static inline void SetUVs(MeshData* meshData, uint16_t w)
 
 static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, int32_t flags)
 {
-	BEGIN_TIMED_BLOCK(FILL_MESH);
-
 	assert(meshData->vertCount > 0);
 	assert(mesh.indexCount == 0);
 
@@ -135,8 +133,6 @@ static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, int32_t fl
 	Free(meshData);
 
 	TrackGLAllocs(3);
-
-	END_TIMED_BLOCK(FILL_MESH);
 }
 
 static inline void DrawMesh(Mesh mesh)

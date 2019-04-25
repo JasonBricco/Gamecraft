@@ -3,15 +3,11 @@
 // 
 
 #if PROFILING
+#pragma message("Profiling enabled.")
 
 enum MeasureSection
 {
     MEASURE_GAME_LOOP,
-    MEASURE_BUILD_CHUNK,
-    MEASURE_CHUNK_GEN,
-    MEASURE_FILL_MESH,
-    MEASURE_PARTICLE_UPDATE,
-    MEASURE_PARTICLE_RENDER,
     MEASURE_COUNT
 };
 

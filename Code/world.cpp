@@ -325,6 +325,13 @@ static inline Block GetBlock(World* world, LWorldP pos)
     return GetBlock(world, pos.x, pos.y, pos.z);
 }
 
+static inline void SetBlock(Chunk* chunk, int index, Block block)
+{
+    assert(block >= 0 && block < BLOCK_COUNT);
+    assert(index >= 0 && index < CHUNK_SIZE_3);
+    chunk->blocks[index] = block;
+}
+
 static inline void SetBlock(Chunk* chunk, int rX, int rY, int rZ, Block block)
 {
     assert(block >= 0 && block < BLOCK_COUNT);
@@ -338,16 +345,22 @@ static inline void SetBlock(Chunk* chunk, RelP pos, Block block)
     SetBlock(chunk, pos.x, pos.y, pos.z, block);
 }
 
+static inline void ChunksAroundBlock(World* world, Chunk* chunk, LChunkP lP, RelP rP, LChunkP& a, LChunkP& b)
+{
+    Chunk* chunkA = Rebase(world, lP, rP + DIR_LEFT_DOWN_BACK).chunk;
+    Chunk* chunkB = Rebase(world, lP, rP + DIR_RIGHT_UP_FRONT).chunk;
+
+    a = chunkA == nullptr ? chunk->lcPos : chunkA->lcPos;
+    b = chunkB == nullptr ? chunk->lcPos : chunkB->lcPos;
+}
+
 static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkP lP, RelP rP)
 {
     chunk->pendingUpdate = true;
     chunk->modified = true;
 
-    Chunk* chunkA = Rebase(world, lP, rP + DIR_LEFT_DOWN_BACK).chunk;
-    Chunk* chunkB = Rebase(world, lP, rP + DIR_RIGHT_UP_FRONT).chunk;
-
-    LChunkP a = chunkA == nullptr ? chunk->lcPos : chunkA->lcPos;
-    LChunkP b = chunkB == nullptr ? chunk->lcPos : chunkB->lcPos;
+    LChunkP a, b;
+    ChunksAroundBlock(world, chunk, lP, rP, a, b);
 
     for (int z = a.z; z <= b.z; z++)
     {

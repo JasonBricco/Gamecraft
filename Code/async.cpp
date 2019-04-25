@@ -76,6 +76,7 @@ static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, vo
 }
 
 #else
+#pragma message("Multithreading disabled.")
 
 static inline void QueueAsync(GameState*, AsyncFunc func, World* world, void* data, AsyncCallback callback = nullptr)
 {

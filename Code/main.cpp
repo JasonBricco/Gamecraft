@@ -59,6 +59,7 @@ using namespace std;
 #define ENABLE_PRINT 1
 
 #if ENABLE_PRINT
+#pragma message("Printing enabled.")
 #define Print(...) { \
     char print_buffer[256]; \
     snprintf(print_buffer, sizeof(print_buffer), __VA_ARGS__); \

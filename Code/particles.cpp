@@ -47,8 +47,6 @@ static void DestroyParticle(ParticleEmitter& emitter, int index)
 
 static void UpdateParticles(ParticleEmitter& emitter, World* world, float deltaTime)
 {
-	BEGIN_TIMED_BLOCK(PARTICLE_UPDATE);
-
 	emitter.timer -= deltaTime;
 
 	if (emitter.active && emitter.timer <= 0.0f)
@@ -85,14 +83,10 @@ static void UpdateParticles(ParticleEmitter& emitter, World* world, float deltaT
 		if (!IsPassable(world, block))
 			DestroyParticle(emitter, i);
 	}
-
-	END_TIMED_BLOCK(PARTICLE_UPDATE);
 }
 
 static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* cam)
 {
-	BEGIN_TIMED_BLOCK(PARTICLE_RENDER);
-
 	if (emitter.count == 0) return;
 
 	glBindBuffer(GL_ARRAY_BUFFER, emitter.modelBuffer);
@@ -116,6 +110,4 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 
 	glBindVertexArray(emitter.mesh.va);
 	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh.indexCount, GL_UNSIGNED_INT, 0, emitter.count);
-
-	END_TIMED_BLOCK(PARTICLE_RENDER);
 }

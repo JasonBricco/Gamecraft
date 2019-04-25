@@ -5,13 +5,12 @@
 // Builds mesh data for the chunk.
 static void BuildChunk(World* world, void* chunkPtr)
 {
-    BEGIN_TIMED_BLOCK(BUILD_CHUNK);
-
     Chunk* chunk = (Chunk*)chunkPtr;
+    chunk->totalVertices = 0;
 
-    for (int z = 0; z < CHUNK_SIZE_H; z++)
+    for (int y = 0; y < CHUNK_SIZE_V; y++)
     {
-        for (int y = 0; y < CHUNK_SIZE_V; y++)
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
         {
             for (int x = 0; x < CHUNK_SIZE_H; x++)
             {
@@ -28,15 +27,14 @@ static void BuildChunk(World* world, void* chunkPtr)
                         chunk->meshData[type] = data;
                     }
 
-                    BuildFunc(world, block)(world, chunk, data, x, y, z, block);
+                    if (!BuildFunc(world, block)(world, chunk, data, x, y, z, block))
+                        SetBlock(chunk, x, y, z, BLOCK_AIR);
                 }
             }
         }
     }
 
     chunk->state = CHUNK_NEEDS_FILL;
-
-    END_TIMED_BLOCK(BUILD_CHUNK);
 }
 
 static void FillChunkMeshes(Chunk* chunk)
@@ -286,9 +284,20 @@ static inline void SetFaceVertexData(MeshData* data, int index, float x, float y
     data->colors[index] = c;
 }
 
+static inline bool CheckFace(World* world, Chunk* chunk, CullType cull, Block block, int x, int y, int z, int& vAdded)
+{
+    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, x, y, z)))
+    {
+        vAdded += 4;
+        return true;
+    }
+
+    return false;
+}
+
 // Builds mesh data for a single block. x, y, and z are relative to the
 // chunk in local world space.
-static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int yi, int zi, Block block)
+static bool BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int yi, int zi, Block block)
 {
     uint16_t* textures = GetTextures(world, block);
 
@@ -298,7 +307,21 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     uint8_t alpha = GetBlockAlpha(world, block);
     CullType cull = GetCullType(world, block);
 
-    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, xi, yi + 1, zi)))
+    // The number of vertices we'll add by building this block. If it exceeds the 
+    // chunk limit, we'll return immediately.
+    int vAdded = 0;
+    
+    bool up = CheckFace(world, chunk, cull, block, xi, yi + 1, zi, vAdded);
+    bool down = CheckFace(world, chunk, cull, block, xi, yi - 1, zi, vAdded);
+    bool front = CheckFace(world, chunk, cull, block, xi, yi, zi + 1, vAdded);
+    bool back = CheckFace(world, chunk, cull, block, xi, yi, zi - 1, vAdded);
+    bool right = CheckFace(world, chunk, cull, block, xi + 1, yi, zi, vAdded);
+    bool left = CheckFace(world, chunk, cull, block, xi - 1, yi, zi, vAdded);
+
+    if (chunk->totalVertices + vAdded > MAX_CHUNK_VERTICES)
+        return false;
+
+    if (up)
     {
         int count = data->vertCount;
 
@@ -314,7 +337,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, xi, yi - 1, zi)))
+    if (down)
     {
         int count = data->vertCount;
 
@@ -330,7 +353,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, xi, yi, zi + 1)))
+    if (front)
     {
         int count = data->vertCount;
 
@@ -346,7 +369,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, xi, yi, zi - 1)))
+    if (back)
     {
         int count = data->vertCount;
 
@@ -362,7 +385,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, xi + 1, yi, zi)))
+    if (right)
     {
         int count = data->vertCount;
 
@@ -378,7 +401,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, xi - 1, yi, zi)))
+    if (left)
     {
         int count = data->vertCount;
 
@@ -393,4 +416,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
 
         data->vertCount += 4;
     }
+
+    chunk->totalVertices += vAdded;
+    return true;
 }

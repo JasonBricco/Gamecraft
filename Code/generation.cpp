@@ -36,8 +36,6 @@ static inline float* GetNoise3D(Noise* noise, Noise::NoiseType type, int x, int 
 
 static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
 {
-    BEGIN_TIMED_BLOCK(CHUNK_GEN);
-
     WorldP start = ChunkToWorldP(group->pos);
 
     Noise* noise = Noise::NewFastNoiseSIMD();
@@ -166,8 +164,6 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
     Noise::FreeNoiseSet(biome);
 
     delete noise;
-
-    END_TIMED_BLOCK(CHUNK_GEN);
 }
 
 static void GenerateGridTerrain(World* world, ChunkGroup* group)
@@ -214,8 +210,6 @@ static void GenerateGridTerrain(World* world, ChunkGroup* group)
 
 static void GenerateSnowTerrain(World* world, ChunkGroup* group)
 {
-    BEGIN_TIMED_BLOCK(CHUNK_GEN);
-
     WorldP start = ChunkToWorldP(group->pos);
 
     Noise* noise = Noise::NewFastNoiseSIMD();
@@ -310,14 +304,10 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
     Noise::FreeNoiseSet(base);
 
     delete noise;
-
-    END_TIMED_BLOCK(CHUNK_GEN);
 }
 
 static void GenerateDesertTerrain(World* world, ChunkGroup* group)
 {
-    BEGIN_TIMED_BLOCK(CHUNK_GEN);
-
     WorldP start = ChunkToWorldP(group->pos);
 
     Noise* noise = Noise::NewFastNoiseSIMD();
@@ -390,8 +380,6 @@ static void GenerateDesertTerrain(World* world, ChunkGroup* group)
 
     Noise::FreeNoiseSet(base);
     delete noise;
-
-    END_TIMED_BLOCK(CHUNK_GEN);
 }
 
 static void GenerateFlatTerrain(World* world, ChunkGroup* group)
