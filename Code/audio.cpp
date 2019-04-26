@@ -158,7 +158,7 @@ static void PlaySound(Sound sound)
 	}
 	else
 	{
-		SoundCallback* callback = CallocStruct(SoundCallback);
+		SoundCallback* callback = AllocStruct(SoundCallback);
 		Construct(callback, SoundCallback);
 		
 		WAVEFORMATEX format = GetFormat(sound.sampleRate);

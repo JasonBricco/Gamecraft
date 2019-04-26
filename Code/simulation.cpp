@@ -167,8 +167,6 @@ static void TeleportPlayer(GameState* state, World* world, Player* player, World
 
 	player->pos = vec3(p.lP.x, p.lP.y, p.lP.z);
 
-	world->playerRegion = LWorldToRegionP(player->pos, world->ref);
-
 	MoveCamera(state->camera, player->pos);
 	UpdateCameraVectors(state->camera);
 
@@ -445,6 +443,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 {
 	if (player->suspended) return;
 
+	Renderer& rend = state->renderer;
 	Input& input = state->input;
 	Camera* cam = state->camera;
 
@@ -497,13 +496,13 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 
 	if (eyeBlock == BLOCK_WATER)
 	{
-		cam->fadeColor = vec4(0.17f, 0.45f, 0.69f, 0.75f);
-		cam->disableFluidCull = true;
+		rend.fadeColor = vec4(0.17f, 0.45f, 0.69f, 0.75f);
+		rend.disableFluidCull = true;
 	}
 	else
 	{
-		cam->fadeColor = CLEAR_COLOR;
-		cam->disableFluidCull = false;
+		rend.fadeColor = CLEAR_COLOR;
+		rend.disableFluidCull = false;
 	}
 
 	HandleEditInput(state, input, world, deltaTime);
@@ -527,7 +526,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 // Creates and spawns the player. The player is spawned within the center local space chunk.
 static Player* NewPlayer()
 {
-	Player* player = CallocStruct(Player);
+	Player* player = AllocStruct(Player);
 	Construct(player, Player);
 	
 	player->velocity = vec3(0.0f);

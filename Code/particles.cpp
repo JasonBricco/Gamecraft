@@ -2,12 +2,12 @@
 // Gamecraft
 //
 
-static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float radius)
+static void InitParticleEmitter(Renderer& rend, ParticleEmitter& emitter, int spawnCount, float radius)
 {
 	emitter.spawnCount = spawnCount;
 	emitter.radius = radius;
 
-	MeshData* data = CreateMeshData(4, 6);
+	MeshData* data = GetMeshData(rend.meshData);
 
     SetIndices(data);
     SetUVs(data, 0);
@@ -18,7 +18,7 @@ static void InitParticleEmitter(ParticleEmitter& emitter, int spawnCount, float 
     data->positions[3] = vec3(0.015625f, -0.125f, 0.015625f);
     data->vertCount = 4;
 
-	FillMeshData(emitter.mesh, data, GL_STREAM_DRAW, MESH_NO_COLORS | MESH_NO_UVS);
+	FillMeshData(rend.meshData, emitter.mesh, data, GL_STREAM_DRAW, MESH_NO_COLORS | MESH_NO_UVS);
 
 	glGenBuffers(1, &emitter.modelBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, emitter.modelBuffer);
@@ -104,7 +104,7 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);
-	SetUniform(shader->proj, cam->perspective);
+	SetUniform(shader->proj, state->renderer.perspective);
 
 	glBindTexture(GL_TEXTURE_2D, GetTexture(state, IMAGE_RAIN).id);
 

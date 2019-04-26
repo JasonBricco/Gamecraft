@@ -2,220 +2,92 @@
 // Gamecraft
 //
 
-struct TempMemory
+struct Memory
 {
-	uint32_t size, used;
 	uint8_t* data;
+	uint32_t size, used;
+
+	uint8_t* tempData;
+	uint32_t tempSize, tempUsed;
+
+	CRITICAL_SECTION cs;
+	bool csValid;
 };
 
-static TempMemory g_memory;
+static Memory g_memory;
 
+static inline void MemoryBlockThreads()
+{
+	if (!g_memory.csValid)
+	{
+		InitializeCriticalSection(&g_memory.cs);
+		g_memory.csValid = true;
+	}
+
+	EnterCriticalSection(&g_memory.cs);
+}
+
+static inline void MemoryUnblockThreads()
+{
+	LeaveCriticalSection(&g_memory.cs);
+}
+
+#if DEBUG_MEMORY
+#pragma message("Memory debugging enabled.")
+
+// Debug alloc: protect each side of the requested memory with PAGE_NOACCESS to
+// cause crashes when writing outside the bounds of memory.
+static inline uint8_t* _DebugPushMemory(uint32_t requested)
+{
+	uint32_t size = Align4096(requested + 2 * 4096);
+
+	uint8_t* addr = (uint8_t*)VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS);
+	addr += 4096;
+
+	return (uint8_t*)VirtualAlloc(addr, requested, MEM_COMMIT, PAGE_READWRITE);
+}
+
+#define AllocStruct(item) (item*)_DebugPushMemory(sizeof(item))
+#define AllocArray(count, item) (item*)_DebugPushMemory(count * sizeof(item))
+#define AllocRaw(size) _DebugPushMemory(size)
+
+#else
+
+// Alloc: allocate memory to a fixed block created on program startup.
 static inline uint8_t* _PushMemory(uint32_t size)
 {
+	MemoryBlockThreads();
 	assert(g_memory.used + size < g_memory.size);
 	uint8_t* ptr = g_memory.data + g_memory.used;
 	g_memory.used += size;
+	MemoryUnblockThreads();
+	return ptr;
+}
+
+#define AllocStruct(item) (item*)_PushMemory(sizeof(item))
+#define AllocArray(count, item) (item*)_PushMemory(count * sizeof(item))
+#define AllocRaw(size) _PushMemory(size)
+
+#endif
+
+static inline uint8_t* _PushTempMemory(uint32_t size)
+{
+	assert(g_memory.tempUsed + size < g_memory.tempSize);
+	uint8_t* ptr = g_memory.tempData + g_memory.tempUsed;
+	g_memory.tempUsed += size;
 	return ptr;
 }
 
 static inline void WipeTempMemory()
 {
-	g_memory.used = 0;
+	g_memory.tempUsed = 0;
 }
 
-#define AllocTempStruct(item) (item*)_PushMemory(sizeof(item))
-#define AllocTempArray(count, item) (item*)_PushMemory(count * sizeof(item))
-#define AllocTempRaw(size, item) (item*)_PushMemory(size)
+#define AllocTempStruct(item) (item*)_PushTempMemory(sizeof(item))
+#define AllocTempArray(count, item) (item*)_PushTempMemory(count * sizeof(item))
+#define AllocTempRaw(size) (item*)_PushTempMemory(size)
 
 #define Construct(ptr, item) new (ptr)item();
-
-#if DEBUG_MEMORY
-
-struct DebugAllocInfo
-{
-	char* str;
-	char* type;
-	int count;
-	float sizeInMb;
-};
-
-struct DebugAllocHeader
-{
-	char* str;
-};
-
-static vector<DebugAllocInfo> g_allocs;
-static int g_glAlloc = 0;
-static HANDLE g_allocMutex = NULL;
-
-typedef vector<DebugAllocInfo>::iterator DebugAllocIterator;
-
-static char* GetAllocLocStr(char* file, int line)
-{
-	char name[_MAX_FNAME];
-	_splitpath(file, NULL, NULL, name, NULL);
-
-	char* str = (char*)calloc(1, strlen(file) + sizeof(int));
-	sprintf(str, "%s %i", name, line);
-
-	return str;
-}
-
-static DebugAllocIterator GetAllocInfo(char* str)
-{
-	for (auto it = g_allocs.begin(); it != g_allocs.end(); it++)
-	{
-		if (strcmp(it->str, str) == 0)
-			return it;
-	}
-
-	return g_allocs.end();
-}
-
-static void TrackAlloc(char* str, char* type, float sizeInMb)
-{
-	DebugAllocIterator it = GetAllocInfo(str);
-
-	if (it == g_allocs.end())
-	{
-		DebugAllocInfo newInfo = { str, type, 1 , sizeInMb };
-		g_allocs.push_back(newInfo);
-	}
-	else
-	{
-		it->count++;
-		it->sizeInMb += sizeInMb;
-	}
-}
-
-static void UntrackAlloc(char* str)
-{
-	DebugAllocIterator it = GetAllocInfo(str);
-	assert(it != g_allocs.end());
-
-	it->count--;
-	it->sizeInMb -= (it->sizeInMb / it->count);
-
-	if (it->count == 0)
-	{
-		free(it->str);
-		g_allocs.erase(it);
-	}
-}
-
-static inline void AllocMutexLock()
-{
-	if (g_allocMutex == NULL)
-		g_allocMutex = CreateMutex(NULL, FALSE, NULL);
-
-	WaitForSingleObject(g_allocMutex, INFINITE);
-}
-
-static void* DebugMalloc(int size, char* file, int line, char* type)
-{
-	AllocMutexLock();
-
-	char* str = GetAllocLocStr(file, line);
-	TrackAlloc(str, type, size / 1048576.0f);
-	uint8_t* data = (uint8_t*)malloc(size + sizeof(DebugAllocHeader));
-	DebugAllocHeader* header = (DebugAllocHeader*)data;
-	header->str = str;
-	void* result = (void*)(data + sizeof(DebugAllocHeader));
-
-	ReleaseMutex(g_allocMutex);
-
-	return result;
-}
-
-static void* DebugCalloc(int count, int size, char* file, int line, char* type)
-{
-	void* data = DebugMalloc(count * size, file, line, type);
-	memset(data, 0, count * size);
-	return data;
-}
-
-static void* DebugRealloc(void* ptr, int size, char* file, int line, char* type)
-{
-	if (ptr == nullptr)
-		return DebugMalloc(size, file, line, type);
-	else
-	{
-		AllocMutexLock();
-
-		uint8_t* head = (uint8_t*)ptr;
-		DebugAllocHeader* header = (DebugAllocHeader*)(head - sizeof(DebugAllocHeader));
-		DebugAllocIterator it = GetAllocInfo(header->str);
-
-		float avgPerItem = it->sizeInMb / it->count;
-		it->sizeInMb += (avgPerItem * 2.0f);
-
-		head = (uint8_t*)realloc(head - sizeof(DebugAllocHeader), size);
-		void* result = (void*)(head + sizeof(DebugAllocHeader));
-
-		ReleaseMutex(g_allocMutex);
-
-		return result;
-	}
-}
-
-static void DebugFree(void* ptr)
-{
-	AllocMutexLock();
-
-	uint8_t* head = (uint8_t*)ptr;
-	DebugAllocHeader* header = (DebugAllocHeader*)(head - sizeof(DebugAllocHeader));
-	UntrackAlloc(header->str);
-	free(head - sizeof(DebugAllocHeader));
-
-	ReleaseMutex(g_allocMutex);
-}
-
-static void DumpMemoryInfo()
-{
-	Print("ALLOCATION REPORT: \n\n");
-
-	for (auto it = g_allocs.begin(); it != g_allocs.end(); it++)
-		Print("%s (%s): %i [%.2f mb]\n", it->str, it->type, it->count, it->sizeInMb);
-
-	Print("GL Allocs: %i\n", g_glAlloc);
-	Print("\n");
-}
-
-#define AllocStruct(type) (type*)DebugMalloc(sizeof(type), __FILE__, __LINE__, #type)
-#define CallocStruct(type) (type*)DebugCalloc(1, sizeof(type), __FILE__, __LINE__, #type)
-
-#define AllocArray(count, type) (type*)DebugMalloc(count * sizeof(type), __FILE__, __LINE__, #type)
-#define CallocArray(count, type) (type*)DebugCalloc(count, sizeof(type), __FILE__, __LINE__, #type)
-
-#define AllocRaw(size) DebugMalloc(size, __FILE__, __LINE__, "Raw")
-
-#define Free(ptr) DebugFree(ptr)
-
-#define ReallocArray(ptr, count, type) (type*)DebugRealloc(ptr, count * sizeof(type), __FILE__, __LINE__, #type)
-#define ReallocRaw(ptr, size) DebugRealloc(ptr, size, __FILE__, __LINE__, "Raw")
-
-#define TrackGLAllocs(count) g_glAlloc += count
-#define UntrackGLAllocs(count) g_glAlloc -= count
-
-#else
-
-#define AllocStruct(type) (type*)malloc(sizeof(type))
-#define CallocStruct(type) (type*)calloc(1, sizeof(type))
-
-#define AllocArray(count, type) (type*)malloc(count * sizeof(type))
-#define CallocArray(count, type) (type*)calloc(count, sizeof(type))
-
-#define AllocRaw(size) malloc(size)
-
-#define Free(ptr) free(ptr)
-
-#define ReallocArray(ptr, count, type) (type*)realloc(ptr, count * sizeof(type))
-#define ReallocRaw(ptr, size) realloc(ptr, size)
-
-#define TrackGLAllocs(count)
-#define UntrackGLAllocs(count)
-
-#endif
 
 template <typename T>
 struct ObjectPool

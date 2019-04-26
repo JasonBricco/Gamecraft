@@ -3,11 +3,12 @@
 //
 
 using AsyncCallback = void(*)(World*, void*);
-using AsyncFunc = void(*)(World*, void*);
+using AsyncFunc = void(*)(GameState* state, World*, void*);
 
 struct AsyncItem
 {
     AsyncFunc func;
+    GameState* state;
     World* world;
     void* data;
     AsyncCallback callback;

@@ -6,30 +6,19 @@
 #define REGION_SIZE 8
 #define REGION_SIZE_3 256
 #define REGION_MASK 7
-#define MAX_REGIONS 8
+#define MAX_REGIONS 4
+
+#define MAX_SERIALIZED_DATA (CHUNK_SIZE_3 * 2)
 
 struct SerializedChunk
 {
-    int size, maxSize;
-    uint16_t* data;
+    int size;
+    uint16_t data[MAX_SERIALIZED_DATA];
 
     inline void Add(uint16_t value)
     {
-        if (size + 1 > maxSize)
-        {
-            maxSize = (maxSize + 1) * 2;
-            data = ReallocArray(data, maxSize, uint16_t);
-            assert(data != nullptr);
-        }
-
+        assert(size + 1 < MAX_SERIALIZED_DATA);
         data[size++] = value;
-    }
-
-    inline void Reserve(int count)
-    {
-        maxSize = count;
-        data = ReallocArray(data, count, uint16_t);
-        assert(data != nullptr);
     }
 
     inline void Clear()
@@ -48,6 +37,6 @@ struct Region
 };
 
 static bool LoadGroupFromDisk(World* world, ChunkGroup* group);
-static void SaveGroup(World* world, void* groupPtr);
+static void SaveGroup(GameState*, World* world, void* groupPtr);
 static void DeleteRegions(World* world);
 static bool LoadWorldFileData(GameState* state, World* world);

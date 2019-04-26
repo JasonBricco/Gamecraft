@@ -88,7 +88,6 @@ static void InitUI(GLFWwindow* window, UI& ui)
     glEnableVertexAttribArray(2);
 
     glGenBuffers(1, &ui.ib);
-    TrackGLAllocs(4);
 }
 
 static inline void MultiSpacing(int amount)
@@ -312,6 +311,7 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
 
 static void CreateSettingsUI(GameState* state)
 {
+    Renderer& rend = state->renderer;
     ImVec2 size = CenteredUIWindow(200.0f, 150.0f);
 
     ImGui::Begin("Settings", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
@@ -329,11 +329,10 @@ static void CreateSettingsUI(GameState* state)
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
 
-    Camera* cam = state->camera;
-    bool aaOn = cam->samplesAA == 4;
+    bool aaOn = rend.samplesAA == 4;
 
     if (ImGui::Button(aaOn ? "Antialiasing On" : "Antialiasing Off", btnSize))
-        SetAA(state, aaOn ? 0 : 4);
+        SetAA(state, rend, aaOn ? 0 : 4);
 
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
@@ -513,7 +512,7 @@ static void CreateDebugHUD(GameState* state, World* world)
     ImGui::End();
 }
 
-static void RenderUI(GameState* state, Camera* cam, UI& ui)
+static void RenderUI(GameState* state, Renderer& rend, UI& ui)
 {
     ImGui::Render();
 
@@ -538,7 +537,7 @@ static void RenderUI(GameState* state, Camera* cam, UI& ui)
     if (state->pauseState == PLAYING)
     {
         glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
-        Graphic* crosshair = cam->crosshair;
+        Graphic* crosshair = rend.crosshair;
         Shader* shader = crosshair->shader;
         UseShader(shader);
         SetUniform(shader->proj, proj);
@@ -623,7 +622,7 @@ static void SaveGameSettings(GameState* state)
     char path[MAX_PATH];
     sprintf(path, "%s\\Settings.txt", state->savePath);
 
-    SettingsFileData settings = { state->audio.muted, state->camera->samplesAA };
+    SettingsFileData settings = { state->audio.muted, state->renderer.samplesAA };
     WriteBinary(path, (char*)&settings, sizeof(SettingsFileData));
 }
 
@@ -632,13 +631,15 @@ static void LoadGameSettings(GameState* state)
     char path[MAX_PATH];
     sprintf(path, "%s\\Settings.txt", state->savePath);
 
+    Renderer& rend = state->renderer;
+    
     if (PathFileExists(path))
     {
         SettingsFileData settings;
         ReadBinary(path, (char*)&settings);
         state->audio.muted = settings.audioMuted;
-        state->camera->samplesAA = settings.samplesAA;
-        SetAA(state, settings.samplesAA);
+        rend.samplesAA = settings.samplesAA;
+        SetAA(state, rend, settings.samplesAA);
     }
-    else SetAA(state, 4);
+    else SetAA(state, rend, 4);
 }

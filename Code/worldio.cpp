@@ -14,7 +14,7 @@ static inline int RegionIndex(ivec3 p)
 
 static Region* LoadRegionFile(World* world, RegionP p)
 {
-    Region* region = CallocStruct(Region);
+    Region* region = world->regionPool.Get();
     region->pos = p;
 
     char path[MAX_PATH];
@@ -58,8 +58,7 @@ static Region* LoadRegionFile(World* world, RegionP p)
         if (bytesRead == 0) break;
 
         SerializedChunk* chunk = region->chunks + position;
-
-        chunk->Reserve(items + 2);
+        assert(chunk->size == 0);
         chunk->Add(position);
         chunk->Add(items);
 
@@ -168,7 +167,8 @@ static inline void RemoveRegion(World* world, Region* region)
     if (region == world->firstRegion)
         world->firstRegion = region->next;
 
-    Free(region);
+    memset(region, 0, sizeof(Region));
+    world->regionPool.Return(region);
 }
 
 static void DeleteRegions(World* world)
@@ -177,15 +177,14 @@ static void DeleteRegions(World* world)
         RemoveRegion(world, world->firstRegion);
 }
 
-static void UnloadDistantRegions(World* world)
+static void UnloadDistantRegions(World* world, RegionP newP)
 {
     Region* region = world->firstRegion;
 
     while (region != nullptr)
     {
         RegionP p = region->pos;
-        ivec3 diff = p - world->playerRegion;
-
+        ivec3 diff = p - newP;
         Region* next = region->next;
 
         if (abs(diff.x) > 1 || abs(diff.z) > 1)
@@ -215,11 +214,11 @@ static Region* GetOrLoadRegion(World* world, RegionP pos)
 
     if (region == nullptr)
     {
+        if (world->regionCount == MAX_REGIONS)
+            UnloadDistantRegions(world, pos);
+
         region = LoadRegionFile(world, pos);
         AddRegion(world, region);
-
-        if (world->regionCount > MAX_REGIONS)
-            UnloadDistantRegions(world);
     }
 
     return region;
@@ -278,7 +277,7 @@ static bool LoadGroupFromDisk(World* world, ChunkGroup* group)
     return complete;
 }
 
-static void SaveGroup(World* world, void* groupPtr)
+static void SaveGroup(GameState*, World* world, void* groupPtr)
 {
     ChunkGroup* group = (ChunkGroup*)groupPtr;
     ChunkP p = group->pos;
@@ -340,7 +339,7 @@ static void SaveGroup(World* world, void* groupPtr)
     }
 }
 
-static void SaveWorld(World* world)
+static void SaveWorld(GameState* state, World* world)
 {
     char path[MAX_PATH];
     sprintf(path, "%s\\WorldData.txt", world->savePath);
@@ -348,7 +347,7 @@ static void SaveWorld(World* world)
     WriteBinary(path, (char*)&world->properties, sizeof(WorldProperties));
 
     for (int i = 0; i < world->totalGroups; i++)
-        SaveGroup(world, world->groups[i]);
+        SaveGroup(state, world, world->groups[i]);
 
     SaveAllRegions(world);
 }

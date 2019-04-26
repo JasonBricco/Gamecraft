@@ -22,8 +22,6 @@
 #define WORLD_CHUNK_HEIGHT 4
 #define WORLD_BLOCK_HEIGHT 256
 
-#define MAX_CHUNK_VERTICES 40000
-
 // The position of the chunk in local space around the player.
 // All loaded chunks are in a local array. This indexes into it.
 typedef ivec3 LChunkP;
@@ -108,8 +106,8 @@ struct World
     // The radius at which the terrain begins falling off into sea.
     int falloffRadius;
 
-    // Chunk pool to avoid constant allocating/freeing.
     ObjectPool<ChunkGroup> groupPool;
+    ObjectPool<Region> regionPool;
 
     // All actively loaded chunk groups around the player.
     ChunkGroup** groups;
@@ -146,9 +144,6 @@ struct World
     CRITICAL_SECTION regionCS;
 
     Player* player;
-
-    // The region the player is in.
-    RegionP playerRegion;
 
     WorldProperties properties;
 

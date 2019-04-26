@@ -18,7 +18,7 @@ static inline bool DoNextAsync(GameState* state, AsyncWorkQueue& queue)
     	if (InterlockedCompareExchange(&queue.read, nextRead, originalRead) == originalRead)
 	    {
 	    	AsyncItem item = queue.items[originalRead];
-            item.func(item.world, item.data);
+            item.func(item.state, item.world, item.data);
 
             if (item.callback != nullptr)
             {
@@ -68,6 +68,7 @@ static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, vo
 	assert(nextWrite != asyncQueue.read);
 	AsyncItem* asyncItem = asyncQueue.items + asyncQueue.write;
 	asyncItem->func = func;
+	asyncItem->state = state;
 	asyncItem->world = world;
 	asyncItem->data = data;
 	asyncItem->callback = callback;
@@ -88,7 +89,7 @@ static inline void QueueAsync(GameState*, AsyncFunc func, World* world, void* da
 
 #endif
 
-static void CreateThreads(GameState* state)
+static int CreateThreads(GameState* state)
 {
 	state->semaphore = CreateSemaphore(NULL, 0, MAXLONG, NULL);
 
@@ -110,4 +111,6 @@ static void CreateThreads(GameState* state)
 		HANDLE handle = CreateThread(NULL, NULL, ThreadProc, state, NULL, &threadID);
         CloseHandle(handle);
 	}
+
+	return threadCount;
 }

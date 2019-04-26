@@ -20,11 +20,7 @@ static void* ReadFileData(char* path, uint32_t* sizePtr)
 
         if (ReadFile(file, data, size, &bytesRead, 0) && (size == bytesRead))
             *sizePtr = size;
-        else
-        {
-            Free(data);
-            data = nullptr;
-        }
+        else data = nullptr;
 
         CloseHandle(file);
         return data;

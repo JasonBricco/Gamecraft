@@ -26,6 +26,8 @@ struct GameState
 
 	int windowWidth, windowHeight;
 
+	Renderer renderer;
+
 	Camera* camera;
 	Input input;
 

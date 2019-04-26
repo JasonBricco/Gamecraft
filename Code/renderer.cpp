@@ -32,11 +32,11 @@ static inline void UseShader(Shader* shader)
     glUseProgram(shader->handle);
 }
 
-static Graphic* CreateGraphic(Shader* shader, Texture texture)
+static Graphic* CreateGraphic(Renderer& renderer, Shader* shader, Texture texture)
 {
-	Graphic* graphic = CallocStruct(Graphic);
+	Graphic* graphic = AllocStruct(Graphic);
 
-	MeshData* data = CreateMeshData(4, 6);
+	MeshData* data = GetMeshData(renderer.meshData);
 
 	SetIndices(data);
 	SetUVs(data, 0);
@@ -47,7 +47,7 @@ static Graphic* CreateGraphic(Shader* shader, Texture texture)
 	data->positions[3] = vec3(0.0f, 0.0f, 0.0f);
 	data->vertCount = 4;
 	
-	FillMeshData(graphic->mesh, data, GL_STATIC_DRAW, MESH_NO_COLORS);
+	FillMeshData(renderer.meshData, graphic->mesh, data, GL_STATIC_DRAW, MESH_NO_COLORS);
 
 	graphic->shader = shader;
 	graphic->texture = texture;
@@ -112,53 +112,50 @@ static void CheckFrameBufferStatus()
 	}
 }
 
-static void DestroyAAFBO(Camera* cam)
+static void DestroyAAFBO(Renderer& rend)
 {
-	GLuint textures[] = { cam->colAA, cam->depthAA };
+	GLuint textures[] = { rend.colAA, rend.depthAA };
 	glDeleteTextures(2, textures);
-	glDeleteFramebuffers(1, &cam->fboAA);
-	UntrackGLAllocs(3);
+	glDeleteFramebuffers(1, &rend.fboAA);
 }
 
-static void CreateAAFBO(Camera* cam, int width, int height)
+static void CreateAAFBO(Renderer& rend, int width, int height)
 {
-	if (cam->samplesAA > 0)
+	if (rend.samplesAA > 0)
 	{
-		if (glIsBuffer(cam->fboAA))
-			DestroyAAFBO(cam);
+		if (glIsBuffer(rend.fboAA))
+			DestroyAAFBO(rend);
 
-		glGenTextures(1, &cam->colAA);
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, cam->colAA);
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, cam->samplesAA, GL_RGBA8, width, height, true);
+		glGenTextures(1, &rend.colAA);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, rend.colAA);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, rend.samplesAA, GL_RGBA8, width, height, true);
 
-		glGenTextures(1, &cam->depthAA);
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA);
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, cam->samplesAA, GL_DEPTH_COMPONENT24, width, height, true);
+		glGenTextures(1, &rend.depthAA);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, rend.depthAA);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, rend.samplesAA, GL_DEPTH_COMPONENT24, width, height, true);
 
-		glGenFramebuffers(1, &cam->fboAA);
-		glBindFramebuffer(GL_FRAMEBUFFER, cam->fboAA);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, cam->colAA, 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, cam->depthAA, 0);
+		glGenFramebuffers(1, &rend.fboAA);
+		glBindFramebuffer(GL_FRAMEBUFFER, rend.fboAA);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, rend.colAA, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, rend.depthAA, 0);
 
 		CheckFrameBufferStatus();
-		TrackGLAllocs(3);
 	}
 }
 
-static void SetAA(GameState* state, int samples)
+static void SetAA(GameState* state, Renderer& rend, int samples)
 {
-	Camera* cam = state->camera;
-	cam->samplesAA = samples;
+	rend.samplesAA = samples;
 
 	if (samples > 0)
 	{
 		glEnable(GL_MULTISAMPLE);
-		CreateAAFBO(cam, state->windowWidth, state->windowHeight);
+		CreateAAFBO(rend, state->windowWidth, state->windowHeight);
 	}
 	else
 	{
 		glDisable(GL_MULTISAMPLE);
-		DestroyAAFBO(cam);
+		DestroyAAFBO(rend);
 	}
 }
 
@@ -180,17 +177,18 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 	cam->farH = cam->farDist * t;
 	cam->farW = cam->farH * ratio;
 
-	cam->perspective = perspective(fov, ratio, cam->nearDist, cam->farDist);
+	Renderer& rend = state->renderer;
+	rend.perspective = perspective(fov, ratio, cam->nearDist, cam->farDist);
 
-	if (cam->crosshair != nullptr)
-		SetCrosshairPos(cam->crosshair, width, height);
+	if (rend.crosshair != nullptr)
+		SetCrosshairPos(rend.crosshair, width, height);
 
-	CreateAAFBO(cam, width, height);
+	CreateAAFBO(rend, width, height);
 }
 
 static Camera* NewCamera()
 {
-	Camera* cam = CallocStruct(Camera);
+	Camera* cam = AllocStruct(Camera);
 	cam->nearDist = 0.1f;
 	cam->farDist = 512.0f;
 	cam->sensitivity = 0.05f;
@@ -253,8 +251,11 @@ static void ListUniforms(Shader* shader)
 	}
 }
 
-static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int screenHeight)
+static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int screenHeight, int threads)
 {
+	rend.meshData = CreatePool<MeshData>(threads * MESH_TYPE_COUNT * 2);
+	InitializeCriticalSection(&rend.meshCS);
+	
 	state->ambient = 1.0f;
 	vec3 clearColor = vec3(0.53f, 0.80f, 0.92f);
 	state->clearColor = clearColor;
@@ -263,11 +264,11 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_CULL_FACE);
 
-#if _DEBUG
+	#if _DEBUG
 	glEnable(GL_DEBUG_OUTPUT);
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	glDebugMessageCallback((GLDEBUGPROC)OnOpenGLMessage, 0);
-#endif
+	#endif
 
 	AssetDatabase& db = state->assets;
 	float fogStart = 100.0f, fogEnd = 208.0f;
@@ -315,12 +316,12 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
     particle->view = glGetUniformLocation(particle->handle, "view");
     particle->proj = glGetUniformLocation(particle->handle, "projection");
 
-	Graphic* graphic = CreateGraphic(GetShader(state, SHADER_CROSSHAIR), GetTexture(state, IMAGE_CROSSHAIR));
+	Graphic* graphic = CreateGraphic(rend, GetShader(state, SHADER_CROSSHAIR), GetTexture(state, IMAGE_CROSSHAIR));
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
 	
-	cam->crosshair = graphic;
+	rend.crosshair = graphic;
 
-	MeshData* data = CreateMeshData(4, 6);
+	MeshData* data = GetMeshData(rend.meshData);
 	SetIndices(data);
 
 	data->positions[0] = vec3(-1.0f, 1.0f, 0.0f);
@@ -329,15 +330,16 @@ static void InitRenderer(GameState* state, Camera* cam, int screenWidth, int scr
 	data->positions[3] = vec3(-1.0f, -1.0f, 0.0f);
 	data->vertCount = 4;
 	
-	FillMeshData(cam->fadeMesh, data, GL_STATIC_DRAW, MESH_NO_UVS | MESH_NO_COLORS);
+	FillMeshData(rend.meshData, rend.fadeMesh, data, GL_STATIC_DRAW, MESH_NO_UVS | MESH_NO_COLORS);
 
-	cam->fadeShader = GetShader(state, SHADER_FADE);
-	cam->fadeColor = CLEAR_COLOR;
+	rend.fadeShader = GetShader(state, SHADER_FADE);
+	rend.fadeColor = CLEAR_COLOR;
 }
 
 static Ray ScreenCenterToRay(GameState* state, Camera* cam)
 {
-	mat4 projection = cam->perspective * cam->view;
+	Renderer& rend = state->renderer;
+	mat4 projection = rend.perspective * cam->view;
 
 	int w = state->windowWidth;
 	int h = state->windowHeight;
@@ -445,10 +447,10 @@ static inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 	return FRUSTUM_VISIBLE;
 }
 
-static void RenderScene(GameState* state, Camera* cam)
+static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 {
-	if (cam->samplesAA > 0)
-		glBindFramebuffer(GL_FRAMEBUFFER, cam->fboAA);
+	if (rend.samplesAA > 0)
+		glBindFramebuffer(GL_FRAMEBUFFER, rend.fboAA);
 	else glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -461,15 +463,15 @@ static void RenderScene(GameState* state, Camera* cam)
 
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);
-	SetUniform(shader->proj, cam->perspective);
+	SetUniform(shader->proj, rend.perspective);
 	SetUniform(shader->ambient, state->ambient);
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, GetBlockTextureArray(state).id);
-	int count = cam->meshLists[MESH_TYPE_OPAQUE].count;
+	int count = rend.meshLists[MESH_TYPE_OPAQUE].count;
 
 	for (int i = 0; i < count; i++)
 	{
-		ChunkMesh cM = cam->meshLists[MESH_TYPE_OPAQUE].meshes[i];
+		ChunkMesh cM = rend.meshLists[MESH_TYPE_OPAQUE].meshes[i];
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
@@ -477,11 +479,11 @@ static void RenderScene(GameState* state, Camera* cam)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Transparent pass.
-	count = cam->meshLists[MESH_TYPE_TRANSPARENT].count;
+	count = rend.meshLists[MESH_TYPE_TRANSPARENT].count;
 
 	for (int i = 0; i < count; i++)
 	{
-		ChunkMesh cM = cam->meshLists[MESH_TYPE_TRANSPARENT].meshes[i];
+		ChunkMesh cM = rend.meshLists[MESH_TYPE_TRANSPARENT].meshes[i];
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
@@ -490,48 +492,48 @@ static void RenderScene(GameState* state, Camera* cam)
 
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);
-	SetUniform(shader->proj, cam->perspective);
-	assert(cam->animTime >= 0.0f && cam->animTime < 1.0f);
-	SetUniform(shader->time, cam->animTime);
+	SetUniform(shader->proj, rend.perspective);
+	assert(rend.animTime >= 0.0f && rend.animTime < 1.0f);
+	SetUniform(shader->time, rend.animTime);
 	SetUniform(shader->ambient, state->ambient);
 
-	if (cam->disableFluidCull) 
+	if (rend.disableFluidCull) 
 		glDisable(GL_CULL_FACE);
 
-	count = cam->meshLists[MESH_TYPE_FLUID].count;
+	count = rend.meshLists[MESH_TYPE_FLUID].count;
 
 	for (int i = 0; i < count; i++)
 	{
-		ChunkMesh cM = cam->meshLists[MESH_TYPE_FLUID].meshes[i];
+		ChunkMesh cM = rend.meshLists[MESH_TYPE_FLUID].meshes[i];
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
 	// If we didn't already disable culling, disable it now for particle drawing.
-	if (!cam->disableFluidCull)
+	if (!rend.disableFluidCull)
 		glDisable(GL_CULL_FACE);
 
 	DrawParticles(state, state->rain, cam);
 
 	glDisable(GL_DEPTH_TEST);
 
-	if (cam->fadeColor != CLEAR_COLOR)
+	if (rend.fadeColor != CLEAR_COLOR)
 	{
-		shader = cam->fadeShader;
+		shader = rend.fadeShader;
 		UseShader(shader);
-		SetUniform(shader->fadeColor, cam->fadeColor);
-		DrawMesh(cam->fadeMesh);
+		SetUniform(shader->fadeColor, rend.fadeColor);
+		DrawMesh(rend.fadeMesh);
 	}
 
-	RenderUI(state, cam, state->ui);
+	RenderUI(state, rend, state->ui);
 
 	glDisable(GL_BLEND);
 	glEnable(GL_CULL_FACE);
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	if (cam->samplesAA > 0)
+	if (rend.samplesAA > 0)
 	{
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, cam->fboAA);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, rend.fboAA);
 		glDrawBuffer(GL_BACK);
 		glBlitFramebuffer(0, 0, state->windowWidth, state->windowHeight, 0, 0, state->windowWidth, state->windowHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	}
@@ -542,7 +544,6 @@ static Texture LoadTexture(int width, int height, uint8_t* pixels)
 	Texture tex;
 
     glGenTextures(1, &tex.id);
-    TrackGLAllocs(1);
     glBindTexture(GL_TEXTURE_2D, tex.id);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -577,7 +578,6 @@ static Texture LoadTextureArray(ImageData* data, int count, char* assetData)
 
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-    TrackGLAllocs(2);
 
     return tex;
 }
@@ -587,7 +587,7 @@ static void OutputShaderError(GLuint shader, char* mode)
 	GLint length = 0;
 	glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
 
-    GLchar* errorLog = CallocArray(length, GLchar);
+    GLchar* errorLog = AllocTempArray(length, GLchar);
     glGetProgramInfoLog(shader, length, NULL, errorLog);
     
    	Print("Error! Shader program failed to %s. Log: %s\n", mode, length == 0 ? "No error given." : errorLog);

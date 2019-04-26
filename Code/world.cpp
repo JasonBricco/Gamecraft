@@ -409,7 +409,7 @@ static void FillChunk(Chunk* chunk, Block block)
         chunk->blocks[i] = block;
 }
 
-static void LoadGroup(World* world, void* groupPtr)
+static void LoadGroup(GameState*, World* world, void* groupPtr)
 {
     ChunkGroup* group = (ChunkGroup*)groupPtr;
 
@@ -601,8 +601,6 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     }
     else
     {
-        world->playerRegion = LWorldToRegionP(player->pos, world->ref);
-
         if (world->buildCount == 0)
             CheckWorld(state, world, player);
     }
@@ -613,7 +611,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
         GetVisibleChunks(world, cam);
     }
 
-    ProcessVisibleChunks(state, world, cam);
+    ProcessVisibleChunks(state, world, state->renderer);
 
     Queue<ChunkGroup*>& destroyQueue = world->destroyQueue;
     int destroyLim = 0;
@@ -644,7 +642,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
     if (existing == nullptr)
     {
-        world = CallocStruct(World);
+        world = AllocStruct(World);
         Construct(world, World);
 
         // Load range worth of groups on each side plus the middle group.
@@ -653,7 +651,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         CreateBiomes(world);
 
         world->totalGroups = Square(world->size);
-        world->groups = CallocArray(world->totalGroups, ChunkGroup*);
+        world->groups = AllocArray(world->totalGroups, ChunkGroup*);
 
         world->visibleChunks = List<Chunk*>(world->totalGroups * WORLD_CHUNK_HEIGHT);
         world->destroyQueue = Queue<ChunkGroup*>(world->totalGroups);
@@ -661,6 +659,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         world->loadRange = loadRange;
 
         world->groupPool = CreatePool<ChunkGroup>(world->totalGroups * 2);
+        world->regionPool = CreatePool<Region>(MAX_REGIONS);
 
         float min = (float)(loadRange * CHUNK_SIZE_H);
         float max = min + CHUNK_SIZE_H;

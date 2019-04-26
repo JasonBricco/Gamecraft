@@ -2,6 +2,9 @@
 // Gamecraft
 //
 
+#define MAX_VERTICES 40000
+#define MAX_INDICES 60000
+
 enum BlockMeshType
 {
     MESH_TYPE_OPAQUE,
@@ -29,17 +32,10 @@ struct Mesh
 
 struct MeshData
 {
-    uint8_t* data;
+    vec3 positions[MAX_VERTICES];
+    u16vec3 uvs[MAX_VERTICES];
+    Colori colors[MAX_VERTICES];
+    int indices[MAX_INDICES];
 
-    // Byte offsets to the start of each component of the data array.
-    int uvOffset, colorOffset, indexOffset;
-
-    // Pointers into the data array.
-    vec3* positions;
-    u16vec3* uvs;
-    Colori* colors;
-    int* indices;
-
-    int vertCount, vertMax;
-    int indexCount, indexMax;
+    int vertCount, indexCount;
 };

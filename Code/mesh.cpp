@@ -2,59 +2,16 @@
 // Gamecraft
 //
 
-static inline int CalculateMeshDataSize(int vertices, int indices)
+static MeshData* GetMeshData(ObjectPool<MeshData>& pool)
 {
-	return vertices * sizeof(vec3) + vertices * sizeof(u16vec3) + vertices * sizeof(Colori) + indices * sizeof(int);
-}
-
-static void SetMeshDataPointers(MeshData* meshData)
-{
-	meshData->positions = (vec3*)meshData->data;
-	meshData->uvOffset = meshData->vertMax * sizeof(vec3);
-	meshData->uvs = (u16vec3*)(meshData->data + meshData->uvOffset);
-	meshData->colorOffset = meshData->uvOffset + (meshData->vertMax * sizeof(u16vec3));
-	meshData->colors = (Colori*)(meshData->data + meshData->colorOffset);
-	meshData->indexOffset = meshData->colorOffset + (meshData->vertMax * sizeof(Colori));
-	meshData->indices = (int*)(meshData->data + meshData->indexOffset);
-}
-
-static MeshData* CreateMeshData(int vertices, int indices)
-{
-	MeshData* meshData = AllocStruct(MeshData);
-	int sizeInBytes = CalculateMeshDataSize(vertices, indices);
-	meshData->data = AllocArray(sizeInBytes, uint8_t);
+	MeshData* meshData = pool.Get();
 	meshData->vertCount = 0;
-	meshData->vertMax = vertices;
 	meshData->indexCount = 0;
-	meshData->indexMax = indices;
-	SetMeshDataPointers(meshData);
 	return meshData;
-}
-
-static inline void CheckMeshBounds(MeshData* meshData, int count, int inc, int max)
-{
-	if (count + inc > max)
-	{
-		meshData->vertMax *= 2;
-		meshData->indexMax *= 2;
-		meshData->data = ReallocArray(meshData->data, CalculateMeshDataSize(meshData->vertMax, meshData->indexMax), uint8_t);
-
-		u16vec3* oldUvs = (u16vec3*)(meshData->data + meshData->uvOffset);
-		Colori* oldColors = (Colori*)(meshData->data + meshData->colorOffset);
-		int* oldIndices = (int*)(meshData->data + meshData->indexOffset);
-
-		SetMeshDataPointers(meshData);
-
-		memcpy(meshData->indices, oldIndices, meshData->indexCount * sizeof(int));
-		memcpy(meshData->colors, oldColors, meshData->vertCount * sizeof(Colori));
-		memcpy(meshData->uvs, oldUvs, meshData->vertCount * sizeof(u16vec3));
-	}
 }
 
 static inline void SetIndices(MeshData* meshData)
 {
-	CheckMeshBounds(meshData, meshData->indexCount, 6, meshData->indexMax);
-
 	int offset = meshData->vertCount;
 	int count = meshData->indexCount;
 
@@ -78,7 +35,7 @@ static inline void SetUVs(MeshData* meshData, uint16_t w)
     meshData->uvs[count + 3] = u16vec3(1, 1, w);
 }
 
-static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, int32_t flags)
+static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshData, GLenum type, int32_t flags)
 {
 	assert(meshData->vertCount > 0);
 	assert(mesh.indexCount == 0);
@@ -105,7 +62,6 @@ static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, int32_t fl
 
 		glVertexAttribPointer(id, 3, GL_UNSIGNED_SHORT, GL_FALSE, 0, NULL); 
 		glEnableVertexAttribArray(id++);
-		TrackGLAllocs(1);
 	}
 
 	if (!HasFlag(flags, MESH_NO_COLORS))
@@ -117,7 +73,6 @@ static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, int32_t fl
 
 		glVertexAttribPointer(id, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
 		glEnableVertexAttribArray(id);
-		TrackGLAllocs(1);
 	}
 
 	// Index buffer.
@@ -129,10 +84,7 @@ static void FillMeshData(Mesh& mesh, MeshData* meshData, GLenum type, int32_t fl
 	mesh.indexCount = meshData->indexCount;
 	assert(mesh.indexCount > 0);
 
-	Free(meshData->data);
-	Free(meshData);
-
-	TrackGLAllocs(3);
+	pool.Return(meshData);
 }
 
 static inline void DrawMesh(Mesh mesh)
@@ -156,21 +108,14 @@ static void DestroyMesh(Mesh& mesh)
 		glDeleteBuffers(1, &mesh.positions);
 
 		if (!HasFlag(mesh.flags, MESH_NO_UVS))
-		{
 			glDeleteBuffers(1, &mesh.uvs);
-			UntrackGLAllocs(1);
-		}
 
 		if (!HasFlag(mesh.flags, MESH_NO_COLORS))
-		{
 			glDeleteBuffers(1, &mesh.colors);
-			UntrackGLAllocs(1);
-		}
 
 		glDeleteBuffers(1, &mesh.indices);
 		glDeleteVertexArrays(1, &mesh.va);
 
-		UntrackGLAllocs(3);
 		mesh.indexCount = 0;
 	}
 }

@@ -85,10 +85,10 @@ using namespace std;
 }
 #endif
 
+#include "Utils.h"
 #include "Memory.h"
 #include "Containers.h"
 #include "Random.h"
-#include "Utils.h"
 #include "Profiling.h"
 #include "UI.h"
 #include "Audio.h"
@@ -159,11 +159,11 @@ static void ToggleFullscreen(HWND window)
 
 static void Pause(GameState* state, GLFWwindow* window, World* world, PauseState pauseState)
 {
-	SaveWorld(world);
+	SaveWorld(state, world);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	ChangeVolume(&state->audio, 0.25f, 0.5f);
-	Camera* cam = state->camera;
-	cam->fadeColor.a = cam->fadeColor.a > 0.5f ? 0.9f : 0.75f;
+	Renderer& rend = state->renderer;
+	rend.fadeColor.a = rend.fadeColor.a > 0.5f ? 0.9f : 0.75f;
 	state->pauseState = pauseState;
 }
 
@@ -171,8 +171,8 @@ static void Unpause(GameState* state, GLFWwindow* window)
 {
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	ChangeVolume(&state->audio, 0.75f, 0.5f);
-	Camera* cam = state->camera;
-	cam->fadeColor.a = 0.0f;
+	Renderer& rend = state->renderer;
+	rend.fadeColor.a = 0.0f;
 	glfwSetCursorPos(window, state->windowWidth * 0.5f, state->windowHeight * 0.5f);
 	state->pauseState = PLAYING;
 }
@@ -229,17 +229,20 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 
 	state->rain.pos = vec3(player->pos.x, Max(265.0f, player->pos.y + 10.0f), player->pos.z);
 	UpdateParticles(state->rain, world, deltaTime);
-
-	#if DEBUG_MEMORY
-
-	if (KeyPressed(state->input, KEY_F1))
-		DumpMemoryInfo();
-
-	#endif
 }
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
+	#if !DEBUG_MEMORY
+
+	g_memory.size = Megabytes(1536);
+	g_memory.data = (uint8_t*)VirtualAlloc(NULL, g_memory.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+	#endif
+
+	g_memory.tempSize = Megabytes(64);
+	g_memory.tempData = (uint8_t*)VirtualAlloc(NULL, g_memory.tempSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
 	if (!glfwInit())
 		Error("GLFW failed to initialize.\n");
 
@@ -266,10 +269,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	// Set vertical synchronization to the monitor refresh rate.
 	glfwSwapInterval(1);
 
-	g_memory.size = 33554432;
-	g_memory.data = (uint8_t*)VirtualAlloc(0, g_memory.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-
-	GameState* state = CallocStruct(GameState);
+	GameState* state = AllocStruct(GameState);
 	Construct(state, GameState);
 
 	state->savePath = PathToExe("Saves", AllocArray(MAX_PATH, char), MAX_PATH);
@@ -278,13 +278,14 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	InitUI(window, state->ui);
 	InitAudio(&state->audio);
 	
-	CreateThreads(state);
+	int threads = CreateThreads(state);
 	LoadAssets(state);
 
 	Camera* cam = NewCamera();
 	state->camera = cam;
 
-	InitRenderer(state, cam, screenWidth, screenHeight);
+	Renderer& rend = state->renderer;
+	InitRenderer(state, rend, screenWidth, screenHeight, threads);
 
 	glfwSetWindowUserPointer(window, state);
 	glfwSetKeyCallback(window, OnKey);
@@ -295,7 +296,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPos(window, state->windowWidth / 2.0f, state->windowHeight / 2.0f);
 
-	InitParticleEmitter(state->rain, 12, 20.0f);
+	InitParticleEmitter(rend, state->rain, 12, 20.0f);
 
 	WorldConfig worldConfig = {};
 	worldConfig.radius = 1024;
@@ -329,7 +330,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		CreateUI(state, window, world, worldConfig, player);
 		Update(state, window, player, world, deltaTime);
 		RunAsyncCallbacks(state);
-		RenderScene(state, cam);
+		RenderScene(state, rend, cam);
 
 		END_TIMED_BLOCK(GAME_LOOP);
 		FLUSH_COUNTERS();
@@ -339,11 +340,11 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
 		state->deltaTime = deltaTime;
-		cam->animTime = fmodf(cam->animTime + (deltaTime * 0.5f), 1.0f);
+		rend.animTime = fmodf(rend.animTime + (deltaTime * 0.5f), 1.0f);
 		lastTime = endTime;
 	}
 
-	SaveWorld(world);
+	SaveWorld(state, world);
 	SaveGameSettings(state);
 
 	glfwTerminate();

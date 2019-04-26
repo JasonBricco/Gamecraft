@@ -50,6 +50,8 @@ struct Camera
     vec3 pos, target, up;
     vec3 forward, right;
 
+    mat4 view;
+
     // Distance to the near and far frustum planes.
     float nearDist, farDist;
 
@@ -63,12 +65,15 @@ struct Camera
     float sensitivity;
 
     Plane planes[6];
+};
 
+struct Renderer
+{
     // Shader uniforms.
     GLint view_0, model_0, proj_0;
     GLint view_1, model_1, proj_1, time_1;
 
-    mat4 perspective, view;
+    mat4 perspective;
 
     ChunkMeshList meshLists[MESH_TYPE_COUNT];
 
@@ -89,6 +94,9 @@ struct Camera
     int samplesAA;
     GLuint colAA, depthAA;
     GLuint fboAA;
+
+    ObjectPool<MeshData> meshData;
+    CRITICAL_SECTION meshCS;
 };
 
 static void LoadShader(Shader* shader, int vertLength, char* vertCode, int fragLength, char* fragCode);

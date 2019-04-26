@@ -4,6 +4,7 @@
 
 struct GameState;
 struct Camera;
+struct Renderer;
 
 struct UI
 {
@@ -18,4 +19,4 @@ struct SettingsFileData
 	int samplesAA;
 };
 
-static void RenderUI(GameState* state, Camera* cam, UI& ui);
+static void RenderUI(GameState* state, Renderer& rend, UI& ui);
