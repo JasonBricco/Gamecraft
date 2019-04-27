@@ -34,7 +34,8 @@ static void BuildChunk(GameState* state, World* world, void* chunkPtr)
                         LeaveCriticalSection(&rend.meshCS);
                     }
 
-                    BuildFunc(world, block)(world, chunk, data, x, y, z, block);
+                    if (!BuildFunc(world, block)(world, chunk, data, x, y, z, block))
+                        SetBlock(chunk, x, y, z, BLOCK_AIR);
                 }
             }
         }
@@ -302,7 +303,7 @@ static inline bool CheckFace(World* world, Chunk* chunk, CullType cull, Block bl
 
 // Builds mesh data for a single block. x, y, and z are relative to the
 // chunk in local world space.
-static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int yi, int zi, Block block)
+static bool BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int yi, int zi, Block block)
 {
     uint16_t* textures = GetTextures(world, block);
 
@@ -324,7 +325,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     bool left = CheckFace(world, chunk, cull, block, xi - 1, yi, zi, vAdded);
 
     if (chunk->totalVertices + vAdded > MAX_VERTICES)
-        return;
+        return false;
 
     if (up)
     {
@@ -417,4 +418,5 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     }
 
     chunk->totalVertices += vAdded;
+    return true;
 }
