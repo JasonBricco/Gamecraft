@@ -177,4 +177,10 @@ static void CreateBlockData(GameState* state, BlockData* data)
     trampoline.buildFunc = BuildBlock;
     trampoline.onSetSound = GetSound(state, SOUND_STONE);
     trampoline.name = "Trampoline";
+
+    BlockData& cactus = data[BLOCK_CACTUS];
+    SetBlockTextures(cactus, IMAGE_CACTUS_TOP, IMAGE_CACTUS_TOP, IMAGE_CACTUS_SIDE);
+    cactus.buildFunc = BuildBlock;
+    cactus.onSetSound = GetSound(state, SOUND_STONE);
+    cactus.name = "Cactus";
 }

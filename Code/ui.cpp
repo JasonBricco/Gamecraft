@@ -230,7 +230,9 @@ static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
     BlockButton(world, window, state, IMAGE_LANTERN_ON, BLOCK_LANTERN, &blockName);
     ImGui::SameLine();
     BlockButton(world, window, state, IMAGE_TRAMPOLINE, BLOCK_TRAMPOLINE, &blockName);
- 
+    ImGui::Spacing();
+    BlockButton(world, window, state, IMAGE_CACTUS_SIDE, BLOCK_CACTUS, &blockName);
+
     ImGui::PopStyleColor();
 
     if (blockName != NULL)

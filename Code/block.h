@@ -25,6 +25,7 @@ enum BlockType : Block
     BLOCK_ICE,
     BLOCK_LANTERN,
     BLOCK_TRAMPOLINE,
+    BLOCK_CACTUS,
     BLOCK_COUNT
 };
 
