@@ -22,6 +22,8 @@
 #define WORLD_CHUNK_HEIGHT 4
 #define WORLD_BLOCK_HEIGHT 256
 
+#define GROUP_DESTROY_LIMIT 4
+
 // The position of the chunk in local space around the player.
 // All loaded chunks are in a local array. This indexes into it.
 typedef ivec3 LChunkP;

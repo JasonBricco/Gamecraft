@@ -171,32 +171,6 @@ static inline void RemoveRegion(World* world, Region* region)
     world->regionPool.Return(region);
 }
 
-static void DeleteRegions(World* world)
-{
-    while (world->firstRegion != nullptr)
-        RemoveRegion(world, world->firstRegion);
-}
-
-static void UnloadDistantRegions(World* world, RegionP newP)
-{
-    Region* region = world->firstRegion;
-
-    while (region != nullptr)
-    {
-        RegionP p = region->pos;
-        ivec3 diff = p - newP;
-        Region* next = region->next;
-
-        if (abs(diff.x) > 1 || abs(diff.z) > 1)
-        {
-            SaveRegion(world, region);
-            RemoveRegion(world, region);
-        }
-        
-        region = next;
-    }
-}
-
 static Region* GetRegion(World* world, RegionP pos)
 {
     for (Region* region = world->firstRegion; region != nullptr; region = region->next)
@@ -214,9 +188,6 @@ static Region* GetOrLoadRegion(World* world, RegionP pos)
 
     if (region == nullptr)
     {
-        if (world->regionCount == MAX_REGIONS)
-            UnloadDistantRegions(world, pos);
-
         region = LoadRegionFile(world, pos);
         AddRegion(world, region);
     }
@@ -230,7 +201,10 @@ static bool LoadGroupFromDisk(World* world, ChunkGroup* group)
     RegionP regionP = ChunkToRegionP(p);
 
     EnterCriticalSection(&world->regionCS);
+
     Region* region = GetOrLoadRegion(world, regionP);
+    region->activeCount++;
+
     LeaveCriticalSection(&world->regionCS);
 
     bool complete = true;
@@ -277,6 +251,24 @@ static bool LoadGroupFromDisk(World* world, ChunkGroup* group)
     return complete;
 }
 
+static void RemoveFromRegion(World* world, ChunkGroup* group)
+{
+    RegionP regionP = ChunkToRegionP(group->pos);
+
+    EnterCriticalSection(&world->regionCS);
+
+    Region* region = GetRegion(world, regionP);
+    region->activeCount--;
+
+    if (region->activeCount == 0)
+    {
+        SaveRegion(world, region);
+        RemoveRegion(world, region);
+    }
+
+    LeaveCriticalSection(&world->regionCS);
+}
+
 static void SaveGroup(GameState*, World* world, void* groupPtr)
 {
     ChunkGroup* group = (ChunkGroup*)groupPtr;
@@ -290,7 +282,7 @@ static void SaveGroup(GameState*, World* world, void* groupPtr)
             continue;
 
         RegionP regionP = ChunkToRegionP(p);
-
+        
         Region* region = GetRegion(world, regionP);
         assert(region != nullptr);
 

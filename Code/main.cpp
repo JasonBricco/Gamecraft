@@ -34,7 +34,6 @@ static int g_buildID = 208;
 
 #include <fstream>
 #include <algorithm>
-#include <vector>
 
 #define GLM_FORCE_INLINE
 #define GLM_FORCE_NO_CTOR_INIT
@@ -235,7 +234,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
 	#if !DEBUG_MEMORY
 
-	g_memory.size = Megabytes(1536);
+	g_memory.size = Gigabytes(2);
 	g_memory.data = (uint8_t*)VirtualAlloc(NULL, g_memory.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
 	#endif

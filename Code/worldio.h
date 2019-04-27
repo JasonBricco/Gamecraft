@@ -6,7 +6,7 @@
 #define REGION_SIZE 8
 #define REGION_SIZE_3 256
 #define REGION_MASK 7
-#define MAX_REGIONS 4
+#define MAX_REGIONS 9
 
 #define MAX_SERIALIZED_DATA (CHUNK_SIZE_3 * 2)
 
@@ -34,9 +34,11 @@ struct Region
     bool hasData, modified;
     Region* next;
     Region* prev;
+    int activeCount;
 };
 
 static bool LoadGroupFromDisk(World* world, ChunkGroup* group);
 static void SaveGroup(GameState*, World* world, void* groupPtr);
 static void DeleteRegions(World* world);
 static bool LoadWorldFileData(GameState* state, World* world);
+static void RemoveFromRegion(World* world, ChunkGroup* group);

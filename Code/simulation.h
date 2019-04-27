@@ -48,7 +48,7 @@ struct Player
     // The surface the player is standing on.
     BlockSurface surface;
 
-    vector<AABB> possibleCollides;
+    List<AABB> possibleCollides;
 };
 
 static void SpawnPlayer(GameState* state, World* world, Player* player, Rectf spawnBound);

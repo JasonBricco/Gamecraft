@@ -453,6 +453,7 @@ static void DestroyGroup(World* world, void* groupPtr)
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
         DestroyChunkMeshes(group->chunks + i);
 
+    RemoveFromRegion(world, group);
     world->groupPool.Return(group);
 }
 
@@ -616,7 +617,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     Queue<ChunkGroup*>& destroyQueue = world->destroyQueue;
     int destroyLim = 0;
 
-    while (!destroyQueue.IsEmpty() && destroyLim++ < 4)
+    while (!destroyQueue.IsEmpty() && destroyLim++ < GROUP_DESTROY_LIMIT)
     {
         ChunkGroup* group = destroyQueue.Dequeue();
 
@@ -705,6 +706,5 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 static void RegenerateWorld(GameState* state, World* world, WorldConfig& config)
 {
     DeleteDirectory(world->savePath);
-    DeleteRegions(world);
     world = NewWorld(state, world->loadRange, config, world);
 }

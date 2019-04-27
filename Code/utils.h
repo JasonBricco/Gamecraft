@@ -15,9 +15,9 @@
 #define Align16(v) ((v + 15) & ~15)
 #define Align4096(v) ((v + 4095) & ~4095)
 
-#define Kilobytes(n) (n * 1024)
-#define Megabytes(n) (Kilobytes(n) * 1024)
-#define Gigabytes(n) (Megabytes(n) * 1024)
+#define Kilobytes(n) (n * 1024U)
+#define Megabytes(n) (Kilobytes(n) * 1024U)
+#define Gigabytes(n) (Megabytes(n) * 1024U)
 
 static inline bool HasFlag(int32_t flags, int32_t flag)
 {
