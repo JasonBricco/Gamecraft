@@ -2,8 +2,8 @@
 // Gamecraft
 //
 
-#define MAX_VERTICES 40000
-#define MAX_INDICES 60000
+#define MAX_VERTICES 30000
+#define MAX_INDICES 45000
 
 enum BlockMeshType
 {

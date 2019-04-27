@@ -449,6 +449,20 @@ static void GenerateFlatTerrain(World* world, ChunkGroup* group)
     }
 }
 
+static void GenerateVoidTerrain(World*, ChunkGroup* group)
+{
+    if (group->pos == ivec3(0))
+    {
+        Chunk* chunk = group->chunks;
+
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
+        {
+            for (int x = 0; x < CHUNK_SIZE_H; x++)
+                SetBlock(chunk, x, 40, z, BLOCK_GRASS);
+        }
+    }
+}
+
 static void CreateBiomes(World* world)
 {
     Biome& grassy = world->biomes[BIOME_GRASSY];
@@ -475,4 +489,9 @@ static void CreateBiomes(World* world)
     flat.name = "Flat";
     flat.type = BIOME_FLAT;
     flat.func = GenerateFlatTerrain;
+
+    Biome& empty = world->biomes[BIOME_VOID];
+    empty.name = "Void";
+    empty.type = BIOME_VOID;
+    empty.func = GenerateVoidTerrain;
 }

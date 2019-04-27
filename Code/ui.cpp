@@ -388,8 +388,11 @@ static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, Wo
     ImVec2 btSize = ImGui::CalcTextSize("Biome ");
     ImGui::SameLine();
 
-    int numPerLine[] = { 3, 2 };
+    int numPerLine[] = { 3, 3 };
     int curBiome = 0;
+
+    ImVec2 baseCursor = ImGui::GetCursorPos();
+    float biomeGap = 70.0f;
 
     for (int n = 0; n < ArrayLength(numPerLine); n++)
     {
@@ -402,12 +405,13 @@ static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, Wo
 
             curBiome++;
             ImGui::SameLine();
+            ImGui::SetCursorPos(ImVec2(baseCursor.x + ((i + 1) * biomeGap), baseCursor.y));
         }
 
         ImGui::NewLine();
-        ImVec2 cursor = ImGui::GetCursorPos();
-        cursor.x += btSize.x;
-        ImGui::SetCursorPos(cursor);
+        baseCursor = ImGui::GetCursorPos();
+        baseCursor.x += btSize.x + 1;
+        ImGui::SetCursorPos(baseCursor);
     }
 
     ImVec2 btnSize = ImVec2(85.0f, 25.0f);
