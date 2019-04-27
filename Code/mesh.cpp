@@ -5,8 +5,13 @@
 static MeshData* GetMeshData(ObjectPool<MeshData>& pool)
 {
 	MeshData* meshData = pool.Get();
-	meshData->vertCount = 0;
-	meshData->indexCount = 0;
+
+	if (meshData != nullptr)
+	{
+		meshData->vertCount = 0;
+		meshData->indexCount = 0;
+	}
+	
 	return meshData;
 }
 

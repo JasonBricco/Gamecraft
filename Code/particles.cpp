@@ -8,7 +8,8 @@ static void InitParticleEmitter(Renderer& rend, ParticleEmitter& emitter, int sp
 	emitter.radius = radius;
 
 	MeshData* data = GetMeshData(rend.meshData);
-
+	assert(data != nullptr);
+	
     SetIndices(data);
     SetUVs(data, 0);
 

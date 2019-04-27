@@ -92,21 +92,17 @@ static inline void WipeTempMemory()
 template <typename T>
 struct ObjectPool
 {
-	int size, free, capacity;	
+	int size, capacity;	
 	T** items;
 
 	T* Get()
 	{
-		T* item = size == 0 ? AllocStruct(T) : items[--size];
-		free++;
-		assert(free <= capacity - size);
-		return item;
+		return size == 0 ? nullptr : items[--size];
 	}
 	
 	void Return(T* item)
 	{
 		items[size++] = item;
-		free--;
 		assert(size <= capacity);
 	}
 };
@@ -114,7 +110,11 @@ struct ObjectPool
 template <typename T>
 static ObjectPool<T> CreatePool(int capacity)
 {
-	ObjectPool<T> pool = { 0, 0, capacity };
+	ObjectPool<T> pool = { capacity, capacity };
 	pool.items = AllocArray(capacity, T*);
+
+	for (int i = 0; i < capacity; i++)
+		pool.items[i] = AllocStruct(T);
+
 	return pool;
 }

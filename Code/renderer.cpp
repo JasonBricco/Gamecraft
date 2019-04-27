@@ -37,6 +37,7 @@ static Graphic* CreateGraphic(Renderer& renderer, Shader* shader, Texture textur
 	Graphic* graphic = AllocStruct(Graphic);
 
 	MeshData* data = GetMeshData(renderer.meshData);
+	assert(data != nullptr);
 
 	SetIndices(data);
 	SetUVs(data, 0);
@@ -255,6 +256,7 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 {
 	rend.meshData = CreatePool<MeshData>(threads * MESH_TYPE_COUNT * 2);
 	InitializeCriticalSection(&rend.meshCS);
+	InitializeConditionVariable(&rend.meshDataEmpty);
 	
 	state->ambient = 1.0f;
 	vec3 clearColor = vec3(0.53f, 0.80f, 0.92f);
@@ -322,6 +324,8 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 	rend.crosshair = graphic;
 
 	MeshData* data = GetMeshData(rend.meshData);
+	assert(data != nullptr);
+	
 	SetIndices(data);
 
 	data->positions[0] = vec3(-1.0f, 1.0f, 0.0f);

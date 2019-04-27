@@ -22,11 +22,15 @@ static void BuildChunk(GameState* state, World* world, void* chunkPtr)
                     BlockMeshType type = GetMeshType(world, block);
                     MeshData* data = chunk->meshData[type];
 
-                    if (data == nullptr)
+                    while (data == nullptr)
                     {
                         EnterCriticalSection(&rend.meshCS);
                         data = GetMeshData(rend.meshData);
-                        chunk->meshData[type] = data;
+
+                        if (data == nullptr)
+                            SleepConditionVariableCS(&rend.meshDataEmpty, &rend.meshCS, 16);
+                        else chunk->meshData[type] = data;
+
                         LeaveCriticalSection(&rend.meshCS);
                     }
 
@@ -39,7 +43,7 @@ static void BuildChunk(GameState* state, World* world, void* chunkPtr)
     chunk->state = CHUNK_NEEDS_FILL;
 }
 
-static void FillChunkMeshes(ObjectPool<MeshData>& pool, Chunk* chunk)
+static void FillChunkMeshes(Renderer& rend, Chunk* chunk)
 {
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
     {
@@ -50,11 +54,13 @@ static void FillChunkMeshes(ObjectPool<MeshData>& pool, Chunk* chunk)
         // No data, probably because the only blocks belonging to the mesh type
         // were culled away. 
         if (data->vertCount > 0)
-            FillMeshData(pool, chunk->meshes[i], data, GL_DYNAMIC_DRAW, 0);
-        else pool.Return(data);
+            FillMeshData(rend.meshData, chunk->meshes[i], data, GL_DYNAMIC_DRAW, 0);
+        else rend.meshData.Return(data);
 
         chunk->meshData[i] = nullptr;
     }
+
+    WakeAllConditionVariable(&rend.meshDataEmpty);
 }
 
 static void DestroyChunkMeshes(Chunk* chunk)
@@ -67,7 +73,7 @@ static void RebuildChunk(GameState* state, Renderer& rend, World* world, Chunk* 
 {
     DestroyChunkMeshes(chunk);
     BuildChunk(state, world, chunk);
-    FillChunkMeshes(rend.meshData, chunk);
+    FillChunkMeshes(rend, chunk);
     chunk->state = CHUNK_BUILT;
     chunk->pendingUpdate = false;
 }
@@ -126,7 +132,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Renderer& rend)
 
             case CHUNK_NEEDS_FILL:
             {
-                FillChunkMeshes(rend.meshData, chunk);
+                FillChunkMeshes(rend, chunk);
                 chunk->state = CHUNK_BUILT;
                 world->buildCount--;
             }

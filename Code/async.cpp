@@ -97,7 +97,6 @@ static int CreateThreads(GameState* state)
 	GetSystemInfo(&info);
 
 	int threadCount = info.dwNumberOfProcessors - 1;
-	Print("Creating %i threads.\n", threadCount)
 
 	AsyncWorkQueue& asyncQueue = state->workQueue;
 	asyncQueue.size = 2048;
