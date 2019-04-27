@@ -12,7 +12,7 @@ static char* g_buildType = "DEBUG";
 static char* g_buildType = "RELEASE";
 #endif
 
-static int g_buildID = 230;
+static int g_buildID = 231;
 
 #pragma warning(push, 0)
 
@@ -187,14 +187,19 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 		else Pause(state, window, world, PAUSED);
 	}
 
-	if (state->pauseState == PLAYING)
+	if (KeyPressed(input, KEY_E))
 	{
-		if (KeyPressed(input, KEY_E))
-			Pause(state, window, world, SELECTING_BLOCK);
-		
-		if (KeyPressed(input, KEY_T))
-			ToggleFullscreen(glfwGetWin32Window(window));
+		if (state->pauseState == SELECTING_BLOCK)
+			Unpause(state, window);
+		else 
+		{
+			if (state->pauseState == PLAYING)
+				Pause(state, window, world, SELECTING_BLOCK);
+		}
 	}
+
+	if (KeyPressed(input, KEY_T))
+		ToggleFullscreen(glfwGetWin32Window(window));
 
 	if (KeyPressed(input, KEY_F3))
 		state->debugHudActive = !state->debugHudActive;
