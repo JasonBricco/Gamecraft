@@ -67,23 +67,24 @@ static inline void ReadBinary(char* path, char* ptr)
 
 static void DeleteDirectory(char* path)
 {
-    string fullPath = string(path) + "\\";
-    vector<string> filesToDelete;
+    char searchPath[MAX_PATH];
+    sprintf(searchPath, "%s\\*.txt", path);
 
-    WIN32_FIND_DATA data;
-    HANDLE handle = FindFirstFile((fullPath + "*.txt").c_str(), &data);
-    filesToDelete.push_back(data.cFileName);
+    WIN32_FIND_DATA findData;
+    HANDLE handle = FindFirstFile(searchPath, &findData);
 
-    if (handle != INVALID_HANDLE_VALUE)
+    while (handle != INVALID_HANDLE_VALUE)
     {
-        while (FindNextFile(handle, &data))
-            filesToDelete.push_back(data.cFileName);
+        char filePath[MAX_PATH];
+        sprintf(filePath, "%s\\%s", path, findData.cFileName);
 
-        FindClose(handle);
+        DeleteFile(filePath);
+
+        if (!FindNextFile(handle, &findData))
+            break;
     }
 
-    for (int i = 0; i < filesToDelete.size(); i++)
-        DeleteFile((fullPath + string(filesToDelete[i])).c_str());
+    FindClose(handle);
 }
 
 static string GetLastErrorText()

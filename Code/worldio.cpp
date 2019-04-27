@@ -354,7 +354,7 @@ static void SaveWorld(GameState* state, World* world)
 
 static bool LoadWorldFileData(GameState* state, World* world)
 {
-    world->savePath = (char*)calloc(1, MAX_PATH * sizeof(char));
+    world->savePath = AllocArray(MAX_PATH, char);
     world->savePath = strcat(strcat(world->savePath, state->savePath), "\\World");
 
     CreateDirectory(world->savePath, NULL);

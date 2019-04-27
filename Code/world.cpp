@@ -616,15 +616,13 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     Queue<ChunkGroup*>& destroyQueue = world->destroyQueue;
     int destroyLim = 0;
 
-    while (!destroyQueue.IsEmpty() && destroyLim < 4)
+    while (!destroyQueue.IsEmpty() && destroyLim++ < 4)
     {
         ChunkGroup* group = destroyQueue.Dequeue();
 
         if (group->loaded)
             QueueAsync(state, SaveGroup, world, group, DestroyGroup);
         else destroyQueue.Enqueue(group);
-
-        destroyLim++;
     }
 }
 

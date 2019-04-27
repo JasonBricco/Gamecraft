@@ -24,7 +24,7 @@ static inline bool DoNextAsync(GameState* state, AsyncWorkQueue& queue)
             {
             	AcquireSRWLockExclusive(&state->callbackLock);
 			    AsyncCallbackItem cb = { item.callback, item.world, item.data };
-			    state->callbacks.push_back(cb);
+			    state->callbacks.AddLast(cb);
 			    ReleaseSRWLockExclusive(&state->callbackLock);
             }
 	    }
@@ -49,13 +49,13 @@ static void RunAsyncCallbacks(GameState* state)
 {
 	AcquireSRWLockExclusive(&state->callbackLock);
 
-	for (int i = 0; i < state->callbacks.size(); i++)
+	for (int i = 0; i < state->callbacks.size; i++)
 	{
 		AsyncCallbackItem item = state->callbacks[i];
 		item.callback(item.world, item.data);
 	}
 
-	state->callbacks.clear();
+	state->callbacks.Clear();
 	ReleaseSRWLockExclusive(&state->callbackLock);
 }
 
@@ -103,6 +103,7 @@ static int CreateThreads(GameState* state)
 	asyncQueue.size = 2048;
 	asyncQueue.items = AllocArray(asyncQueue.size, AsyncItem);
 
+	state->callbacks = List<AsyncCallbackItem>(1024);
 	InitializeSRWLock(&state->callbackLock);
 
 	for (int i = 0; i < threadCount; i++)

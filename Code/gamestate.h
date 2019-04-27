@@ -19,7 +19,7 @@ struct GameState
 	// or work added by background threads to be performed by the main thread.
 	AsyncWorkQueue workQueue;
 	
-	vector<AsyncCallbackItem> callbacks;
+	List<AsyncCallbackItem> callbacks;
 	SRWLOCK callbackLock;
 	
 	HANDLE semaphore;
