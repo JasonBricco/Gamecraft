@@ -78,6 +78,16 @@ static inline uint8_t* _PushTempMemory(uint32_t size)
 	return ptr;
 }
 
+static inline uint8_t* _PushTempMemoryAligned(uint32_t size, int align)
+{
+	align -= 1;
+	size += align;
+	assert(g_memory.tempUsed + size < g_memory.tempSize);
+	uint8_t* ptr = (uint8_t*)((uintptr_t)(g_memory.tempData + g_memory.tempUsed + align) & ~align);
+	g_memory.tempUsed += size;
+	return ptr;
+}
+
 static inline void WipeTempMemory()
 {
 	g_memory.tempUsed = 0;
@@ -86,6 +96,7 @@ static inline void WipeTempMemory()
 #define AllocTempStruct(item) (item*)_PushTempMemory(sizeof(item))
 #define AllocTempArray(count, item) (item*)_PushTempMemory(count * sizeof(item))
 #define AllocTempRaw(size) (item*)_PushTempMemory(size)
+#define AllocTempArrayAligned(count, item, align) (item*)_PushTempMemoryAligned(count * sizeof(item), align)
 
 #define Construct(ptr, item) new (ptr)item();
 
