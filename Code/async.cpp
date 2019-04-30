@@ -59,8 +59,6 @@ static void RunAsyncCallbacks(GameState* state)
 	ReleaseSRWLockExclusive(&state->callbackLock);
 }
 
-#if MULTITHREADING
-
 static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, void* data, AsyncCallback callback = nullptr)
 {
 	AsyncWorkQueue& asyncQueue = state->workQueue;
@@ -75,19 +73,6 @@ static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, vo
 	asyncQueue.write = nextWrite;
 	ReleaseSemaphore(state->semaphore, 1, NULL);
 }
-
-#else
-#pragma message("Multithreading disabled.")
-
-static inline void QueueAsync(GameState*, AsyncFunc func, World* world, void* data, AsyncCallback callback = nullptr)
-{
-	func(world, data);
-
-	if (callback != nullptr)
-		callback(world, data);
-}
-
-#endif
 
 static int CreateThreads(GameState* state)
 {

@@ -33,6 +33,17 @@ static inline bool ChunkInsideWorld(World* world, int x, int y, int z)
     return GroupInsideWorld(world, x, z) && ChunkInsideGroup(y);
 }
 
+static inline bool IsEdgeChunk(World* world, Chunk* chunk)
+{
+    LChunkP p = chunk->lcPos;
+    return p.x == 0 || p.z == 0 || p.x == world->size - 1 || p.z == world->size - 1;
+}
+
+static inline bool IsEdgeGroup(World* world, ChunkGroup* group)
+{
+    return IsEdgeChunk(world, group->chunks);
+}
+
 static inline RelP LWorldToRelP(int lwX, int lwY, int lwZ)
 {
 	return ivec3(lwX & CHUNK_H_MASK, lwY & CHUNK_V_MASK, lwZ & CHUNK_H_MASK);
@@ -306,9 +317,9 @@ static inline Block GetBlockSafe(World* world, Chunk* chunk, RelP p)
 static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
 {
     if (lwY < 0) return BLOCK_STONE;
-    if (lwY >= WORLD_BLOCK_HEIGHT) return BLOCK_AIR;
 
-    assert(BlockInsideWorldH(world, lwX, lwZ));
+    if (lwY >= WORLD_BLOCK_HEIGHT || !BlockInsideWorldH(world, lwX, lwZ))
+        return BLOCK_AIR;
 
     LChunkP lcPos = LWorldToLChunkP(lwX, lwY, lwZ);
     ChunkGroup* group = GetGroup(world, lcPos.x, lcPos.z);
@@ -354,10 +365,9 @@ static inline void ChunksAroundBlock(World* world, Chunk* chunk, LChunkP lP, Rel
     b = chunkB == nullptr ? chunk->lcPos : chunkB->lcPos;
 }
 
-static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkP lP, RelP rP)
+static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkP lP, RelP rP, bool modified = true)
 {
-    chunk->pendingUpdate = true;
-    chunk->modified = true;
+    chunk->modified = modified;
 
     LChunkP a, b;
     ChunksAroundBlock(world, chunk, lP, rP, a, b);
@@ -367,7 +377,12 @@ static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkP lP, RelP rP)
         for (int y = a.y; y <= b.y; y++)
         {
             for (int x = a.x; x <= b.x; x++)
-                GetChunk(world, x, y, z)->pendingUpdate = true;
+            {
+                Chunk* adj = GetChunk(world, x, y, z);
+
+                if (adj->state >= CHUNK_BUILDING)
+                    adj->pendingUpdate = true;
+            }
         }
     }
 }
@@ -381,12 +396,9 @@ static inline void SetBlock(World* world, LWorldP wPos, Block block)
     
 	LChunkP lP = LWorldToLChunkP(wPos);
 
-    // We cannot set a block to an edge chunk - the edges are buffer chunks and should
-    // not have their meshes built.
-    assert(lP.x > 0 && lP.z > 0 && lP.x < world->size - 1 && lP.z < world->size - 1);
-
 	Chunk* chunk = GetChunk(world, lP);
 	assert(chunk != nullptr);
+    assert(!IsEdgeChunk(world, chunk));
 
 	RelP rP = LWorldToRelP(wPos);
 
@@ -622,7 +634,10 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
         ChunkGroup* group = destroyQueue.Dequeue();
 
         if (group->loaded)
+        {
+            group->pendingDestroy = true;
             QueueAsync(state, SaveGroup, world, group, DestroyGroup);
+        }
         else destroyQueue.Enqueue(group);
     }
 }
@@ -675,6 +690,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
         world->blockToSet = BLOCK_GRASS;
         InitializeCriticalSection(&world->regionCS);
+        InitializeConditionVariable(&world->regionsEmpty);
     }
     else 
     {

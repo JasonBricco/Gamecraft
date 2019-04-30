@@ -14,7 +14,16 @@ static inline int RegionIndex(ivec3 p)
 
 static Region* LoadRegionFile(World* world, RegionP p)
 {
-    Region* region = world->regionPool.Get();
+    Region* region = nullptr;
+
+    while (region == nullptr)
+    {
+        region = world->regionPool.Get();
+
+        if (region == nullptr)
+            SleepConditionVariableCS(&world->regionsEmpty, &world->regionCS, 16);
+    }
+
     region->pos = p;
 
     char path[MAX_PATH];
@@ -169,6 +178,8 @@ static inline void RemoveRegion(World* world, Region* region)
 
     memset(region, 0, sizeof(Region));
     world->regionPool.Return(region);
+
+    WakeConditionVariable(&world->regionsEmpty);
 }
 
 static Region* GetRegion(World* world, RegionP pos)

@@ -4,7 +4,6 @@
 
 #define DEBUG_MEMORY 0
 #define PROFILING 0
-#define MULTITHREADING 1
 
 #if _DEBUG
 static char* g_buildType = "DEBUG";
@@ -12,7 +11,7 @@ static char* g_buildType = "DEBUG";
 static char* g_buildType = "RELEASE";
 #endif
 
-static int g_buildID = 233;
+static int g_buildID = 236;
 
 #pragma warning(push, 0)
 

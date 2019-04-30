@@ -6,7 +6,9 @@
 static void BuildChunk(GameState* state, World* world, void* chunkPtr)
 {
     Renderer& rend = state->renderer;
+
     Chunk* chunk = (Chunk*)chunkPtr;
+    assert(!IsEdgeChunk(world, chunk));
     chunk->totalVertices = 0;
 
     for (int y = 0; y < CHUNK_SIZE_V; y++)
@@ -29,13 +31,18 @@ static void BuildChunk(GameState* state, World* world, void* chunkPtr)
 
                         if (data == nullptr)
                             SleepConditionVariableCS(&rend.meshDataEmpty, &rend.meshCS, 16);
-                        else chunk->meshData[type] = data;
+                        else 
+                        {
+                            assert(data->vertCount == 0);
+                            assert(data->indexCount == 0);
+                            chunk->meshData[type] = data;
+                        }
 
                         LeaveCriticalSection(&rend.meshCS);
                     }
 
                     if (!BuildFunc(world, block)(world, chunk, data, x, y, z, block))
-                        SetBlock(chunk, x, y, z, BLOCK_AIR);
+                        chunk->overflowCount++;
                 }
             }
         }
@@ -44,18 +51,40 @@ static void BuildChunk(GameState* state, World* world, void* chunkPtr)
     chunk->state = CHUNK_NEEDS_FILL;
 }
 
+static void ReturnChunkMeshes(Renderer& rend, Chunk* chunk)
+{
+    for (int i = 0; i < MESH_TYPE_COUNT; i++)
+    {
+        MeshData* data = chunk->meshData[i];
+
+        if (data != nullptr)
+        {
+            rend.meshData.Return(data);
+            chunk->meshData[i] = nullptr;
+        }
+    }
+}
+
 static void FillChunkMeshes(Renderer& rend, Chunk* chunk)
 {
+    if (chunk->hasMeshes)
+    {
+        DestroyChunkMeshes(chunk);
+        chunk->hasMeshes = false;
+    }
+
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
     {
         MeshData* data = chunk->meshData[i];
 
         if (data == nullptr) continue;
 
-        // No data, probably because the only blocks belonging to the mesh type
-        // were culled away. 
+        // The vertex count would be 0 if the only blocks belonging to the mesh type were culled away. 
         if (data->vertCount > 0)
+        {
             FillMeshData(rend.meshData, chunk->meshes[i], data, GL_DYNAMIC_DRAW, 0);
+            chunk->hasMeshes = true;
+        }
         else rend.meshData.Return(data);
 
         chunk->meshData[i] = nullptr;
@@ -70,13 +99,11 @@ static void DestroyChunkMeshes(Chunk* chunk)
         DestroyMesh(chunk->meshes[i]);
 }
 
-static void RebuildChunk(GameState* state, Renderer& rend, World* world, Chunk* chunk)
+static void RebuildChunk(GameState* state, World* world, Chunk* chunk)
 {
-    DestroyChunkMeshes(chunk);
-    BuildChunk(state, world, chunk);
-    FillChunkMeshes(rend, chunk);
-    chunk->state = CHUNK_BUILT;
     chunk->pendingUpdate = false;
+    world->buildCount++;
+    QueueAsync(state, BuildChunk, world, chunk);
 }
 
 static bool NeighborsLoaded(World* world, Chunk* chunk)
@@ -93,6 +120,27 @@ static bool NeighborsLoaded(World* world, Chunk* chunk)
     }
 
     return true;
+}
+
+static void RemoveOverflowAndRebuild(World* world, Chunk* chunk)
+{
+    for (int y = CHUNK_SIZE_V - 1; y >= 0; y--)
+    {
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
+        {
+            for (int x = 0; x < CHUNK_SIZE_H; x++)
+            {
+                if (GetBlock(chunk, x, y, z) != BLOCK_AIR)
+                {
+                    SetBlock(chunk, x, y, z, BLOCK_AIR);
+                    FlagChunkForUpdate(world, chunk, chunk->lcPos, ivec3(x, y, z), false);
+
+                    if (--chunk->overflowCount == 0)
+                        return;
+                }
+            }
+        }
+    }
 }
 
 static void ProcessVisibleChunks(GameState* state, World* world, Renderer& rend)
@@ -133,15 +181,25 @@ static void ProcessVisibleChunks(GameState* state, World* world, Renderer& rend)
 
             case CHUNK_NEEDS_FILL:
             {
-                FillChunkMeshes(rend, chunk);
+                if (chunk->pendingUpdate)
+                    ReturnChunkMeshes(rend, chunk);
+                else FillChunkMeshes(rend, chunk);
+
                 chunk->state = CHUNK_BUILT;
                 world->buildCount--;
+
+                if (chunk->overflowCount > 0)
+                    RemoveOverflowAndRebuild(world, chunk);
             }
 
             case CHUNK_BUILT:
+            case CHUNK_REBUILDING:
             {
-                if (chunk->pendingUpdate)
-                    RebuildChunk(state, rend, world, chunk);
+                if (chunk->state != CHUNK_REBUILDING && chunk->pendingUpdate)
+                {
+                    chunk->state = CHUNK_REBUILDING;
+                    RebuildChunk(state, world, chunk);
+                }
 
                 for (int m = 0; m < MESH_TYPE_COUNT; m++)
                 {
@@ -167,7 +225,11 @@ static void GetVisibleChunks(World* world, Camera* cam)
     {
         ChunkGroup* group = world->groups[g];
 
-        if (!group->loaded) continue;
+        if (!group->loaded || group->pendingDestroy) 
+            continue;
+
+        if (IsEdgeGroup(world, group))
+            continue;
 
         for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
         {

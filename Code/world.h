@@ -22,7 +22,7 @@
 #define WORLD_CHUNK_HEIGHT 4
 #define WORLD_BLOCK_HEIGHT 256
 
-#define GROUP_DESTROY_LIMIT 4
+#define GROUP_DESTROY_LIMIT 6
 
 // The position of the chunk in local space around the player.
 // All loaded chunks are in a local array. This indexes into it.
@@ -52,6 +52,7 @@ enum ChunkState
     CHUNK_DEFAULT,
     CHUNK_LOADED_DATA,
     CHUNK_BUILDING,
+    CHUNK_REBUILDING,
     CHUNK_NEEDS_FILL,
     CHUNK_BUILT,
     CHUNK_STATE_COUNT
@@ -63,12 +64,12 @@ struct Chunk
     LWorldP lwPos;
 
     Block blocks[CHUNK_SIZE_3];
-    int totalVertices;
+    int totalVertices, overflowCount;
 
     Mesh meshes[MESH_TYPE_COUNT];
     MeshData* meshData[MESH_TYPE_COUNT];
 
-    bool pendingUpdate;
+    bool pendingUpdate, hasMeshes;
 
     ChunkState state;
 
@@ -79,7 +80,7 @@ struct ChunkGroup
 {
     ChunkP pos;
     Chunk chunks[WORLD_CHUNK_HEIGHT];
-    bool active, loaded;
+    bool active, loaded, pendingDestroy;
 };
 
 struct WorldLocation
@@ -142,8 +143,8 @@ struct World
     Region* firstRegion;
     int regionCount;
 
-    // Used to ensure blocking when loading a region file.
     CRITICAL_SECTION regionCS;
+    CONDITION_VARIABLE regionsEmpty;
 
     Player* player;
 
