@@ -17,7 +17,7 @@ static MeshData* GetMeshData(ObjectPool<MeshData>& pool)
 
 static inline void SetIndices(MeshData* meshData)
 {
-	int offset = meshData->vertCount;
+	uint16_t offset = (uint16_t)meshData->vertCount;
 	int count = meshData->indexCount;
 
 	meshData->indices[count] = offset + 2;
@@ -83,7 +83,7 @@ static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshD
 	// Index buffer.
 	glGenBuffers(1, &mesh.indices);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indices);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * meshData->indexCount, meshData->indices, type);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint16_t) * meshData->indexCount, meshData->indices, type);
 
 	mesh.flags = flags;
 	mesh.indexCount = meshData->indexCount;
@@ -96,7 +96,7 @@ static inline void DrawMesh(Mesh mesh)
 {
 	assert(mesh.indexCount > 0);
 	glBindVertexArray(mesh.va);
-	glDrawElements(GL_TRIANGLES, mesh.indexCount, GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, mesh.indexCount, GL_UNSIGNED_SHORT, 0);
 }
 
 static inline void DrawMesh(Mesh mesh, Shader* shader, vec3 pos)

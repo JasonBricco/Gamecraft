@@ -62,7 +62,7 @@ GOTO end
 REM Clean up.
 :end
 
-del /Q *.obj > nul 2> nul
+del /Q *.obj vc140.pdb > nul 2> nul
 rmdir Debug > nul 2> nul
 
 popd

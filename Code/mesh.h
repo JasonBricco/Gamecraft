@@ -2,8 +2,8 @@
 // Gamecraft
 //
 
-#define MAX_VERTICES 30000
-#define MAX_INDICES 45000
+#define MAX_VERTICES 40000
+#define MAX_INDICES 60000
 
 enum BlockMeshType
 {
@@ -35,7 +35,7 @@ struct MeshData
     vec3 positions[MAX_VERTICES];
     u16vec3 uvs[MAX_VERTICES];
     Colori colors[MAX_VERTICES];
-    int indices[MAX_INDICES];
+    uint16_t indices[MAX_INDICES];
 
     int vertCount, indexCount;
 };
