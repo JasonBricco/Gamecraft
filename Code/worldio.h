@@ -6,31 +6,11 @@
 #define REGION_SIZE 8
 #define REGION_SIZE_3 256
 #define REGION_MASK 7
-#define MAX_REGIONS 9
-
-#define MAX_SERIALIZED_DATA (CHUNK_SIZE_3 * 2)
-
-struct SerializedChunk
-{
-    int size;
-    uint16_t data[MAX_SERIALIZED_DATA];
-
-    inline void Add(uint16_t value)
-    {
-        assert(size + 1 < MAX_SERIALIZED_DATA);
-        data[size++] = value;
-    }
-
-    inline void Clear()
-    {
-        size = 0;
-    }
-};
 
 struct Region
 {
     RegionP pos;
-    SerializedChunk chunks[REGION_SIZE_3];
+    vector<uint16_t> chunks[REGION_SIZE_3];
     bool hasData, modified;
     Region* next;
     Region* prev;

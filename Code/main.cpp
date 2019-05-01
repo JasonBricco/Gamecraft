@@ -2,7 +2,6 @@
 // Gamecraft
 //
 
-#define DEBUG_MEMORY 0
 #define PROFILING 0
 
 #if _DEBUG
@@ -31,6 +30,8 @@ static int g_buildID = 236;
 
 #include "stb_vorbis.h"
 
+#include <vector>
+#include <queue>
 #include <fstream>
 #include <algorithm>
 
@@ -86,7 +87,6 @@ using namespace std;
 
 #include "Utils.h"
 #include "Memory.h"
-#include "Containers.h"
 #include "Random.h"
 #include "Profiling.h"
 #include "UI.h"
@@ -237,16 +237,6 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
-	#if !DEBUG_MEMORY
-
-	g_memory.size = Gigabytes(2);
-	g_memory.data = (uint8_t*)VirtualAlloc(NULL, g_memory.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-
-	#endif
-
-	g_memory.tempSize = Megabytes(64);
-	g_memory.tempData = (uint8_t*)VirtualAlloc(NULL, g_memory.tempSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-
 	if (!glfwInit())
 		Error("GLFW failed to initialize.\n");
 
@@ -273,23 +263,23 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	// Set vertical synchronization to the monitor refresh rate.
 	glfwSwapInterval(1);
 
-	GameState* state = AllocStruct(GameState);
-	Construct(state, GameState);
+	GameState* state = new GameState();
 
-	state->savePath = PathToExe("Saves", AllocArray(MAX_PATH, char), MAX_PATH);
+	char savePath[MAX_PATH];
+	state->savePath = PathToExe("Saves", savePath, MAX_PATH);
 	CreateDirectory(state->savePath, NULL);
 
 	InitUI(window, state->ui);
 	InitAudio(&state->audio);
 	
-	int threads = CreateThreads(state);
+	CreateThreads(state);
 	LoadAssets(state);
 
 	Camera* cam = NewCamera();
 	state->camera = cam;
 
 	Renderer& rend = state->renderer;
-	InitRenderer(state, rend, screenWidth, screenHeight, threads);
+	InitRenderer(state, rend, screenWidth, screenHeight);
 
 	glfwSetWindowUserPointer(window, state);
 	glfwSetKeyCallback(window, OnKey);
@@ -323,8 +313,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	while (!glfwWindowShouldClose(window))
 	{
 		BEGIN_TIMED_BLOCK(GAME_LOOP);
-
-		WipeTempMemory();
 
 		ResetInput(state->input);
 		glfwPollEvents();

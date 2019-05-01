@@ -339,13 +339,13 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 				if (!IsPassable(world, block))
 				{
 					AABB bb = AABBFromCenter(vec3(x, y, z), vec3(1.0f));
-					player->possibleCollides.AddLast(bb);
+					player->possibleCollides.push_back(bb);
 				}
 			}
 		}
 	}
 
-	sort(player->possibleCollides.Begin(), player->possibleCollides.End(), [player](auto a, auto b) 
+	sort(player->possibleCollides.begin(), player->possibleCollides.end(), [player](auto a, auto b) 
     { 
         float distA = distance2(vec3(a.pos.x, a.pos.y, a.pos.z), player->pos);
         float distB = distance2(vec3(b.pos.x, b.pos.y, b.pos.z), player->pos);
@@ -359,7 +359,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 		float tMin = 1.0f;
 		vec3 normal = vec3(0.0f);
 
-		for (int i = 0; i < player->possibleCollides.size; i++)
+		for (int i = 0; i < player->possibleCollides.size(); i++)
 		{
 			AABB bb = player->possibleCollides[i];
 			TestCollision(world, player, playerBB, bb, delta, tMin, normal);
@@ -394,7 +394,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	if (!(player->colFlags & HIT_DOWN))
 		player->surface = SURFACE_NORMAL;
 
-    player->possibleCollides.Clear();
+    player->possibleCollides.clear();
 }
 
 static bool OverlapsBlock(Player* player, int x, int y, int z)
@@ -526,8 +526,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 // Creates and spawns the player. The player is spawned within the center local space chunk.
 static Player* NewPlayer()
 {
-	Player* player = AllocStruct(Player);
-	Construct(player, Player);
+	Player* player = new Player();
 	
 	player->velocity = vec3(0.0f);
 	player->speed = 50.0f;
@@ -536,7 +535,7 @@ static Player* NewPlayer()
 	player->flying = false;
 	player->speedMode = false;
 	player->spawned = false;
-	player->possibleCollides = List<AABB>(256);
+	
 	return player;
 }
 

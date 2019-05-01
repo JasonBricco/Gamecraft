@@ -481,8 +481,7 @@ static void ShiftWorld(GameState* state, World* world)
 		world->groups[i] = nullptr;
 	}
 
-    ivec4* groupsToCreate = AllocTempArray(world->totalGroups, ivec4);
-    int count = 0;
+    vector<ivec4>& groupsToCreate = world->groupsToCreate;
 
     // Any existing groups that still belong in the active area will be pulled in to their
     // new position. Any that don't exist in the hash table will be created.
@@ -496,7 +495,7 @@ static void ShiftWorld(GameState* state, World* world)
 			ChunkGroup* group = GroupFromHash(world, wX, wZ);
 
 			if (group == nullptr)
-                groupsToCreate[count++] = ivec4(x, z, wX, wZ);
+                groupsToCreate.push_back(ivec4(x, z, wX, wZ));
 			else 
 			{
                 for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
@@ -513,19 +512,21 @@ static void ShiftWorld(GameState* state, World* world)
 
     vec2 playerChunk = vec2(world->loadRange, world->loadRange);
 
-    sort(groupsToCreate, groupsToCreate + count, [playerChunk](auto a, auto b) 
+    sort(groupsToCreate.begin(), groupsToCreate.end(), [playerChunk](auto a, auto b) 
     { 
         float distA = distance2(vec2(a.x, a.y), playerChunk);
         float distB = distance2(vec2(b.x, b.y), playerChunk);
         return distA < distB;
     });
 
-    for (int i = 0; i < count; i++)
+    for (int i = 0; i < groupsToCreate.size(); i++)
     {
         // Encoded ivec4 values as x, y = local x, z and z, w = world x, z.
         ivec4 p = groupsToCreate[i];
         CreateChunkGroup(state, world, p.x, p.y, p.z, p.w);
     }
+
+    groupsToCreate.clear();
 
     // Any remaining chunks in the hash table are outside of the loaded area range
     // and should be returned to the pool.
@@ -534,7 +535,7 @@ static void ShiftWorld(GameState* state, World* world)
 		ChunkGroup* group = world->groupHash[c];
 
         if (group != nullptr && !group->active)
-            world->destroyQueue.Enqueue(group);
+            world->destroyQueue.push(group);
 
         world->groupHash[c] = nullptr;
 	}
@@ -626,19 +627,20 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
 
     ProcessVisibleChunks(state, world, state->renderer);
 
-    Queue<ChunkGroup*>& destroyQueue = world->destroyQueue;
+    queue<ChunkGroup*>& destroyQueue = world->destroyQueue;
     int destroyLim = 0;
 
-    while (!destroyQueue.IsEmpty() && destroyLim++ < GROUP_DESTROY_LIMIT)
+    while (!destroyQueue.empty() && destroyLim++ < GROUP_DESTROY_LIMIT)
     {
-        ChunkGroup* group = destroyQueue.Dequeue();
+        ChunkGroup* group = destroyQueue.front();
+        destroyQueue.pop();
 
         if (group->loaded)
         {
             group->pendingDestroy = true;
             QueueAsync(state, SaveGroup, world, group, DestroyGroup);
         }
-        else destroyQueue.Enqueue(group);
+        else destroyQueue.push(group);
     }
 }
 
@@ -656,8 +658,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
     if (existing == nullptr)
     {
-        world = AllocStruct(World);
-        Construct(world, World);
+        world = new World();
 
         // Load range worth of groups on each side plus the middle group.
         world->size = (loadRange * 2) + 1;
@@ -665,15 +666,12 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         CreateBiomes(world);
 
         world->totalGroups = Square(world->size);
-        world->groups = AllocArray(world->totalGroups, ChunkGroup*);
+        world->groups = new ChunkGroup*[world->totalGroups]();
 
-        world->visibleChunks = List<Chunk*>(world->totalGroups * WORLD_CHUNK_HEIGHT);
-        world->destroyQueue = Queue<ChunkGroup*>(world->totalGroups);
+        world->visibleChunks.reserve(world->totalGroups * WORLD_CHUNK_HEIGHT);
+        world->groupsToCreate.reserve(world->totalGroups);
 
         world->loadRange = loadRange;
-
-        world->groupPool = CreatePool<ChunkGroup>(world->totalGroups * 2);
-        world->regionPool = CreatePool<Region>(MAX_REGIONS);
 
         float min = (float)(loadRange * CHUNK_SIZE_H);
         float max = min + CHUNK_SIZE_H;

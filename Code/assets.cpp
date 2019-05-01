@@ -24,7 +24,7 @@ static Shader* GetShader(GameState* state, ShaderID id)
 
 static void LoadAssets(GameState* state)
 {
-    char* buffer = AllocTempArray(MAX_PATH, char);
+    char buffer[MAX_PATH];
     char* path = PathToExe("Assets/Assets.gca", buffer, MAX_PATH);
 
     uint32_t size;
@@ -46,7 +46,7 @@ static void LoadAssets(GameState* state)
 
     // Load block images.
     ImageData* blockData = (ImageData*)(data + header->blockImages);
-    ImageData* texArray = AllocTempArray(header->blockImageCount, ImageData);
+    unique_ptr<ImageData[]> texArray = make_unique<ImageData[]>(header->blockImageCount);
     
     int count = 0;
 
@@ -57,7 +57,7 @@ static void LoadAssets(GameState* state)
         db.images[i] = LoadTexture(image.width, image.height, (uint8_t*)(data + image.pixels));
     }
        
-    db.blockArray = LoadTextureArray(texArray, count, data);
+    db.blockArray = LoadTextureArray(texArray.get(), count, data);
 
     // Load images.
     ImageData* imageData = (ImageData*)(data + header->images);

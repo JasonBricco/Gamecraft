@@ -116,6 +116,8 @@ struct World
     ChunkGroup** groups;
     int totalGroups;
 
+    vector<ivec4> groupsToCreate;
+
     // Tracks work being done by background threads so that the world cannot shift
     // while background work is being done.
     int buildCount;
@@ -123,10 +125,10 @@ struct World
     // Chunk hash table to store chunks that need to transition.
     ChunkGroup* groupHash[GROUP_HASH_SIZE];
 
-    List<Chunk*> visibleChunks;
+    vector<Chunk*> visibleChunks;
 
     // Chunks currently awaiting destruction.
-    Queue<ChunkGroup*> destroyQueue;
+    queue<ChunkGroup*> destroyQueue;
 
     // Spawn and reference corner in world chunk coordinates.
     ChunkP spawnGroup;

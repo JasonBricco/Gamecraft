@@ -14,13 +14,17 @@ static void* ReadFileData(char* path, uint32_t* sizePtr)
             return nullptr;
 
         uint32_t size = (uint32_t)sizeValue.QuadPart;
-        void* data = AllocRaw(size);
+        void* data = malloc(size);
         
         DWORD bytesRead;
 
         if (ReadFile(file, data, size, &bytesRead, 0) && (size == bytesRead))
             *sizePtr = size;
-        else data = nullptr;
+        else
+        {
+            free(data);
+            data = nullptr;
+        }
 
         CloseHandle(file);
         return data;

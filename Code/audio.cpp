@@ -48,7 +48,7 @@ static void ChangeVolume(AudioEngine* engine, float target, float seconds)
 
 static void LoadMusic(AudioEngine* engine, char* path)
 {
-	char* buffer = AllocTempArray(MAX_PATH, char);
+	char buffer[MAX_PATH];
 	path = PathToExe(path, buffer, MAX_PATH);
 
 	int error;
@@ -69,7 +69,7 @@ static void LoadMusic(AudioEngine* engine, char* path)
 	source->SetVolume(0.0f);
 
 	int bufferSize = sampleRate * 2;
-	engine->musicSamples = AllocArray(bufferSize, int16_t);
+	engine->musicSamples = new int16_t[bufferSize];
 	engine->bufferSize = bufferSize;
 	engine->sampleCount = bufferSize / format.nChannels;
 
@@ -158,9 +158,8 @@ static void PlaySound(Sound sound)
 	}
 	else
 	{
-		SoundCallback* callback = AllocStruct(SoundCallback);
-		Construct(callback, SoundCallback);
-		
+		SoundCallback* callback = new SoundCallback();
+
 		WAVEFORMATEX format = GetFormat(sound.sampleRate);
 		hr = engine->pXAudio->CreateSourceVoice(&source, &format, 0, 2.0f, callback);
 		CheckForError(hr, "Failed to create the source voice.\n");

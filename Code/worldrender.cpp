@@ -22,22 +22,16 @@ static void BuildChunk(GameState* state, World* world, void* chunkPtr)
                 if (block != BLOCK_AIR)
                 {
                     BlockMeshType type = GetMeshType(world, block);
+                    Print("%d\n", type);
                     MeshData* data = chunk->meshData[type];
 
-                    while (data == nullptr)
+                    if (data == nullptr)
                     {
                         EnterCriticalSection(&rend.meshCS);
                         data = GetMeshData(rend.meshData);
-
-                        if (data == nullptr)
-                            SleepConditionVariableCS(&rend.meshDataEmpty, &rend.meshCS, 16);
-                        else 
-                        {
-                            assert(data->vertCount == 0);
-                            assert(data->indexCount == 0);
-                            chunk->meshData[type] = data;
-                        }
-
+                        assert(data->vertCount == 0);
+                        assert(data->indexCount == 0);
+                        chunk->meshData[type] = data;
                         LeaveCriticalSection(&rend.meshCS);
                     }
 
@@ -89,8 +83,6 @@ static void FillChunkMeshes(Renderer& rend, Chunk* chunk)
 
         chunk->meshData[i] = nullptr;
     }
-
-    WakeAllConditionVariable(&rend.meshDataEmpty);
 }
 
 static void DestroyChunkMeshes(Chunk* chunk)
@@ -146,23 +138,19 @@ static void RemoveOverflowAndRebuild(World* world, Chunk* chunk)
 static void ProcessVisibleChunks(GameState* state, World* world, Renderer& rend)
 {
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
-    {
-        ChunkMeshList& list = rend.meshLists[i];
-        list.meshes = AllocTempArray(world->visibleChunks.size, ChunkMesh);
-        list.count = 0;
-    }
+        rend.meshLists[i].clear();
 
     vec2 playerChunk = vec2(world->loadRange, world->loadRange);
 
-    List<Chunk*> visible = world->visibleChunks;
-    sort(visible.items, visible.items + visible.size, [playerChunk](auto a, auto b)
+    vector<Chunk*>& visible = world->visibleChunks;
+    sort(visible.begin(), visible.end(), [playerChunk](auto a, auto b)
     {
         float distA = distance2(vec2(a->lcPos.x, a->lcPos.z), playerChunk);
         float distB = distance2(vec2(b->lcPos.x, b->lcPos.z), playerChunk);
         return distA < distB;
     });
 
-    for (int i = 0; i < visible.size; i++)
+    for (int i = 0; i < visible.size(); i++)
     {
         Chunk* chunk = visible[i];
 
@@ -208,8 +196,8 @@ static void ProcessVisibleChunks(GameState* state, World* world, Renderer& rend)
                     if (mesh.indexCount > 0)
                     {
                         ChunkMesh cM = { mesh, (vec3)chunk->lwPos };
-                        ChunkMeshList& list = rend.meshLists[m];
-                        list.meshes[list.count++] = cM;
+                        vector<ChunkMesh>& list = rend.meshLists[m];
+                        list.push_back(cM);
                     }
                 }
             } break;
@@ -219,7 +207,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Renderer& rend)
 
 static void GetVisibleChunks(World* world, Camera* cam)
 {    
-    world->visibleChunks.Clear();
+    world->visibleChunks.clear();
 
     for (int g = 0; g < world->totalGroups; g++)
     {
@@ -240,7 +228,7 @@ static void GetVisibleChunks(World* world, Camera* cam)
             // begins building but is no longer visible at the time of needing to be filled.
             if (chunk->state == CHUNK_NEEDS_FILL)
             {
-                world->visibleChunks.AddLast(chunk);
+                world->visibleChunks.push_back(chunk);
                 continue;
             }
             
@@ -251,7 +239,7 @@ static void GetVisibleChunks(World* world, Camera* cam)
             FrustumVisibility visibility = TestFrustum(cam, min, max);
 
             if (visibility >= FRUSTUM_VISIBLE)
-                world->visibleChunks.AddLast(chunk);
+                world->visibleChunks.push_back(chunk);
         }
     }
 }

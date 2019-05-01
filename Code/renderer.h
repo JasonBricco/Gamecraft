@@ -39,12 +39,6 @@ struct ChunkMesh
     vec3 pos;
 };
 
-struct ChunkMeshList
-{
-    ChunkMesh* meshes;
-    int count, max;
-};
-
 struct Camera
 {
     vec3 pos, target, up;
@@ -71,7 +65,7 @@ struct Renderer
 {
     mat4 perspective;
 
-    ChunkMeshList meshLists[MESH_TYPE_COUNT];
+    vector<ChunkMesh> meshLists[MESH_TYPE_COUNT];
 
     Graphic* crosshair;
 
@@ -93,7 +87,6 @@ struct Renderer
 
     ObjectPool<MeshData> meshData;
     CRITICAL_SECTION meshCS;
-    CONDITION_VARIABLE meshDataEmpty;
 };
 
 static void LoadShader(Shader* shader, int vertLength, char* vertCode, int fragLength, char* fragCode);

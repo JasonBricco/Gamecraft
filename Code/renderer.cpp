@@ -34,7 +34,7 @@ static inline void UseShader(Shader* shader)
 
 static Graphic* CreateGraphic(Renderer& renderer, Shader* shader, Texture texture)
 {
-	Graphic* graphic = AllocStruct(Graphic);
+	Graphic* graphic = new Graphic();
 
 	MeshData* data = GetMeshData(renderer.meshData);
 	assert(data != nullptr);
@@ -189,7 +189,7 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 
 static Camera* NewCamera()
 {
-	Camera* cam = AllocStruct(Camera);
+	Camera* cam = new Camera();
 	cam->nearDist = 0.1f;
 	cam->farDist = 512.0f;
 	cam->sensitivity = 0.05f;
@@ -252,11 +252,9 @@ static void ListUniforms(Shader* shader)
 	}
 }
 
-static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int screenHeight, int threads)
+static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int screenHeight)
 {
-	rend.meshData = CreatePool<MeshData>(threads * MESH_TYPE_COUNT * 2);
 	InitializeCriticalSection(&rend.meshCS);
-	InitializeConditionVariable(&rend.meshDataEmpty);
 	
 	state->ambient = 1.0f;
 	vec3 clearColor = vec3(0.53f, 0.80f, 0.92f);
@@ -471,11 +469,11 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	SetUniform(shader->ambient, state->ambient);
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, GetBlockTextureArray(state).id);
-	int count = rend.meshLists[MESH_TYPE_OPAQUE].count;
+	size_t count = rend.meshLists[MESH_TYPE_OPAQUE].size();
 
 	for (int i = 0; i < count; i++)
 	{
-		ChunkMesh cM = rend.meshLists[MESH_TYPE_OPAQUE].meshes[i];
+		ChunkMesh cM = rend.meshLists[MESH_TYPE_OPAQUE][i];
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
@@ -483,11 +481,11 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Transparent pass.
-	count = rend.meshLists[MESH_TYPE_TRANSPARENT].count;
+	count = rend.meshLists[MESH_TYPE_TRANSPARENT].size();
 
 	for (int i = 0; i < count; i++)
 	{
-		ChunkMesh cM = rend.meshLists[MESH_TYPE_TRANSPARENT].meshes[i];
+		ChunkMesh cM = rend.meshLists[MESH_TYPE_TRANSPARENT][i];
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
@@ -504,11 +502,11 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	if (rend.disableFluidCull) 
 		glDisable(GL_CULL_FACE);
 
-	count = rend.meshLists[MESH_TYPE_FLUID].count;
+	count = rend.meshLists[MESH_TYPE_FLUID].size();
 
 	for (int i = 0; i < count; i++)
 	{
-		ChunkMesh cM = rend.meshLists[MESH_TYPE_FLUID].meshes[i];
+		ChunkMesh cM = rend.meshLists[MESH_TYPE_FLUID][i];
 		DrawMesh(cM.mesh, shader, cM.pos);
 	}
 
@@ -591,7 +589,7 @@ static void OutputShaderError(GLuint shader, char* mode)
 	GLint length = 0;
 	glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &length);
 
-    GLchar* errorLog = AllocTempArray(length, GLchar);
+    GLchar* errorLog = new GLchar[length];
     glGetProgramInfoLog(shader, length, NULL, errorLog);
     
    	Print("Error! Shader program failed to %s. Log: %s\n", mode, length == 0 ? "No error given." : errorLog);
