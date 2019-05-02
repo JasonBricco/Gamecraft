@@ -10,7 +10,7 @@ static char* g_buildType = "DEBUG";
 static char* g_buildType = "RELEASE";
 #endif
 
-static int g_buildID = 236;
+static int g_buildID = 239;
 
 #pragma warning(push, 0)
 
@@ -113,7 +113,7 @@ using namespace std;
 #include "test.h"
 #endif
 
-static void Pause(GameState* state, GLFWwindow* window, World* world, PauseState pauseState);
+static void Pause(GameState* state, GLFWwindow* window, PauseState pauseState);
 static void Unpause(GameState* state, GLFWwindow* window);
 
 #include "Audio.cpp"
@@ -157,9 +157,8 @@ static void ToggleFullscreen(HWND window)
 	}
 }
 
-static void Pause(GameState* state, GLFWwindow* window, World* world, PauseState pauseState)
+static void Pause(GameState* state, GLFWwindow* window, PauseState pauseState)
 {
-	SaveWorld(state, world);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	ChangeVolume(&state->audio, 0.25f, 0.5f);
 	Renderer& rend = state->renderer;
@@ -185,7 +184,7 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 	{
 		if (state->pauseState != PLAYING)
 			Unpause(state, window);
-		else Pause(state, window, world, PAUSED);
+		else Pause(state, window, PAUSED);
 	}
 
 	if (KeyPressed(input, KEY_E))
@@ -195,7 +194,7 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 		else 
 		{
 			if (state->pauseState == PLAYING)
-				Pause(state, window, world, SELECTING_BLOCK);
+				Pause(state, window, SELECTING_BLOCK);
 		}
 	}
 

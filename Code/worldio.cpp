@@ -58,7 +58,7 @@ static Region* LoadRegionFile(World* world, RegionP p)
         if (bytesRead == 0) break;
 
         List<uint16_t>* chunk = region->chunks + position;
-        chunk->Reserve(items);
+        chunk->Reserve(items + 2);
         chunk->Add(position);
         chunk->Add(items);
         chunk->size += items;
