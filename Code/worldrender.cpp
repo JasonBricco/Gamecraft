@@ -3,10 +3,8 @@
 //
 
 // Builds mesh data for the chunk.
-static void BuildChunk(GameState* state, World* world, void* chunkPtr)
+static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
 {
-    Renderer& rend = state->renderer;
-
     Chunk* chunk = (Chunk*)chunkPtr;
     assert(!IsEdgeChunk(world, chunk));
     chunk->totalVertices = 0;
@@ -22,18 +20,7 @@ static void BuildChunk(GameState* state, World* world, void* chunkPtr)
                 if (block != BLOCK_AIR)
                 {
                     BlockMeshType type = GetMeshType(world, block);
-                    Print("%d\n", type);
                     MeshData* data = chunk->meshData[type];
-
-                    if (data == nullptr)
-                    {
-                        EnterCriticalSection(&rend.meshCS);
-                        data = GetMeshData(rend.meshData);
-                        assert(data->vertCount == 0);
-                        assert(data->indexCount == 0);
-                        chunk->meshData[type] = data;
-                        LeaveCriticalSection(&rend.meshCS);
-                    }
 
                     if (!BuildFunc(world, block)(world, chunk, data, x, y, z, block))
                         chunk->overflowCount++;
@@ -45,17 +32,33 @@ static void BuildChunk(GameState* state, World* world, void* chunkPtr)
     chunk->state = CHUNK_NEEDS_FILL;
 }
 
+static bool BuildChunk(GameState* state, World* world, Chunk* chunk, ChunkState buildState)
+{
+    Renderer& rend = state->renderer;
+
+    if (!rend.meshData.CanGet(MESH_TYPE_COUNT))
+        return false;
+
+    for (int i = 0; i < MESH_TYPE_COUNT; i++)
+    {
+        assert(chunk->meshData[i] == nullptr);
+        chunk->meshData[i] = GetMeshData(rend.meshData);
+    }
+
+    chunk->state = buildState;
+    world->buildCount++;
+    QueueAsync(state, BuildChunkAsync, world, chunk);
+    return true;
+}
+
 static void ReturnChunkMeshes(Renderer& rend, Chunk* chunk)
 {
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
     {
         MeshData* data = chunk->meshData[i];
-
-        if (data != nullptr)
-        {
-            rend.meshData.Return(data);
-            chunk->meshData[i] = nullptr;
-        }
+        assert(data != nullptr);
+        rend.meshData.Return(data);
+        chunk->meshData[i] = nullptr;
     }
 }
 
@@ -70,8 +73,7 @@ static void FillChunkMeshes(Renderer& rend, Chunk* chunk)
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
     {
         MeshData* data = chunk->meshData[i];
-
-        if (data == nullptr) continue;
+        assert (data != nullptr);
 
         // The vertex count would be 0 if the only blocks belonging to the mesh type were culled away. 
         if (data->vertCount > 0)
@@ -93,9 +95,8 @@ static void DestroyChunkMeshes(Chunk* chunk)
 
 static void RebuildChunk(GameState* state, World* world, Chunk* chunk)
 {
-    chunk->pendingUpdate = false;
-    world->buildCount++;
-    QueueAsync(state, BuildChunk, world, chunk);
+    if (BuildChunk(state, world, chunk, CHUNK_REBUILDING))
+        chunk->pendingUpdate = false;
 }
 
 static bool NeighborsLoaded(World* world, Chunk* chunk)
@@ -160,11 +161,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Renderer& rend)
             case CHUNK_LOADED_DATA:
             {
                 if (NeighborsLoaded(world, chunk))
-                {
-                    chunk->state = CHUNK_BUILDING;
-                    world->buildCount++;
-                    QueueAsync(state, BuildChunk, world, chunk);
-                }
+                    BuildChunk(state, world, chunk, CHUNK_BUILDING);
             } break;
 
             case CHUNK_NEEDS_FILL:
@@ -174,6 +171,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Renderer& rend)
                 else FillChunkMeshes(rend, chunk);
 
                 chunk->state = CHUNK_BUILT;
+                assert(world->buildCount > 0);
                 world->buildCount--;
 
                 if (chunk->overflowCount > 0)
@@ -184,10 +182,7 @@ static void ProcessVisibleChunks(GameState* state, World* world, Renderer& rend)
             case CHUNK_REBUILDING:
             {
                 if (chunk->state != CHUNK_REBUILDING && chunk->pendingUpdate)
-                {
-                    chunk->state = CHUNK_REBUILDING;
                     RebuildChunk(state, world, chunk);
-                }
 
                 for (int m = 0; m < MESH_TYPE_COUNT; m++)
                 {

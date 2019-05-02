@@ -85,8 +85,7 @@ struct Renderer
     GLuint colAA, depthAA;
     GLuint fboAA;
 
-    ObjectPool<MeshData> meshData;
-    CRITICAL_SECTION meshCS;
+    FixedObjectPool<MeshData> meshData;
 };
 
 static void LoadShader(Shader* shader, int vertLength, char* vertCode, int fragLength, char* fragCode);

@@ -10,7 +10,7 @@
 struct Region
 {
     RegionP pos;
-    vector<uint16_t> chunks[REGION_SIZE_3];
+    List<uint16_t> chunks[REGION_SIZE_3];
     bool hasData, modified;
     Region* next;
     Region* prev;

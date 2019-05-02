@@ -2,7 +2,7 @@
 // Gamecraft
 //
 
-static MeshData* GetMeshData(ObjectPool<MeshData>& pool)
+static MeshData* GetMeshData(FixedObjectPool<MeshData>& pool)
 {
 	MeshData* meshData = pool.Get();
 	meshData->vertCount = 0;
@@ -35,7 +35,7 @@ static inline void SetUVs(MeshData* meshData, uint16_t w)
     meshData->uvs[count + 3] = u16vec3(1, 1, w);
 }
 
-static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshData, GLenum type, int32_t flags)
+static void FillMeshData(FixedObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshData, GLenum type, int32_t flags)
 {
 	assert(meshData->vertCount > 0);
 	assert(mesh.indexCount == 0);

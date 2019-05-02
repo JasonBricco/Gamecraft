@@ -87,6 +87,7 @@ using namespace std;
 
 #include "Utils.h"
 #include "Memory.h"
+#include "Containers.h"
 #include "Random.h"
 #include "Profiling.h"
 #include "UI.h"
@@ -272,14 +273,14 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	InitUI(window, state->ui);
 	InitAudio(&state->audio);
 	
-	CreateThreads(state);
+	int threads = CreateThreads(state);
 	LoadAssets(state);
 
 	Camera* cam = NewCamera();
 	state->camera = cam;
 
 	Renderer& rend = state->renderer;
-	InitRenderer(state, rend, screenWidth, screenHeight);
+	InitRenderer(state, rend, screenWidth, screenHeight, threads);
 
 	glfwSetWindowUserPointer(window, state);
 	glfwSetKeyCallback(window, OnKey);

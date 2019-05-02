@@ -252,10 +252,10 @@ static void ListUniforms(Shader* shader)
 	}
 }
 
-static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int screenHeight)
+static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int screenHeight, int threads)
 {
-	InitializeCriticalSection(&rend.meshCS);
-	
+	rend.meshData.Create(threads * MESH_TYPE_COUNT * 2);
+
 	state->ambient = 1.0f;
 	vec3 clearColor = vec3(0.53f, 0.80f, 0.92f);
 	state->clearColor = clearColor;

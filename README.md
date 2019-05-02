@@ -14,7 +14,7 @@ The game is inspired by voxel engines such as Minecraft and Eden: World Builder.
 - Multithreaded work queue
 - Antialiasing
 - OpenGL Renderer
-- Custom fragmentation-free memory system
+- Object pooling
 - Supports Windows 10
 
 ## Libraries Used ##

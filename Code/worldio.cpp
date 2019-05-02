@@ -57,12 +57,13 @@ static Region* LoadRegionFile(World* world, RegionP p)
 
         if (bytesRead == 0) break;
 
-        vector<uint16_t>* chunk = region->chunks + position;
-        chunk->reserve(items);
-        chunk->push_back(position);
-        chunk->push_back(items);
+        List<uint16_t>* chunk = region->chunks + position;
+        chunk->Reserve(items);
+        chunk->Add(position);
+        chunk->Add(items);
+        chunk->size += items;
 
-        if (!ReadFile(file, chunk->data() + 2, items * sizeof(uint16_t), &bytesRead, NULL))
+        if (!ReadFile(file, chunk->items + 2, items * sizeof(uint16_t), &bytesRead, NULL))
         {
             Print("Failed to load serialized chunk data. Error: %s", GetLastErrorText().c_str());
             Print("Tried to read %i items\n", items);
@@ -104,15 +105,15 @@ static void SaveRegion(World* world, Region* region)
                 int index = RegionIndex(x, y, z);
                 assert(index >= 0 && index < REGION_SIZE_3);
 
-                vector<uint16_t>& chunk = region->chunks[index];
-                DWORD size = (DWORD)chunk.size();
+                List<uint16_t>& chunk = region->chunks[index];
+                DWORD size = chunk.size;
 
                 if (size > 0)
                 {
                     DWORD bytesToWrite = sizeof(uint16_t) * size;
                     DWORD bytesWritten;
 
-                    if (!WriteFile(file, chunk.data(), bytesToWrite, &bytesWritten, NULL))
+                    if (!WriteFile(file, chunk.items, bytesToWrite, &bytesWritten, NULL))
                     {
                         Print("Failed to save chunk. Error: %s\n", GetLastErrorText().c_str());
                         continue;
@@ -215,9 +216,9 @@ static bool LoadGroupFromDisk(World* world, ChunkGroup* group)
 
         assert(offset >= 0 && offset < REGION_SIZE_3);
         
-        vector<uint16_t>& chunkData = region->chunks[offset];
+        List<uint16_t>& chunkData = region->chunks[offset];
 
-        if (chunkData.size() == 0)
+        if (chunkData.size == 0)
         {
             complete = false;
             continue;
@@ -292,16 +293,16 @@ static void SaveGroup(GameState*, World* world, void* groupPtr)
 
         assert(offset >= 0 && offset < REGION_SIZE_3);
 
-        vector<uint16_t>& store = region->chunks[offset];
+        List<uint16_t>& store = region->chunks[offset];
         region->hasData = true;
-        store.clear();
-        store.reserve(4096);
+        store.Clear();
+        store.Reserve(4096);
 
-        store.push_back((uint16_t)offset);
+        store.Add((uint16_t)offset);
 
         // Holds the number of elements we will write. We won't know this value until 
         // after the RLE compression, but we should reserve its position in the data.
-        store.push_back(0);
+        store.Add(0);
 
         Block currentBlock = chunk->blocks[0];
         uint16_t count = 1;
@@ -312,8 +313,8 @@ static void SaveGroup(GameState*, World* world, void* groupPtr)
 
             if (block != currentBlock)
             {
-                store.push_back(count);
-                store.push_back(currentBlock);
+                store.Add(count);
+                store.Add(currentBlock);
                 count = 1;
                 currentBlock = block;
             }
@@ -321,12 +322,12 @@ static void SaveGroup(GameState*, World* world, void* groupPtr)
 
             if (i == CHUNK_SIZE_3 - 1)
             {
-                store.push_back(count);
-                store.push_back(currentBlock);
+                store.Add(count);
+                store.Add(currentBlock);
             }
         }
 
-        store[1] = (uint16_t)(store.size() - 2);
+        store[1] = (uint16_t)(store.size - 2);
         chunk->modified = false;
     }
 }

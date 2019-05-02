@@ -74,7 +74,7 @@ static inline void QueueAsync(GameState* state, AsyncFunc func, World* world, vo
 	ReleaseSemaphore(state->semaphore, 1, NULL);
 }
 
-static void CreateThreads(GameState* state)
+static int CreateThreads(GameState* state)
 {
 	state->semaphore = CreateSemaphore(NULL, 0, MAXLONG, NULL);
 
@@ -96,4 +96,6 @@ static void CreateThreads(GameState* state)
 		HANDLE handle = CreateThread(NULL, NULL, ThreadProc, state, NULL, &threadID);
         CloseHandle(handle);
 	}
+
+	return threadCount;
 }
