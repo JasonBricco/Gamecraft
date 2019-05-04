@@ -52,7 +52,7 @@ static void RunAsyncCallbacks(GameState* state)
 	for (int i = 0; i < state->callbacks.size(); i++)
 	{
 		AsyncCallbackItem item = state->callbacks[i];
-		item.callback(item.world, item.data);
+		item.callback(state, item.world, item.data);
 	}
 
 	state->callbacks.clear();

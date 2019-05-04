@@ -423,12 +423,7 @@ static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, Wo
         int radius = atoi(config.radiusBuffer);
         memset(config.radiusBuffer, 0, sizeof(config.radiusBuffer));
 
-        if (world->buildCount > 0)
-        {
-            config.error = "Please wait for the current island to finish generating.";
-            config.errorTime = 3.0f;
-        }
-        else if (radius < 32 && !config.infinite)
+        if (radius < 32 && !config.infinite)
         {
             config.error = "Island radius must be 32+ or infinite.";
             config.errorTime = 3.0f;

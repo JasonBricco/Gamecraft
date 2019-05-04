@@ -25,6 +25,11 @@ static inline bool HasFlag(int32_t flags, int32_t flag)
     return flags & flag;
 }
 
+static inline void SetFlag(int32_t& flags, int32_t flag)
+{
+    flags |= flag;
+}
+
 typedef vec4 Color;
 
 #define RED_COLOR vec4(1.0f, 0.0f, 0.0f, 1.0f)
@@ -75,15 +80,28 @@ struct Ray
 #define DIR_LEFT_DOWN_BACK ivec3(-1, -1, -1)
 #define DIR_RIGHT_UP_FRONT ivec3(1, 1, 1)
 
-static const ivec3 DIRS_2D[8] = 
+static const ivec3 DIRS[8] = 
 { 
-    DIR_LEFT, DIR_RIGHT, DIR_BACK, DIR_FRONT,
-    DIR_LEFT_BACK, DIR_LEFT_FRONT, DIR_RIGHT_BACK, DIR_RIGHT_FRONT
+    DIR_LEFT,
+    DIR_RIGHT, 
+    DIR_BACK, 
+    DIR_FRONT,
+    DIR_LEFT_BACK, 
+    DIR_LEFT_FRONT, 
+    DIR_RIGHT_BACK, 
+    DIR_RIGHT_FRONT
 };
 
-static const ivec3 DIRECTIONS_3D[6] =
+enum DIR_ID
 {
-    DIR_LEFT, DIR_RIGHT, DIR_BACK, DIR_FRONT, DIR_UP, DIR_DOWN
+    DIR_ID_LEFT, 
+    DIR_ID_RIGHT, 
+    DIR_ID_BACK, 
+    DIR_ID_FRONT,
+    DIR_ID_LEFT_BACK, 
+    DIR_ID_LEFT_FRONT, 
+    DIR_ID_RIGHT_BACK, 
+    DIR_ID_RIGHT_FRONT
 };
 
 static inline int Clamp(int value, int min, int max)

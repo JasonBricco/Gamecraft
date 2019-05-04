@@ -2,7 +2,7 @@
 // Gamecraft
 //
 
-using AsyncCallback = void(*)(World*, void*);
+using AsyncCallback = void(*)(GameState* state, World*, void*);
 using AsyncFunc = void(*)(GameState* state, World*, void*);
 
 struct AsyncItem

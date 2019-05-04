@@ -58,6 +58,8 @@ enum ChunkState
     CHUNK_STATE_COUNT
 };
 
+struct ChunkGroup;
+
 struct Chunk
 {
     LChunkP lcPos;
@@ -69,17 +71,20 @@ struct Chunk
     Mesh meshes[MESH_TYPE_COUNT];
     MeshData* meshData[MESH_TYPE_COUNT];
 
-    bool pendingUpdate, hasMeshes;
-
+    bool pendingUpdate, hasMeshes, modified;
     ChunkState state;
 
-    bool modified;
+    ChunkGroup* group;
 };
 
 struct ChunkGroup
 {
     ChunkP pos;
     Chunk chunks[WORLD_CHUNK_HEIGHT];
+
+    ChunkGroup* neighbors[8];
+    int inUseCount;
+
     bool active, loaded, pendingDestroy;
 };
 
@@ -117,10 +122,6 @@ struct World
     int totalGroups;
 
     vector<ivec4> groupsToCreate;
-
-    // Tracks work being done by background threads so that the world cannot shift
-    // while background work is being done.
-    int buildCount;
 
     // Chunk hash table to store chunks that need to transition.
     ChunkGroup* groupHash[GROUP_HASH_SIZE];
@@ -163,7 +164,13 @@ struct World
     ivec3 cursorBlockPos;
 };
 
-struct RebasedPos
+struct RebasedGroup
+{
+    ChunkGroup* group;
+    int rX, rZ;
+};
+
+struct RebasedChunk
 {
     Chunk* chunk;
     int rX, rY, rZ;
