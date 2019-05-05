@@ -110,5 +110,5 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 	glBindTexture(GL_TEXTURE_2D, GetTexture(state, IMAGE_RAIN).id);
 
 	glBindVertexArray(emitter.mesh.va);
-	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh.indexCount, GL_UNSIGNED_INT, 0, emitter.count);
+	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh.indexCount, GL_UNSIGNED_SHORT, 0, emitter.count);
 }
