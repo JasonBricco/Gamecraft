@@ -564,7 +564,7 @@ static void ShiftWorld(GameState* state, World* world)
 		ChunkGroup* group = world->groupHash[c];
 
         if (group != nullptr && !group->active)
-            world->destroyQueue.push(group);
+            world->destroyQueue.push(make_tuple(group, true));
 
         world->groupHash[c] = nullptr;
 	}
@@ -649,20 +649,26 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
 
     ProcessVisibleChunks(state, world, state->renderer);
 
-    queue<ChunkGroup*>& destroyQueue = world->destroyQueue;
+    auto& destroyQueue = world->destroyQueue;
     int destroyLim = 0;
 
     while (!destroyQueue.empty() && destroyLim++ < GROUP_DESTROY_LIMIT)
     {
-        ChunkGroup* group = destroyQueue.front();
+        auto groupTuple = destroyQueue.front();
         destroyQueue.pop();
+
+        ChunkGroup* group = get<0>(groupTuple);
 
         if (group->loaded && group->inUseCount == 0)
         {
-            group->pendingDestroy = true;
-            QueueAsync(state, SaveGroup, world, group, DestroyGroup);
+            if (get<1>(groupTuple))
+            {
+                group->pendingDestroy = true;
+                QueueAsync(state, SaveGroup, world, group, DestroyGroup);
+            }
+            else DestroyGroup(state, world, group);
         }
-        else destroyQueue.push(group);
+        else destroyQueue.push(groupTuple);
     }
 }
 
@@ -720,7 +726,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         // We don't want to save any chunks here.
         for (int i = 0; i < world->totalGroups; i++)
         {
-            DestroyGroup(state, world, world->groups[i]);
+            world->destroyQueue.push(make_tuple(world->groups[i], false));
             world->groups[i] = nullptr;
         }
 

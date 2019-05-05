@@ -320,8 +320,9 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		BeginNewUIFrame(window, state->ui, deltaTime);
 
 		CreateUI(state, window, world, worldConfig, player);
-		Update(state, window, player, world, deltaTime);
+
 		RunAsyncCallbacks(state);
+		Update(state, window, player, world, deltaTime);
 		RenderScene(state, rend, cam);
 
 		END_TIMED_BLOCK(GAME_LOOP);

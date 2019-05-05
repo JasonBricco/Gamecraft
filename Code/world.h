@@ -84,7 +84,7 @@ struct ChunkGroup
 
     ChunkGroup* neighbors[8];
     int inUseCount;
-
+    
     bool active, loaded, pendingDestroy;
 };
 
@@ -129,7 +129,7 @@ struct World
     vector<Chunk*> visibleChunks;
 
     // Chunks currently awaiting destruction.
-    queue<ChunkGroup*> destroyQueue;
+    queue<tuple<ChunkGroup*, bool>> destroyQueue;
 
     // Spawn and reference corner in world chunk coordinates.
     ChunkP spawnGroup;

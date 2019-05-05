@@ -27,8 +27,6 @@ static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
             }
         }
     }
-
-    chunk->state = CHUNK_NEEDS_FILL;
 }
 
 static void OnChunkBuilt(GameState*, World*, void* chunkPtr)
@@ -46,11 +44,16 @@ static void OnChunkBuilt(GameState*, World*, void* chunkPtr)
 
     group->inUseCount--;
     assert(group->inUseCount >= 0);
+
+    chunk->state = CHUNK_NEEDS_FILL;
 }
 
 static bool BuildChunk(GameState* state, World* world, Chunk* chunk, ChunkState buildState)
 {
     Renderer& rend = state->renderer;
+
+    assert(chunk->state != CHUNK_BUILDING);
+    assert(chunk->state != CHUNK_REBUILDING);
 
     if (!rend.meshData.CanGet(MESH_TYPE_COUNT))
         return false;
