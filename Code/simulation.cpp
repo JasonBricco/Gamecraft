@@ -225,8 +225,12 @@ static void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 del
 	if (IsPassable(world, up) && TestWall(delta, a.pos, wMax.y, wMin, wMax, 1, 0, 2, tMin))
 	{
 		normal = vec3(0.0f, 1.0f, 0.0f);
-		player->colFlags |= HIT_DOWN;
-		player->surface = GetBlockSurface(world, GetBlock(world, bPos));
+		
+		if (delta.y < 0.0f)
+		{
+			player->colFlags |= HIT_DOWN;
+			player->surface = GetBlockSurface(world, GetBlock(world, bPos));
+		}
 	}
 
 	// Bottom surface.
