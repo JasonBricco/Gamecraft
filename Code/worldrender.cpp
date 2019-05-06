@@ -29,22 +29,11 @@ static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
     }
 }
 
-static void OnChunkBuilt(GameState*, World*, void* chunkPtr)
+static void OnChunkBuilt(GameState*, World* world, void* chunkPtr)
 {
     Chunk* chunk = (Chunk*)chunkPtr;
-    ChunkGroup* group = chunk->group;
-
-    for (int i = 0; i < 8; i++)
-    {
-        ChunkGroup* neighbor = group->neighbors[i];
-        assert(neighbor != nullptr);
-        neighbor->inUseCount--;
-        assert(neighbor->inUseCount >= 0);
-    }
-
-    group->inUseCount--;
-    assert(group->inUseCount >= 0);
-
+    world->buildCount--;
+    assert(world->buildCount >= 0);
     chunk->state = CHUNK_NEEDS_FILL;
 }
 
@@ -64,22 +53,7 @@ static bool BuildChunk(GameState* state, World* world, Chunk* chunk, ChunkState 
         chunk->meshData[i] = GetMeshData(rend.meshData);
     }
 
-    ChunkGroup* group = chunk->group;
-    group->inUseCount++;
-
-    for (int i = 0; i < 8; i++)
-    {
-        ChunkGroup* neighbor = group->neighbors[i];
-       
-        if (neighbor == nullptr)
-        {
-            neighbor = GetGroup(world, chunk->lcPos + DIRS[i]);
-            group->neighbors[i] = neighbor;
-        }
-
-        neighbor->inUseCount++;
-    }
-
+    world->buildCount++;
     chunk->state = buildState;
     QueueAsync(state, BuildChunkAsync, world, chunk, OnChunkBuilt);
 
@@ -164,7 +138,7 @@ static void RemoveOverflowAndRebuild(World* world, Chunk* chunk)
                 if (GetBlock(chunk, x, y, z) != BLOCK_AIR)
                 {
                     SetBlock(chunk, x, y, z, BLOCK_AIR);
-                    FlagChunkForUpdate(world, chunk, ivec3(x, y, z), false);
+                    FlagChunkForUpdate(world, chunk, chunk->lcPos, ivec3(x, y, z), false);
 
                     if (--chunk->overflowCount == 0)
                         return;
@@ -286,7 +260,7 @@ static inline bool CanDrawFace(World* world, CullType cur, Block block, Block ad
 
 static inline bool CheckFace(World* world, Chunk* chunk, CullType cull, Block block, int x, int y, int z, int& vAdded)
 {
-    if (CanDrawFace(world, cull, block, GetBlockSafe(chunk, x, y, z)))
+    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, x, y, z)))
     {
         vAdded += 4;
         return true;
@@ -313,7 +287,7 @@ static inline u8vec3 AverageColor(u8vec3 first, u8vec3 second, u8vec3 third)
     return u8vec3(r, b, g);
 }
 
-#define BLOCK_TRANSPARENT(pos) GetCullType(world, GetBlockSafe(chunk, pos)) >= CULL_TRANSPARENT
+#define BLOCK_TRANSPARENT(pos) GetCullType(world, GetBlockSafe(world, chunk, pos)) >= CULL_TRANSPARENT
 
 static inline ivec3 VertexLight(World* world, Chunk* chunk, Axis axis, RelP pos, int dx, int dy, int dz)
 {

@@ -158,19 +158,27 @@ static HitInfo GetVoxelHit(GameState* state, Camera* cam, World* world)
 	return info;
 }
 
-static void TeleportPlayer(GameState* state, World* world, Player* player, WorldLocation p)
+static void TeleportPlayerCallback(GameState* state, World* world)
 {
-	player->suspended = true;
+	WorldLocation p = state->teleportLoc;
 
 	ChunkP cP = WorldToChunkP(p.wP);
 	UpdateWorldRef(world, cP);
 
+	Player* player = world->player;
 	player->pos = vec3(p.lP.x, p.lP.y, p.lP.z);
 
 	MoveCamera(state->camera, player->pos);
 	UpdateCameraVectors(state->camera);
 
 	ShiftWorld(state, world);
+}
+
+static void TeleportPlayer(GameState* state, Player* player, WorldLocation p)
+{
+	player->suspended = true;
+	state->teleportLoc = p;
+	BeginLoading(state, 0.5f, TeleportPlayerCallback);
 }
 
 static inline bool InApproxRange(float& value, float min, float max)
@@ -523,7 +531,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 		WorldLocation home = world->properties.homePos;
 
 		if (home.lP != ivec3(0))
-			TeleportPlayer(state, world, player, world->properties.homePos);
+			TeleportPlayer(state, player, world->properties.homePos);
 	}
 }
 

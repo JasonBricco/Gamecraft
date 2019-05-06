@@ -345,7 +345,7 @@ static void CreateSettingsUI(GameState* state)
     ImGui::End();
 }
 
-static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, WorldConfig& config, Player* player)
+static void WorldConfigUI(GameState* state, GLFWwindow* window, World* world, WorldConfig& config)
 {
     if (config.errorTime > 0.0f)
     {   
@@ -431,10 +431,9 @@ static void WorldConfigUI(GLFWwindow* window, GameState* state, World* world, Wo
         else
         {
             config.radius = radius;
-            RegenerateWorld(state, world, config);
-            player->spawned = false;
-            player->velocity.y = 0.0f;
+            state->pendingConfig = &config;
             Unpause(state, window);
+            BeginLoading(state, 0.5f, RegenerateWorldCallback);
         }
     }
 
@@ -593,7 +592,7 @@ static void RenderUI(GameState* state, Renderer& rend, UI& ui)
     glDisable(GL_SCISSOR_TEST);
 }
 
-static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldConfig& config, Player* player)
+static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldConfig& config)
 {
     switch (state->pauseState)
     {
@@ -610,7 +609,7 @@ static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldCo
             break;
 
         case WORLD_CONFIG:
-            WorldConfigUI(window, state, world, config, player);
+            WorldConfigUI(state, window, world, config);
             break;
     }
 

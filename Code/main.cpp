@@ -10,7 +10,7 @@ static char* g_buildType = "DEBUG";
 static char* g_buildType = "RELEASE";
 #endif
 
-static int g_buildID = 239;
+static int g_buildID = 244;
 
 #pragma warning(push, 0)
 
@@ -33,6 +33,7 @@ static int g_buildID = 239;
 #include <vector>
 #include <queue>
 #include <fstream>
+#include <functional>
 #include <algorithm>
 
 #define GLM_FORCE_AVX2
@@ -115,6 +116,7 @@ using namespace std;
 
 static void Pause(GameState* state, GLFWwindow* window, PauseState pauseState);
 static void Unpause(GameState* state, GLFWwindow* window);
+static void BeginLoading(GameState* state, float fadeTime, function<void(GameState*, World*)> callback);
 
 #include "Audio.cpp"
 #include "Assets.cpp"
@@ -176,46 +178,93 @@ static void Unpause(GameState* state, GLFWwindow* window)
 	state->pauseState = PLAYING;
 }
 
-static void Update(GameState* state, GLFWwindow* window, Player* player, World* world, float deltaTime)
+static void BeginLoading(GameState* state, float fadeTime, function<void(GameState*, World*)> callback)
 {
-	Input& input = state->input;
+	LoadingInfo& info = state->loadInfo;
+	info.state = LOADING_FADE_IN;
+	info.initialFade = state->renderer.fadeColor;
+	info.t = 0.0f;
+	info.fadeTime = fadeTime;
+	info.callback = callback;
+	state->pauseState = LOADING;
+}
 
-	if (KeyPressed(input, KEY_ESCAPE))
-	{
-		if (state->pauseState != PLAYING)
-			Unpause(state, window);
-		else Pause(state, window, PAUSED);
-	}
+static void ProcessLoading(GameState* state, World* world, float deltaTime)
+{
+	LoadingInfo& info = state->loadInfo;
+	Renderer& rend = state->renderer;
 
-	if (KeyPressed(input, KEY_E))
+	if (info.state == LOADING_FADE_IN)
 	{
-		if (state->pauseState == SELECTING_BLOCK)
-			Unpause(state, window);
-		else 
+		rend.fadeColor = mix(info.initialFade, BLACK_COLOR, info.t);
+		info.t += deltaTime / info.fadeTime;
+
+		if (info.t >= 1.0f)
 		{
-			if (state->pauseState == PLAYING)
-				Pause(state, window, SELECTING_BLOCK);
+			rend.fadeColor = BLACK_COLOR;
+			info.state = LOADING_NONE;
 		}
 	}
+	else if (info.state == LOADING_FADE_OUT)
+	{
+		rend.fadeColor = mix(BLACK_COLOR, CLEAR_COLOR, info.t);
+		info.t += deltaTime / info.fadeTime;
 
-	if (KeyPressed(input, KEY_T))
-		ToggleFullscreen(glfwGetWin32Window(window));
+		if (info.t >= 1.0f)
+		{
+			rend.fadeColor = CLEAR_COLOR;
+			state->pauseState = PLAYING;
+		}
+	}
+	else
+	{
+		if (IsBuilding(world))
+			return;
 
-	if (KeyPressed(input, KEY_F3))
-		state->debugHudActive = !state->debugHudActive;
+		info.callback(state, world);
+		info.t = 0.0f;
+		info.state = LOADING_FADE_OUT;
+	}
+}
+
+static void Update(GameState* state, GLFWwindow* window, Player* player, World* world, float deltaTime)
+{
+	if (state->pauseState == LOADING)
+		ProcessLoading(state, world, deltaTime);
+	else
+	{
+		Input& input = state->input;
+
+		if (KeyPressed(input, KEY_ESCAPE))
+		{
+			if (state->pauseState != PLAYING)
+				Unpause(state, window);
+			else Pause(state, window, PAUSED);
+		}
+
+		if (KeyPressed(input, KEY_E))
+		{
+			if (state->pauseState == SELECTING_BLOCK)
+				Unpause(state, window);
+			else 
+			{
+				if (state->pauseState == PLAYING)
+					Pause(state, window, SELECTING_BLOCK);
+			}
+		}
+
+		if (KeyPressed(input, KEY_T))
+			ToggleFullscreen(glfwGetWin32Window(window));
+
+		if (KeyPressed(input, KEY_F3))
+			state->debugHudActive = !state->debugHudActive;
+	}
 
 	UpdateAudio(&state->audio, deltaTime);
 	UpdateWorld(state, world, state->camera, player);
 
 	if (state->pauseState != PLAYING || !player->spawned) 
 		return;
-
-	if (KeyPressed(input, KEY_EQUAL))
-	{
-		state->ambient = state->ambient == 0.0f ? 1.0f : 0.0f;
-		vec3 newClear = state->clearColor * state->ambient;
-		glClearColor(newClear.r, newClear.g, newClear.b, 1.0f);
-	}
 
 	double mouseX, mouseY;
 	glfwGetCursorPos(window, &mouseX, &mouseY);
@@ -319,7 +368,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		BeginNewUIFrame(window, state->ui, deltaTime);
 
-		CreateUI(state, window, world, worldConfig, player);
+		CreateUI(state, window, world, worldConfig);
 
 		RunAsyncCallbacks(state);
 		Update(state, window, player, world, deltaTime);

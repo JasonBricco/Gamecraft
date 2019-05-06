@@ -258,84 +258,65 @@ static inline Block GetBlock(Chunk* chunk, RelP pos)
     return GetBlock(chunk, pos.x, pos.y, pos.z);
 }
 
-static bool GroupHasNeighbors(ChunkGroup* group)
+static inline RebasedPos Rebase(World* world, LChunkP lP, int rX, int rY, int rZ)
 {
-    for (int i = 0; i < 8; i++)
-    {
-        if (group->neighbors[i] == nullptr)
-            return false;
-    }
-
-    return true;
-}
-
-static inline RebasedGroup RebaseGroup(ChunkGroup* group, int rX, int rZ)
-{
-    assert(GroupHasNeighbors(group));
+    assert(ChunkInsideWorld(world, lP.x, lP.y, lP.z));
     
     if (rX < 0)
-    {
-        if (rZ < 0) 
-            return { group->neighbors[DIR_ID_LEFT_BACK], CHUNK_SIZE_H + rX, CHUNK_SIZE_H + rZ };
+        return Rebase(world, lP + DIR_LEFT, CHUNK_SIZE_H + rX, rY, rZ);
 
-        if (rZ >= CHUNK_SIZE_H)
-            return { group->neighbors[DIR_ID_LEFT_FRONT], CHUNK_SIZE_H + rX, rZ - CHUNK_SIZE_H };
-
-        return { group->neighbors[DIR_ID_LEFT], CHUNK_SIZE_H + rX, rZ };
-    }
-
-    if (rX >= CHUNK_SIZE_H)
-    {
-        if (rZ < 0) 
-            return { group->neighbors[DIR_ID_RIGHT_BACK], rX - CHUNK_SIZE_H, CHUNK_SIZE_H + rZ };
-
-        if (rZ >= CHUNK_SIZE_H)
-            return { group->neighbors[DIR_ID_RIGHT_FRONT], rX - CHUNK_SIZE_H, rZ - CHUNK_SIZE_H };
-
-        return { group->neighbors[DIR_ID_RIGHT], rX - CHUNK_SIZE_H, rZ };
-    }
+    if (rX >= CHUNK_SIZE_H) 
+        return Rebase(world, lP + DIR_RIGHT, rX - CHUNK_SIZE_H, rY, rZ);
 
     if (rZ < 0)
-        return { group->neighbors[DIR_ID_BACK], rX, CHUNK_SIZE_H + rZ };
+        return Rebase(world, lP + DIR_BACK, rX, rY, CHUNK_SIZE_H + rZ);
     
     if (rZ >= CHUNK_SIZE_H)
-        return { group->neighbors[DIR_ID_FRONT], rX, rZ - CHUNK_SIZE_H };
+        return Rebase(world, lP + DIR_FRONT, rX, rY, rZ - CHUNK_SIZE_H);
 
-    return { group, rX, rZ };
+    if (rY < 0)
+    {
+        LChunkP tar = lP + DIR_DOWN;
+
+        if (tar.y >= 0 && tar.y < WORLD_CHUNK_HEIGHT)
+            return Rebase(world, lP + DIR_DOWN, rX, CHUNK_SIZE_V + rY, rZ);
+        else return { nullptr, 0, -1, 0 };
+    }
+
+    if (rY >= CHUNK_SIZE_V)
+    {
+        LChunkP tar = lP + DIR_UP;
+        
+        if (tar.y >= 0 && tar.y < WORLD_CHUNK_HEIGHT)
+            return Rebase(world, lP + DIR_UP, rX, rY - CHUNK_SIZE_V, rZ);
+        else return { nullptr, 0, 1, 0 };
+    }
+
+    return { GetChunk(world, lP), rX, rY, rZ };
 }
 
-static inline RebasedGroup RebaseGroup(ChunkGroup* group, RelP p)
+static inline RebasedPos Rebase(World* world, LChunkP lP, RelP rP)
 {
-    return RebaseGroup(group, p.x, p.z);
+    return Rebase(world, lP, rP.x, rP.y, rP.z);
 }
 
-static inline RebasedChunk GetRelativeChunk(Chunk* chunk, int rX, int rY, int rZ)
+static inline Block GetBlockSafe(World* world, Chunk* chunk, int rX, int rY, int rZ)
 {
-    assert(chunk->group->loaded);
+    assert(GetGroup(world, chunk->lcPos.x, chunk->lcPos.z)->loaded);
+    RebasedPos p = Rebase(world, chunk->lcPos, rX, rY, rZ);
 
-    int lwY = chunk->lwPos.y + rY;
-
-    if (lwY < 0) return { nullptr, 0, INT_MIN };
-    if (lwY >= WORLD_BLOCK_HEIGHT) return { nullptr, 0, INT_MAX };
-
-    RebasedGroup p = RebaseGroup(chunk->group, rX, rZ);
-
-    return { p.group->chunks + (lwY >> CHUNK_V_BITS), p.rX, lwY & CHUNK_V_MASK, p.rZ };
-}
-
-static inline Block GetBlockSafe(Chunk* chunk, int rX, int rY, int rZ)
-{
-    RebasedChunk p = GetRelativeChunk(chunk, rX, rY, rZ);
-
-    if (p.rY == INT_MIN) return BLOCK_STONE;
-    if (p.rY == INT_MAX) return BLOCK_AIR;
+    if (p.chunk == nullptr)
+    {
+        assert(p.rY == -1 || p.rY == 1);
+        return p.rY == -1 ? BLOCK_STONE : BLOCK_AIR;
+    }
 
     return GetBlock(p.chunk, p.rX, p.rY, p.rZ);
 }
 
-static inline Block GetBlockSafe(Chunk* chunk, RelP p)
+static inline Block GetBlockSafe(World* world, Chunk* chunk, RelP p)
 {
-    return GetBlockSafe(chunk, p.x, p.y, p.z);
+    return GetBlockSafe(world, chunk, p.x, p.y, p.z);
 }
 
 static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
@@ -380,21 +361,15 @@ static inline void SetBlock(Chunk* chunk, RelP pos, Block block)
     SetBlock(chunk, pos.x, pos.y, pos.z, block);
 }
 
-static inline void ChunksAroundBlock(Chunk* chunk, RelP rP, LChunkP& lpA, LChunkP& lpB)
-{
-    RebasedChunk a = GetRelativeChunk(chunk, rP.x - 1, rP.y - 1, rP.z - 1);
-    RebasedChunk b = GetRelativeChunk(chunk, rP.x + 1, rP.y + 1, rP.z + 1);
-
-    lpA = a.chunk == nullptr ? a.chunk->lcPos : a.chunk->lcPos;
-    lpB = b.chunk == nullptr ? b.chunk->lcPos : b.chunk->lcPos;
-}
-
-static void FlagChunkForUpdate(World* world, Chunk* chunk, RelP rP, bool modified = true)
+static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkP lP, RelP rP, bool modified = true)
 {
     chunk->modified = modified;
 
-    LChunkP a, b;
-    ChunksAroundBlock(chunk, rP, a, b);
+    Chunk* chunkA = Rebase(world, lP, rP + DIR_LEFT_DOWN_BACK).chunk;
+    Chunk* chunkB = Rebase(world, lP, rP + DIR_RIGHT_UP_FRONT).chunk;
+
+    LChunkP a = chunkA == nullptr ? chunk->lcPos : chunkA->lcPos;
+    LChunkP b = chunkB == nullptr ? chunk->lcPos : chunkB->lcPos;
 
     for (int z = a.z; z <= b.z; z++)
     {
@@ -430,7 +405,7 @@ static inline void SetBlock(World* world, LWorldP wPos, Block block)
     {
         SetBlock(chunk, rP.x, rP.y, rP.z, block);
         PlaySound(GetBlockSetSound(world, block));
-        FlagChunkForUpdate(world, chunk, rP);
+        FlagChunkForUpdate(world, chunk, lP, rP);
     }
 }
 
@@ -564,7 +539,7 @@ static void ShiftWorld(GameState* state, World* world)
 		ChunkGroup* group = world->groupHash[c];
 
         if (group != nullptr && !group->active)
-            world->destroyQueue.push(make_tuple(group, true));
+            world->destroyQueue.push(group);
 
         world->groupHash[c] = nullptr;
 	}
@@ -616,6 +591,11 @@ static void CheckWorld(GameState* state, World* world, Player* player)
     }
 }
 
+static inline bool IsBuilding(World* world)
+{
+    return world->buildCount > 0;
+}
+
 static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* player)
 {
     if (player->suspended)
@@ -642,7 +622,11 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
         if (spawnGroup->loaded)
             SpawnPlayer(state, world, player, world->pBounds);
     }
-    else CheckWorld(state, world, player);
+    else 
+    {
+        if (!IsBuilding(world))
+            CheckWorld(state, world, player);
+    }
 
     GetCameraPlanes(cam);
     GetVisibleChunks(world, cam);
@@ -654,21 +638,15 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
 
     while (!destroyQueue.empty() && destroyLim++ < GROUP_DESTROY_LIMIT)
     {
-        auto groupTuple = destroyQueue.front();
+        ChunkGroup* group = destroyQueue.front();
         destroyQueue.pop();
 
-        ChunkGroup* group = get<0>(groupTuple);
-
-        if (group->loaded && group->inUseCount == 0)
+        if (group->loaded)
         {
-            if (get<1>(groupTuple))
-            {
-                group->pendingDestroy = true;
-                QueueAsync(state, SaveGroup, world, group, DestroyGroup);
-            }
-            else DestroyGroup(state, world, group);
+            group->pendingDestroy = true;
+            QueueAsync(state, SaveGroup, world, group, DestroyGroup);
         }
-        else destroyQueue.push(groupTuple);
+        else destroyQueue.push(group);
     }
 }
 
@@ -726,7 +704,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         // We don't want to save any chunks here.
         for (int i = 0; i < world->totalGroups; i++)
         {
-            world->destroyQueue.push(make_tuple(world->groups[i], false));
+            DestroyGroup(state, world, world->groups[i]);
             world->groups[i] = nullptr;
         }
 
@@ -749,4 +727,11 @@ static void RegenerateWorld(GameState* state, World* world, WorldConfig& config)
 {
     DeleteDirectory(world->savePath);
     world = NewWorld(state, world->loadRange, config, world);
+}
+
+static void RegenerateWorldCallback(GameState* state, World* world)
+{
+    RegenerateWorld(state, world, *state->pendingConfig);
+    world->player->spawned = false;
+    world->player->velocity.y = 0.0f;
 }

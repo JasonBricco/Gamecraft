@@ -82,9 +82,6 @@ struct ChunkGroup
     ChunkP pos;
     Chunk chunks[WORLD_CHUNK_HEIGHT];
 
-    ChunkGroup* neighbors[8];
-    int inUseCount;
-    
     bool active, loaded, pendingDestroy;
 };
 
@@ -120,7 +117,8 @@ struct World
     // All actively loaded chunk groups around the player.
     ChunkGroup** groups;
     int totalGroups;
-
+    int buildCount;
+    
     vector<ivec4> groupsToCreate;
 
     // Chunk hash table to store chunks that need to transition.
@@ -129,7 +127,7 @@ struct World
     vector<Chunk*> visibleChunks;
 
     // Chunks currently awaiting destruction.
-    queue<tuple<ChunkGroup*, bool>> destroyQueue;
+    queue<ChunkGroup*> destroyQueue;
 
     // Spawn and reference corner in world chunk coordinates.
     ChunkP spawnGroup;
@@ -164,13 +162,7 @@ struct World
     ivec3 cursorBlockPos;
 };
 
-struct RebasedGroup
-{
-    ChunkGroup* group;
-    int rX, rZ;
-};
-
-struct RebasedChunk
+struct RebasedPos
 {
     Chunk* chunk;
     int rX, rY, rZ;
