@@ -41,6 +41,7 @@ struct GameState
 	HANDLE semaphore;
 
 	int windowWidth, windowHeight;
+	bool minimized;
 
 	Renderer renderer;
 

@@ -10,7 +10,7 @@ static char* g_buildType = "DEBUG";
 static char* g_buildType = "RELEASE";
 #endif
 
-static int g_buildID = 244;
+static int g_buildID = 245;
 
 #pragma warning(push, 0)
 
@@ -114,8 +114,8 @@ using namespace std;
 #include "test.h"
 #endif
 
-static void Pause(GameState* state, GLFWwindow* window, PauseState pauseState);
-static void Unpause(GameState* state, GLFWwindow* window);
+static void Pause(GameState* state, PauseState pauseState);
+static void Unpause(GameState* state);
 static void BeginLoading(GameState* state, float fadeTime, function<void(GameState*, World*)> callback);
 
 #include "Audio.cpp"
@@ -133,33 +133,35 @@ static void BeginLoading(GameState* state, float fadeTime, function<void(GameSta
 #include "Particles.cpp"
 #include "UI.cpp"
 
+static GLFWwindow* window;
+
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT windowPos = { sizeof(windowPos) };
 
-static void ToggleFullscreen(HWND window)
+static void ToggleFullscreen(HWND wnd)
 {
-	DWORD style = GetWindowLong(window, GWL_STYLE);
+	DWORD style = GetWindowLong(wnd, GWL_STYLE);
 
 	if (style & WS_OVERLAPPEDWINDOW)
 	{
 		MONITORINFO mi = { sizeof(mi) };
 
-		if (GetWindowPlacement(window, &windowPos) && GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &mi))
+		if (GetWindowPlacement(wnd, &windowPos) && GetMonitorInfo(MonitorFromWindow(wnd, MONITOR_DEFAULTTOPRIMARY), &mi))
 		{
-			SetWindowLong(window, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
-			SetWindowPos(window, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left, 
+			SetWindowLong(wnd, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
+			SetWindowPos(wnd, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left, 
 				mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 		}
 	}
 	else
 	{
-		SetWindowLong(window, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-		SetWindowPlacement(window, &windowPos);
-		SetWindowPos(window, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+		SetWindowLong(wnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+		SetWindowPlacement(wnd, &windowPos);
+		SetWindowPos(wnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 	}
 }
 
-static void Pause(GameState* state, GLFWwindow* window, PauseState pauseState)
+static void Pause(GameState* state, PauseState pauseState)
 {
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	ChangeVolume(&state->audio, 0.25f, 0.5f);
@@ -168,13 +170,18 @@ static void Pause(GameState* state, GLFWwindow* window, PauseState pauseState)
 	state->pauseState = pauseState;
 }
 
-static void Unpause(GameState* state, GLFWwindow* window)
+static inline void CenterCursor(GameState* state)
+{
+	glfwSetCursorPos(window, state->windowWidth * 0.5f, state->windowHeight * 0.5f);
+}
+
+static void Unpause(GameState* state)
 {
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	ChangeVolume(&state->audio, 0.75f, 0.5f);
 	Renderer& rend = state->renderer;
 	rend.fadeColor.a = 0.0f;
-	glfwSetCursorPos(window, state->windowWidth * 0.5f, state->windowHeight * 0.5f);
+	CenterCursor(state);
 	state->pauseState = PLAYING;
 }
 
@@ -213,6 +220,7 @@ static void ProcessLoading(GameState* state, World* world, float deltaTime)
 		if (info.t >= 1.0f)
 		{
 			rend.fadeColor = CLEAR_COLOR;
+			CenterCursor(state);
 			state->pauseState = PLAYING;
 		}
 	}
@@ -227,7 +235,7 @@ static void ProcessLoading(GameState* state, World* world, float deltaTime)
 	}
 }
 
-static void Update(GameState* state, GLFWwindow* window, Player* player, World* world, float deltaTime)
+static void Update(GameState* state, Player* player, World* world, float deltaTime)
 {
 	if (state->pauseState == LOADING)
 		ProcessLoading(state, world, deltaTime);
@@ -238,18 +246,18 @@ static void Update(GameState* state, GLFWwindow* window, Player* player, World* 
 		if (KeyPressed(input, KEY_ESCAPE))
 		{
 			if (state->pauseState != PLAYING)
-				Unpause(state, window);
-			else Pause(state, window, PAUSED);
+				Unpause(state);
+			else Pause(state, PAUSED);
 		}
 
 		if (KeyPressed(input, KEY_E))
 		{
 			if (state->pauseState == SELECTING_BLOCK)
-				Unpause(state, window);
+				Unpause(state);
 			else 
 			{
 				if (state->pauseState == PLAYING)
-					Pause(state, window, SELECTING_BLOCK);
+					Pause(state, SELECTING_BLOCK);
 			}
 		}
 
@@ -297,7 +305,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	int screenWidth = 1024, screenHeight = 768;
 
-	GLFWwindow* window = glfwCreateWindow(screenWidth, screenHeight, "Gamecraft", NULL, NULL);
+	window = glfwCreateWindow(screenWidth, screenHeight, "Gamecraft", NULL, NULL);
 
 	if (window == nullptr)
 		Error("Failed to create window.\n");
@@ -366,13 +374,16 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		ResetInput(state->input);
 		glfwPollEvents();
 
-		BeginNewUIFrame(window, state->ui, deltaTime);
+		if (!state->minimized)
+		{
+			BeginNewUIFrame(window, state->ui, deltaTime);
 
-		CreateUI(state, window, world, worldConfig);
+			CreateUI(state, window, world, worldConfig);
 
-		RunAsyncCallbacks(state);
-		Update(state, window, player, world, deltaTime);
-		RenderScene(state, rend, cam);
+			RunAsyncCallbacks(state);
+			Update(state, player, world, deltaTime);
+			RenderScene(state, rend, cam);
+		}
 
 		END_TIMED_BLOCK(GAME_LOOP);
 		FLUSH_COUNTERS();

@@ -162,12 +162,12 @@ static inline ImTextureID GetUITexture(GameState* state, ImageID id)
     return (void*)(intptr_t)GetTexture(state, id).id;
 }
 
-static inline void BlockButton(World* world, GLFWwindow* window, GameState* state, ImageID image, BlockType type, char** name)
+static inline void BlockButton(World* world, GameState* state, ImageID image, BlockType type, char** name)
 {
     if (ImGui::ImageButton(GetUITexture(state, image), ImVec2(32.0f, 32.0f)))
     {
         world->blockToSet = type;
-        Unpause(state, window);
+        Unpause(state);
     }
 
     if (ImGui::IsItemHovered())
@@ -192,7 +192,7 @@ static ImVec2 CenteredUIWindow(float width, float height, float offsetX = 0.0f, 
     return UIWindow(width, height, p);
 }
 
-static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
+static void CreateBlockUI(World* world, GameState* state)
 {
     ImVec2 size = CenteredUIWindow(248.0f, 200.0f);
 
@@ -201,37 +201,37 @@ static void CreateBlockUI(GLFWwindow* window, World* world, GameState* state)
     ImGui::Begin("BlockSelect", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.06666f, 0.06666f, 0.06666f, 1.0f));
 
-    BlockButton(world, window, state, IMAGE_CRATE, BLOCK_CRATE, &blockName);
+    BlockButton(world, state, IMAGE_CRATE, BLOCK_CRATE, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_DIRT, BLOCK_DIRT, &blockName);
+    BlockButton(world, state, IMAGE_DIRT, BLOCK_DIRT, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_GRASS_SIDE, BLOCK_GRASS, &blockName);
+    BlockButton(world, state, IMAGE_GRASS_SIDE, BLOCK_GRASS, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_SAND, BLOCK_SAND, &blockName);
+    BlockButton(world, state, IMAGE_SAND, BLOCK_SAND, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_STONE, BLOCK_STONE, &blockName);
+    BlockButton(world, state, IMAGE_STONE, BLOCK_STONE, &blockName);
     ImGui::Spacing();
-    BlockButton(world, window, state, IMAGE_STONE_BRICK, BLOCK_STONE_BRICK, &blockName);
+    BlockButton(world, state, IMAGE_STONE_BRICK, BLOCK_STONE_BRICK, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_METAL_CRATE, BLOCK_METAL_CRATE, &blockName);
+    BlockButton(world, state, IMAGE_METAL_CRATE, BLOCK_METAL_CRATE, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_WATER, BLOCK_WATER, &blockName);
+    BlockButton(world, state, IMAGE_WATER, BLOCK_WATER, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_WOOD, BLOCK_WOOD, &blockName);
+    BlockButton(world, state, IMAGE_WOOD, BLOCK_WOOD, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_LEAVES, BLOCK_LEAVES, &blockName);
+    BlockButton(world, state, IMAGE_LEAVES, BLOCK_LEAVES, &blockName);
     ImGui::Spacing();
-    BlockButton(world, window, state, IMAGE_CLAY, BLOCK_CLAY, &blockName);
+    BlockButton(world, state, IMAGE_CLAY, BLOCK_CLAY, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_SNOW_SIDE, BLOCK_SNOW, &blockName);
+    BlockButton(world, state, IMAGE_SNOW_SIDE, BLOCK_SNOW, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_ICE, BLOCK_ICE, &blockName);
+    BlockButton(world, state, IMAGE_ICE, BLOCK_ICE, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_LANTERN_ON, BLOCK_LANTERN, &blockName);
+    BlockButton(world, state, IMAGE_LANTERN_ON, BLOCK_LANTERN, &blockName);
     ImGui::SameLine();
-    BlockButton(world, window, state, IMAGE_TRAMPOLINE, BLOCK_TRAMPOLINE, &blockName);
+    BlockButton(world, state, IMAGE_TRAMPOLINE, BLOCK_TRAMPOLINE, &blockName);
     ImGui::Spacing();
-    BlockButton(world, window, state, IMAGE_CACTUS_SIDE, BLOCK_CACTUS, &blockName);
+    BlockButton(world, state, IMAGE_CACTUS_SIDE, BLOCK_CACTUS, &blockName);
 
     ImGui::PopStyleColor();
 
@@ -277,7 +277,7 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
     ImGui::SetCursorPos(cursorPos);
 
     if (ImGui::Button("Continue", btnSize))
-        Unpause(state, window);
+        Unpause(state);
 
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
@@ -293,7 +293,7 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
     if (ImGui::Button(raining ? "Disable Rain" : "Enable Rain", btnSize))
     {
         state->rain.active = !raining;
-        Unpause(state, window);
+        Unpause(state);
     }
 
     cursorPos.y += 35.0f;
@@ -345,7 +345,7 @@ static void CreateSettingsUI(GameState* state)
     ImGui::End();
 }
 
-static void WorldConfigUI(GameState* state, GLFWwindow* window, World* world, WorldConfig& config)
+static void WorldConfigUI(GameState* state, World* world, WorldConfig& config)
 {
     if (config.errorTime > 0.0f)
     {   
@@ -432,7 +432,7 @@ static void WorldConfigUI(GameState* state, GLFWwindow* window, World* world, Wo
         {
             config.radius = radius;
             state->pendingConfig = &config;
-            Unpause(state, window);
+            Unpause(state);
             BeginLoading(state, 0.5f, RegenerateWorldCallback);
         }
     }
@@ -601,7 +601,7 @@ static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldCo
             break;
 
         case SELECTING_BLOCK:
-            CreateBlockUI(window, world, state);
+            CreateBlockUI(world, state);
             break;
 
         case GAME_SETTINGS:
@@ -609,7 +609,7 @@ static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldCo
             break;
 
         case WORLD_CONFIG:
-            WorldConfigUI(state, window, world, config);
+            WorldConfigUI(state, world, config);
             break;
     }
 

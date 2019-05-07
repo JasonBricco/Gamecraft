@@ -163,6 +163,15 @@ static void SetAA(GameState* state, Renderer& rend, int samples)
 static void SetWindowSize(GLFWwindow* window, int width, int height)
 {
 	GameState* state = (GameState*)glfwGetWindowUserPointer(window);
+
+	if (width == 0 || height == 0)
+	{
+		state->minimized = true;
+		return;
+	}
+
+	state->minimized = false;
+
 	Camera* cam = state->camera;
 
 	state->windowWidth = width;
