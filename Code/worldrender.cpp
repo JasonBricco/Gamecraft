@@ -85,7 +85,7 @@ static void FillChunkMeshes(Renderer& rend, Chunk* chunk)
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
     {
         MeshData* data = chunk->meshData[i];
-        assert (data != nullptr);
+        assert(data != nullptr);
 
         // The vertex count would be 0 if the only blocks belonging to the mesh type were culled away. 
         if (data->vertCount > 0)
@@ -227,6 +227,12 @@ static void GetVisibleChunks(World* world, Camera* cam)
         for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
         {
             Chunk* chunk = group->chunks + i;
+
+            if (chunk->state == CHUNK_NEEDS_FILL)
+            {
+                world->visibleChunks.push_back(chunk);
+                continue;
+            }
             
             ivec3 cP = LChunkToLWorldP(chunk->lcPos);
             vec3 min = vec3(cP.x, cP.y, cP.z);
