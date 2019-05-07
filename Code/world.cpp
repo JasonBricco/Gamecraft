@@ -361,6 +361,13 @@ static inline void SetBlock(Chunk* chunk, RelP pos, Block block)
     SetBlock(chunk, pos.x, pos.y, pos.z, block);
 }
 
+static inline void SetBlock(ChunkGroup* group, int rX, int lwY, int rZ, Block block)
+{
+    int lcY = lwY >> CHUNK_V_BITS;
+    Chunk* chunk = group->chunks + lcY;
+    SetBlock(chunk, rX, lwY & CHUNK_V_MASK, rZ, block);
+}
+
 static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkP lP, RelP rP, bool modified = true)
 {
     chunk->modified = modified;

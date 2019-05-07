@@ -378,6 +378,19 @@ static void GenerateDesertTerrain(World* world, ChunkGroup* group)
         }
     }
 
+    int cactusNum = RandRange(0, 2);
+
+    for (int i = 0; i < cactusNum; i++)
+    {
+        int rX = RandRange(0, CHUNK_SIZE_H - 1);
+        int rZ = RandRange(0, CHUNK_SIZE_H - 1);
+
+        int height = RandRange(2, 4);
+
+        for (int j = 1; j <= height; j++)
+            SetBlock(group, rX, surfaceMap[rZ * CHUNK_SIZE_H + rX] + j, rZ, BLOCK_CACTUS);
+    }
+
     Noise::FreeNoiseSet(base);
     delete noise;
 }
