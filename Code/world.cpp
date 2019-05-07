@@ -12,6 +12,11 @@ static inline bool BlockInsideChunk(RelP p)
     return BlockInsideChunk(p.x, p.y, p.z);
 }
 
+static inline bool BlockInsideGroup(int x, int y, int z)
+{
+    return x >= 0 && x < CHUNK_SIZE_H && y >= 0 && y < WORLD_BLOCK_HEIGHT && z >= 0 && z < CHUNK_SIZE_H;
+}
+
 static inline bool BlockInsideWorldH(World* world, int x, int z)
 {
     int wSize = world->size * CHUNK_SIZE_H;

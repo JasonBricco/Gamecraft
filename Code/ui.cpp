@@ -334,7 +334,7 @@ static void CreateSettingsUI(GameState* state)
     bool aaOn = rend.samplesAA == 4;
 
     if (ImGui::Button(aaOn ? "Antialiasing On" : "Antialiasing Off", btnSize))
-        SetAA(state, rend, aaOn ? 0 : 4);
+        SetAA(rend, aaOn ? 0 : 4);
 
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
@@ -465,12 +465,14 @@ static double GetFPS()
     return fps;
 }
 
-static void CreateDebugHUD(GameState* state, World* world)
+static void CreateDebugHUD(World* world)
 {
     double fps = GetFPS();
 
+    ivec2 size = FramebufferSize();
+
     ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-    ImGui::SetNextWindowSize(ImVec2((float)state->windowWidth, (float)state->windowHeight));
+    ImGui::SetNextWindowSize(ImVec2((float)size.x, (float)size.y));
 
     ImGui::Begin("HUD", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
 
@@ -614,7 +616,7 @@ static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldCo
     }
 
     if (state->debugHudActive)
-        CreateDebugHUD(state, world);
+        CreateDebugHUD(world);
 }
 
 static void SaveGameSettings(GameState* state)
@@ -639,7 +641,7 @@ static void LoadGameSettings(GameState* state)
         ReadBinary(path, (char*)&settings);
         state->audio.muted = settings.audioMuted;
         rend.samplesAA = settings.samplesAA;
-        SetAA(state, rend, settings.samplesAA);
+        SetAA(rend, settings.samplesAA);
     }
-    else SetAA(state, rend, 4);
+    else SetAA(rend, 4);
 }

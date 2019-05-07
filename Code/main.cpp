@@ -10,7 +10,13 @@ static char* g_buildType = "DEBUG";
 static char* g_buildType = "RELEASE";
 #endif
 
-static int g_buildID = 246;
+#if PROFILING
+#define SWAP_INTERVAL 0
+#else
+#define SWAP_INTERVAL 1
+#endif
+
+static int g_buildID = 247;
 
 #pragma warning(push, 0)
 
@@ -117,6 +123,7 @@ using namespace std;
 static void Pause(GameState* state, PauseState pauseState);
 static void Unpause(GameState* state);
 static void BeginLoading(GameState* state, float fadeTime, function<void(GameState*, World*)> callback);
+static inline ivec2 FramebufferSize();
 
 #include "Audio.cpp"
 #include "Assets.cpp"
@@ -137,6 +144,13 @@ static GLFWwindow* window;
 
 // Window placement for fullscreen toggling.
 static WINDOWPLACEMENT windowPos = { sizeof(windowPos) };
+
+static inline ivec2 FramebufferSize()
+{
+	int displayW, displayH;
+    glfwGetFramebufferSize(window, &displayW, &displayH);
+    return ivec2(displayW, displayH);
+}
 
 static void ToggleFullscreen(HWND wnd)
 {
@@ -170,9 +184,10 @@ static void Pause(GameState* state, PauseState pauseState)
 	state->pauseState = pauseState;
 }
 
-static inline void CenterCursor(GameState* state)
+static inline void CenterCursor()
 {
-	glfwSetCursorPos(window, state->windowWidth * 0.5f, state->windowHeight * 0.5f);
+	ivec2 size = FramebufferSize();
+	glfwSetCursorPos(window, size.x * 0.5f, size.y * 0.5f);
 }
 
 static void Unpause(GameState* state)
@@ -181,7 +196,7 @@ static void Unpause(GameState* state)
 	ChangeVolume(&state->audio, 0.75f, 0.5f);
 	Renderer& rend = state->renderer;
 	rend.fadeColor.a = 0.0f;
-	CenterCursor(state);
+	CenterCursor();
 	state->pauseState = PLAYING;
 }
 
@@ -220,7 +235,7 @@ static void ProcessLoading(GameState* state, World* world, float deltaTime)
 		if (info.t >= 1.0f)
 		{
 			rend.fadeColor = CLEAR_COLOR;
-			CenterCursor(state);
+			CenterCursor();
 			state->pauseState = PLAYING;
 		}
 	}
@@ -277,7 +292,8 @@ static void Update(GameState* state, Player* player, World* world, float deltaTi
 	double mouseX, mouseY;
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
-	double cX = state->windowWidth * 0.5f, cY = state->windowHeight * 0.5f;
+	ivec2 size = FramebufferSize();
+	double cX = size.x * 0.5f, cY = size.y * 0.5f;
 	glfwSetCursorPos(window, cX, cY);
 	
 	Camera* cam = state->camera;
@@ -318,7 +334,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glewExperimental = GL_TRUE;
 
 	// Set vertical synchronization to the monitor refresh rate.
-	glfwSwapInterval(1);
+	glfwSwapInterval(SWAP_INTERVAL);
 
 	GameState* state = new GameState();
 
@@ -340,12 +356,12 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	glfwSetWindowUserPointer(window, state);
 	glfwSetKeyCallback(window, OnKey);
-	glfwSetWindowSizeCallback(window, SetWindowSize);
+	glfwSetFramebufferSizeCallback(window, SetWindowSize);
 	glfwSetMouseButtonCallback(window, OnMouseButton);
 	glfwSetCharCallback(window, InputCharCallback);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetCursorPos(window, state->windowWidth / 2.0f, state->windowHeight / 2.0f);
+	glfwSetCursorPos(window, screenWidth / 2.0f, screenHeight / 2.0f);
 
 	InitParticleEmitter(rend, state->rain, 12, 20.0f);
 
@@ -385,10 +401,10 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			RenderScene(state, rend, cam);
 		}
 
+		glfwSwapBuffers(window);
+
 		END_TIMED_BLOCK(GAME_LOOP);
 		FLUSH_COUNTERS();
-
-		glfwSwapBuffers(window);
 
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);

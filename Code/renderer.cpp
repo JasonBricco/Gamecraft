@@ -120,20 +120,22 @@ static void DestroyAAFBO(Renderer& rend)
 	glDeleteFramebuffers(1, &rend.fboAA);
 }
 
-static void CreateAAFBO(Renderer& rend, int width, int height)
+static void CreateAAFBO(Renderer& rend)
 {
 	if (rend.samplesAA > 0)
 	{
 		if (glIsBuffer(rend.fboAA))
 			DestroyAAFBO(rend);
 
+		ivec2 size = FramebufferSize();
+
 		glGenTextures(1, &rend.colAA);
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, rend.colAA);
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, rend.samplesAA, GL_RGBA8, width, height, true);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, rend.samplesAA, GL_RGBA8, size.x, size.y, true);
 
 		glGenTextures(1, &rend.depthAA);
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, rend.depthAA);
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, rend.samplesAA, GL_DEPTH_COMPONENT24, width, height, true);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, rend.samplesAA, GL_DEPTH_COMPONENT24, size.x, size.y, true);
 
 		glGenFramebuffers(1, &rend.fboAA);
 		glBindFramebuffer(GL_FRAMEBUFFER, rend.fboAA);
@@ -144,14 +146,14 @@ static void CreateAAFBO(Renderer& rend, int width, int height)
 	}
 }
 
-static void SetAA(GameState* state, Renderer& rend, int samples)
+static void SetAA(Renderer& rend, int samples)
 {
 	rend.samplesAA = samples;
 
 	if (samples > 0)
 	{
 		glEnable(GL_MULTISAMPLE);
-		CreateAAFBO(rend, state->windowWidth, state->windowHeight);
+		CreateAAFBO(rend);
 	}
 	else
 	{
@@ -174,8 +176,6 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 
 	Camera* cam = state->camera;
 
-	state->windowWidth = width;
-	state->windowHeight = height;
 	glViewport(0, 0, width, height);
 
 	float fov = radians(CAMERA_FOV);
@@ -193,7 +193,7 @@ static void SetWindowSize(GLFWwindow* window, int width, int height)
 	if (rend.crosshair != nullptr)
 		SetCrosshairPos(rend.crosshair, width, height);
 
-	CreateAAFBO(rend, width, height);
+	CreateAAFBO(rend);
 }
 
 static Camera* NewCamera()
@@ -352,11 +352,10 @@ static Ray ScreenCenterToRay(GameState* state, Camera* cam)
 	Renderer& rend = state->renderer;
 	mat4 projection = rend.perspective * cam->view;
 
-	int w = state->windowWidth;
-	int h = state->windowHeight;
-	vec4 viewport = vec4(0.0f, (float)h, (float)w, (float)(-h));
+	ivec2 size = FramebufferSize();
+	vec4 viewport = vec4(0.0f, (float)size.y, (float)size.x, (float)(-size.y));
 
-	ivec2 cursor = ivec2(w / 2, h / 2);
+	ivec2 cursor = ivec2(size.x / 2, size.y / 2);
 
 	vec3 origin = unProject(vec3(cursor, 0.0f), mat4(1.0f), projection, viewport);
 
@@ -546,7 +545,9 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, rend.fboAA);
 		glDrawBuffer(GL_BACK);
-		glBlitFramebuffer(0, 0, state->windowWidth, state->windowHeight, 0, 0, state->windowWidth, state->windowHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+		ivec2 size = FramebufferSize();
+		glBlitFramebuffer(0, 0, size.x, size.y, 0, 0, size.x, size.y, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	}
 }
 

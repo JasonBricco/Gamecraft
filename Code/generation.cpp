@@ -34,6 +34,37 @@ static inline float* GetNoise3D(Noise* noise, Noise::NoiseType type, int x, int 
     return noise->GetNoiseSet(x, 0, z, sizeX, maxY, sizeZ, scale);
 }
 
+static inline void CreateBox(ChunkGroup* group, ivec3 min, ivec3 max, Block block)
+{
+    for (int z = min.z; z <= max.z; z++)
+    {
+        for (int y = min.y; y <= max.y; y++)
+        {
+            for (int x = min.x; x <= max.x; x++)
+            {
+                assert(BlockInsideGroup(x, y, z));
+                SetBlock(group, x, y, z, block);
+            }
+        }
+    }
+}
+
+static inline void CreateTree(ChunkGroup* group, ivec3 base, int minHeight, int maxHeight, Block wood, Block leaves)
+{
+    int height = RandRange(minHeight, maxHeight);
+
+    for (int j = 0; j < height; j++)
+        SetBlock(group, base.x, base.y + j, base.z, wood);
+
+    int startY = base.y + height;
+
+    CreateBox(group, ivec3(base.x - 1, startY, base.z - 1), ivec3(base.x + 1, startY, base.z + 1), leaves);
+    CreateBox(group, ivec3(base.x - 2, startY + 1, base.z - 1), ivec3(base.x + 2, startY + 2, base.z + 1), leaves);
+    CreateBox(group, ivec3(base.x - 1, startY + 1, base.z + 2), ivec3(base.x + 1, startY + 2, base.z + 2), leaves);
+    CreateBox(group, ivec3(base.x - 1, startY + 1, base.z - 2), ivec3(base.x + 1, startY + 2, base.z - 2), leaves);
+    CreateBox(group, ivec3(base.x - 1, startY + 3, base.z - 1), ivec3(base.x + 1, startY + 3, base.z + 1), leaves);
+}
+
 static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
 {
     WorldP start = ChunkToWorldP(group->pos);
@@ -156,6 +187,20 @@ static void GenerateGrassyTerrain(World* world, ChunkGroup* group)
                 }
             }
         }
+    }
+
+    // Generate trees.
+    int treeNum = RandRange(1, 3);
+
+    for (int i = 0; i < treeNum; i++)
+    {
+        int rX = RandRange(3, CHUNK_SIZE_H - 4);
+        int rZ = RandRange(3, CHUNK_SIZE_H - 4);
+
+        int surface = surfaceMap[rZ * CHUNK_SIZE_H + rX];
+
+        if (surface > SEA_LEVEL)
+            CreateTree(group, ivec3(rX, surface + 1, rZ), 3, 5, BLOCK_WOOD, BLOCK_LEAVES);
     }
 
     Noise::FreeNoiseSet(comp);
@@ -378,6 +423,7 @@ static void GenerateDesertTerrain(World* world, ChunkGroup* group)
         }
     }
 
+    // Generate cacti.
     int cactusNum = RandRange(0, 2);
 
     for (int i = 0; i < cactusNum; i++)
