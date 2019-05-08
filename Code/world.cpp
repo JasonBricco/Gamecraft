@@ -699,10 +699,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         CreateBlockData(state, world->blockData);
 
         if (!LoadWorldFileData(state, world))
-        {
-            srand((uint32_t)time(0));
             world->properties = { rand(), config.radius, BIOME_GRASSY };
-        }
 
         world->blockToSet = BLOCK_GRASS;
         InitializeCriticalSection(&world->regionCS);

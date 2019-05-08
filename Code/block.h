@@ -49,7 +49,8 @@ enum CullType
 enum BlockSurface
 {
     SURFACE_NORMAL,
-    SURFACE_ICE
+    SURFACE_ICE,
+    SURFACE_TRAMPOLINE
 };
 
 using BuildBlockFunc = bool(*)(World*, Chunk*, MeshData*, int, int, int, Block);

@@ -16,7 +16,7 @@ static char* g_buildType = "RELEASE";
 #define SWAP_INTERVAL 1
 #endif
 
-static int g_buildID = 247;
+static int g_buildID = 249;
 
 #pragma warning(push, 0)
 
@@ -335,6 +335,8 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	// Set vertical synchronization to the monitor refresh rate.
 	glfwSwapInterval(SWAP_INTERVAL);
+
+	srand((uint32_t)time(0));
 
 	GameState* state = new GameState();
 

@@ -281,16 +281,15 @@ static void SetPlayerVelocity(Player* player, vec3 accel, float deltaTime)
 {
 	switch (player->surface)
 	{
-		case SURFACE_NORMAL:
-			player->velocity = accel * deltaTime + player->velocity;
-			break;
-
 		case SURFACE_ICE:
 		{
 			player->velocity.x = (accel.x * 0.1f) * deltaTime + player->velocity.x;
 			player->velocity.y = accel.y * deltaTime + player->velocity.y;
 			player->velocity.z = (accel.z * 0.1f) * deltaTime + player->velocity.z;
 		} break;
+
+		default:
+			player->velocity = accel * deltaTime + player->velocity;
 	}
 
 	player->velocity.y = Max(player->velocity.y, -100.0f);
@@ -393,13 +392,26 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 
 	 	playerBB = GetPlayerAABB(player);
 
-	 	// Subtract away the component of the velocity that collides with the wall and leave the
-	 	// remaining velocity intact.
-	 	player->velocity -= dot(player->velocity, normal) * normal;
+	 	switch (player->surface)
+	 	{
+	 		case SURFACE_TRAMPOLINE:
+	 		{
+			 	player->velocity -= 2 * dot(player->velocity, normal) * normal * 0.9f;
+			 	delta -= 2 * dot(delta, normal) * normal * 0.9f;
+	 		} break;
 
-	 	delta -= dot(delta, normal) * normal;
+	 		default:
+	 		{
+	 			// Subtract away the component of the velocity that collides with the wall and leave the
+			 	// remaining velocity intact.
+			 	player->velocity -= dot(player->velocity, normal) * normal;
+
+			 	delta -= dot(delta, normal) * normal;
+	 		}
+
+	 	}
+
 	 	delta -= (delta * tMin);
-
 	 	tRemaining -= (tMin * tRemaining);
 	}
 

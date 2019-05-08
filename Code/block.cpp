@@ -176,6 +176,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
     SetBlockTextures(trampoline, IMAGE_TRAMPOLINE);
     trampoline.buildFunc = BuildBlock;
     trampoline.onSetSound = GetSound(state, SOUND_STONE);
+    trampoline.surface = SURFACE_TRAMPOLINE;
     trampoline.name = "Trampoline";
 
     BlockData& cactus = data[BLOCK_CACTUS];
