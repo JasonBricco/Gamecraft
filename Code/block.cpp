@@ -52,6 +52,11 @@ static inline BlockSurface GetBlockSurface(World* world, Block block)
     return world->blockData[block].surface;
 }
 
+static inline BlockCollider GetBlockCollider(World* world, Block block)
+{
+    return world->blockData[block].collider;
+}
+
 static inline void SetBlockTextures(BlockData& data, uint16_t top, uint16_t bottom, uint16_t front, uint16_t back, uint16_t right, uint16_t left)
 {
     data.textures[FACE_TOP] = top;
@@ -176,7 +181,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
     SetBlockTextures(trampoline, IMAGE_TRAMPOLINE);
     trampoline.buildFunc = BuildBlock;
     trampoline.onSetSound = GetSound(state, SOUND_STONE);
-    trampoline.surface = SURFACE_TRAMPOLINE;
+    trampoline.collider = COLLIDER_BOUNCE;
     trampoline.name = "Trampoline";
 
     BlockData& cactus = data[BLOCK_CACTUS];

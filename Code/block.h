@@ -49,8 +49,13 @@ enum CullType
 enum BlockSurface
 {
     SURFACE_NORMAL,
-    SURFACE_ICE,
-    SURFACE_TRAMPOLINE
+    SURFACE_ICE
+};
+
+enum BlockCollider
+{
+    COLLIDER_NORMAL,
+    COLLIDER_BOUNCE
 };
 
 using BuildBlockFunc = bool(*)(World*, Chunk*, MeshData*, int, int, int, Block);
@@ -65,5 +70,6 @@ struct BlockData
     uint8_t alpha;
     Sound onSetSound;
     BlockSurface surface;
+    BlockCollider collider;
     char* name;
 };

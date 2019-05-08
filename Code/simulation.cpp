@@ -214,7 +214,7 @@ static inline bool TestWall(vec3 delta, vec3 p, float wallP, vec3 wMin, vec3 wMa
 	return false;
 }
 
-static void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 delta, float& tMin, vec3& normal)
+static inline void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 delta, float& tMin, vec3& normal, BlockCollider& collider)
 {
 	ExpandAABB(b, a.radius);
 	ShrinkAABB(a, a.radius);
@@ -237,7 +237,9 @@ static void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 del
 		if (delta.y < 0.0f)
 		{
 			player->colFlags |= HIT_DOWN;
-			player->surface = GetBlockSurface(world, GetBlock(world, bPos));
+			Block block = GetBlock(world, bPos);
+			player->surface = GetBlockSurface(world, block);
+			collider = GetBlockCollider(world, block);
 		}
 	}
 
@@ -246,6 +248,7 @@ static void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 del
 	{
 		normal = vec3(0.0f, -1.0f, 0.0f);
 		player->colFlags |= HIT_UP;
+		collider = GetBlockCollider(world, GetBlock(world, bPos));
 	}
 
 	// Left wall.
@@ -253,6 +256,7 @@ static void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 del
 	{
 		normal = vec3(-1.0f, 0.0f, 0.0f);
 		player->colFlags |= HIT_OTHER;
+		collider = GetBlockCollider(world, GetBlock(world, bPos));
 	}
 
 	// Right wall.
@@ -260,6 +264,7 @@ static void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 del
 	{
 		normal = vec3(1.0f, 0.0f, 0.0f);
 		player->colFlags |= HIT_OTHER;
+		collider = GetBlockCollider(world, GetBlock(world, bPos));
 	}
 
 	// Front wall.
@@ -267,6 +272,7 @@ static void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 del
 	{
 		normal = vec3(0.0f, 0.0f, 1.0f);
 		player->colFlags |= HIT_OTHER;
+		collider = GetBlockCollider(world, GetBlock(world, bPos));
 	}
 
 	// Back wall.
@@ -274,10 +280,11 @@ static void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 del
 	{
 		normal = vec3(0.0f, 0.0f, -1.0f);
 		player->colFlags |= HIT_OTHER;
+		collider = GetBlockCollider(world, GetBlock(world, bPos));
 	}
 }
 
-static void SetPlayerVelocity(Player* player, vec3 accel, float deltaTime)
+static void ApplyBlockSurface(Player* player, vec3 accel, float deltaTime)
 {
 	switch (player->surface)
 	{
@@ -316,7 +323,7 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	// to go from position down to velocity and then down to acceleration to see how 
 	// we can integrate back up.
 	vec3 delta = accel * 0.5f * Square(deltaTime) + player->velocity * deltaTime;
-	SetPlayerVelocity(player, accel, deltaTime);
+	ApplyBlockSurface(player, accel, deltaTime);
 	
 	vec3 target = player->pos + delta;
 	AABB playerBB = GetPlayerAABB(player);
@@ -370,10 +377,12 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 		float tMin = 1.0f;
 		vec3 normal = vec3(0.0f);
 
+		BlockCollider collider = COLLIDER_NORMAL;
+
 		for (int i = 0; i < player->possibleCollides.size(); i++)
 		{
 			AABB bb = player->possibleCollides[i];
-			TestCollision(world, player, playerBB, bb, delta, tMin, normal);
+			TestCollision(world, player, playerBB, bb, delta, tMin, normal, collider);
 	 	}
 
 	 	player->pos += delta * tMin;
@@ -392,9 +401,9 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 
 	 	playerBB = GetPlayerAABB(player);
 
-	 	switch (player->surface)
+	 	switch (collider)
 	 	{
-	 		case SURFACE_TRAMPOLINE:
+	 		case COLLIDER_BOUNCE:
 	 		{
 			 	player->velocity -= 2 * dot(player->velocity, normal) * normal * 0.9f;
 			 	delta -= 2 * dot(delta, normal) * normal * 0.9f;
