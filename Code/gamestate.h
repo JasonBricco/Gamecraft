@@ -56,6 +56,7 @@ struct GameState
 	float deltaTime;
 
 	ParticleEmitter rain;
+	ParticleEmitter fountain;
 
 	PauseState pauseState;
 	LoadingInfo loadInfo;

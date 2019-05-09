@@ -16,7 +16,7 @@ static char* g_buildType = "RELEASE";
 #define SWAP_INTERVAL 1
 #endif
 
-static int g_buildID = 249;
+static int g_buildID = 250;
 
 #pragma warning(push, 0)
 
@@ -252,12 +252,12 @@ static void ProcessLoading(GameState* state, World* world, float deltaTime)
 
 static void Update(GameState* state, Player* player, World* world, float deltaTime)
 {
+	Input& input = state->input;
+
 	if (state->pauseState == LOADING)
 		ProcessLoading(state, world, deltaTime);
 	else
 	{
-		Input& input = state->input;
-
 		if (KeyPressed(input, KEY_ESCAPE))
 		{
 			if (state->pauseState != PLAYING)
@@ -305,7 +305,15 @@ static void Update(GameState* state, Player* player, World* world, float deltaTi
 	Simulate(state, world, player, deltaTime);
 
 	state->rain.pos = vec3(player->pos.x, Max(265.0f, player->pos.y + 10.0f), player->pos.z);
-	UpdateParticles(state->rain, world, deltaTime);
+	UpdateRainParticles(state->rain, world, deltaTime);
+
+	if (KeyHeld(input, KEY_SHIFT) && KeyHeld(input, KEY_P) && KeyPressed(input, KEY_1))
+		state->fountain.active = !state->fountain.active;
+
+	if (state->fountain.active)
+		state->fountain.pos = vec3(player->pos.x + 6.0f, player->pos.y, player->pos.z);
+
+	UpdateFountainParticles(state->fountain, world, deltaTime);
 }
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
@@ -365,7 +373,11 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPos(window, screenWidth / 2.0f, screenHeight / 2.0f);
 
-	InitParticleEmitter(rend, state->rain, 12, 20.0f);
+	InitParticleEmitter(rend, state->rain, 1, 8);
+	SetEmitterProperties(state->rain, 12, 20.0f, 10.0f);
+
+	InitParticleEmitter(rend, state->fountain, 4, 4);
+	SetEmitterProperties(state->fountain, 3, 0.25f, 2.0f);
 
 	WorldConfig worldConfig = {};
 	worldConfig.radius = 1024;

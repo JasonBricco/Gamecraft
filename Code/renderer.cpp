@@ -522,7 +522,8 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	if (!rend.disableFluidCull)
 		glDisable(GL_CULL_FACE);
 
-	DrawParticles(state, state->rain, cam);
+	DrawParticles(state, state->rain, cam, IMAGE_RAIN);
+	DrawParticles(state, state->fountain, cam, IMAGE_GENERIC_PARTICLE);
 
 	glDisable(GL_DEPTH_TEST);
 

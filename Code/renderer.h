@@ -2,6 +2,7 @@
 // Gamecraft
 //
 
+#define PIXELS_PER_UNIT 32.0f
 #define CAMERA_FOV 45.0f
 #define WORLD_UP vec3(0.0f, 1.0f, 0.0f)
 

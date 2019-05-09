@@ -7,7 +7,7 @@
 struct Particle
 {
 	vec3 pos, wPos;
-	vec3 velocity;
+	vec3 accel, velocity;
 	float timeLeft;
 };
 
@@ -18,10 +18,10 @@ struct ParticleEmitter
 	Particle particles[MAX_PARTICLES];
 	int count;
 	int spawnCount;
-	float timer;
+	float lifeTime, timer;
 	float radius;
 	Mesh mesh;
 	GLuint modelBuffer;
 };
 
-static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* cam);
+static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* cam, ImageID image);
