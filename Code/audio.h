@@ -29,7 +29,7 @@ struct AudioEngine : public IXAudio2VoiceCallback
 	float maxMusicVolume, lastMusicVolume;
 	bool muted;
 
-	LerpData volumeLerp;
+	LerpData<float> volumeLerp;
 
 	void OnVoiceProcessingPassStart(UINT32 bytesRequired);
 	void OnVoiceProcessingPassEnd() {}

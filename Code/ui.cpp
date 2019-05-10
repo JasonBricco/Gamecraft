@@ -264,14 +264,14 @@ static inline ImVec2 GetButtonLoc(ImVec2 btnSize, float winW, float y)
     return ImVec2(winW * 0.5f - (btnSize.x * 0.5f), y);
 }
 
-static void CreatePauseUI(GameState* state, GLFWwindow* window)
+static void CreatePauseUI(GameState* state, World* world, GLFWwindow* window)
 {
     ImVec2 size = CenteredUIWindow(175.0f, 220.0f);
 
     ImGui::Begin("Pause", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
     WindowHeader("Paused", size.x);
 
-    ImVec2 btnSize = ImVec2(100.0f, 30.0f);
+    ImVec2 btnSize = ImVec2(110.0f, 30.0f);
     ImVec2 cursorPos = GetButtonLoc(btnSize, size.x, 35.0f);
 
     ImGui::SetCursorPos(cursorPos);
@@ -288,11 +288,17 @@ static void CreatePauseUI(GameState* state, GLFWwindow* window)
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
 
-    bool raining = state->rain.active;
+    Weather& weather = GetCurrentBiome(world).weather;
+    bool weatherOn = weather.emitter->active;
 
-    if (ImGui::Button(raining ? "Disable Rain" : "Enable Rain", btnSize))
+    if (ImGui::Button(weatherOn ? "Disable Weather" : "Enable Weather", btnSize))
     {
-        state->rain.active = !raining;
+        weather.emitter->active = !weatherOn;
+
+        if (!weatherOn)
+            FadeDarker(world, state->renderer, 3.0f);
+        else FadeLighter(world, state->renderer, 3.0f);
+
         Unpause(state);
     }
 
@@ -486,6 +492,12 @@ static void CreateDebugHUD(World* world)
 
     ImGui::Text(buildText);
 
+    Biome& biome = GetCurrentBiome(world);
+
+    char biomeText[32];
+    sprintf(biomeText, "Biome: %s", biome.name);
+    ImGui::Text(biomeText);
+
     WorldP playerBlock = LWorldToWorldP(world, BlockPos(world->player->pos));
 
     char playerP[64];
@@ -599,7 +611,7 @@ static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldCo
     switch (state->pauseState)
     {
         case PAUSED:
-            CreatePauseUI(state, window);
+            CreatePauseUI(state, world, window);
             break;
 
         case SELECTING_BLOCK:

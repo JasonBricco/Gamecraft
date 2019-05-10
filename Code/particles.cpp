@@ -2,8 +2,11 @@
 // Gamecraft
 //
 
-static void InitParticleEmitter(Renderer& rend, ParticleEmitter& emitter, int w, int h)
+static void InitParticleEmitter(Renderer& rend, ParticleEmitter& emitter, int w, int h, int maxParticles)
 {
+	emitter.maxParticles = maxParticles;
+	emitter.particles = new Particle[maxParticles];
+
 	MeshData* data = GetMeshData(rend.meshData);
 	assert(data != nullptr);
 	
@@ -23,7 +26,7 @@ static void InitParticleEmitter(Renderer& rend, ParticleEmitter& emitter, int w,
 
 	glGenBuffers(1, &emitter.modelBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, emitter.modelBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(mat4) * MAX_PARTICLES, NULL, GL_STREAM_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(mat4) * emitter.maxParticles, NULL, GL_STREAM_DRAW);
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -34,11 +37,13 @@ static void InitParticleEmitter(Renderer& rend, ParticleEmitter& emitter, int w,
 	}
 }
 
-static void SetEmitterProperties(ParticleEmitter& emitter, int spawnCount, float radius, float lifeTime)
+static void SetEmitterProperties(ParticleEmitter& emitter, ImageID image, int spawnCount, float radius, float lifeTime, ParticleFunc updateFunc)
 {
 	emitter.spawnCount = spawnCount;
 	emitter.radius = radius;
 	emitter.lifeTime = lifeTime;
+	emitter.image = image;
+	emitter.update = updateFunc;
 }
 
 static inline void DestroyParticle(ParticleEmitter& emitter, int index)
@@ -47,7 +52,13 @@ static inline void DestroyParticle(ParticleEmitter& emitter, int index)
 	emitter.count--;
 }
 
-static void SpawnParticles(ParticleEmitter& emitter, float accelX, float accelZ, vec3 velocity, float deltaTime)
+static void DestroyAllParticles(ParticleEmitter& emitter)
+{
+	for (int i = emitter.count - 1; i >= 0; i--)
+		DestroyParticle(emitter, i);
+}
+
+static void SpawnParticles(ParticleEmitter& emitter, vec3 accel, vec3 velocity, float deltaTime)
 {
 	emitter.timer -= deltaTime;
 
@@ -60,10 +71,11 @@ static void SpawnParticles(ParticleEmitter& emitter, float accelX, float accelZ,
 
 			Particle particle;
 			particle.pos = vec3(x, emitter.pos.y, z);
-			particle.accel = vec3(accelX, -15.0f, accelZ);
+			particle.accel = accel;
 			particle.velocity = velocity;
 			particle.timeLeft = emitter.lifeTime;
 			emitter.particles[emitter.count++] = particle;
+			assert(emitter.count < emitter.maxParticles);
 		}
 
 		emitter.timer = 0.01f;
@@ -80,7 +92,7 @@ static inline void MoveParticleLocal(Particle& particle, vec3 emitterP, float de
 
 static void UpdateRainParticles(ParticleEmitter& emitter, World* world, float deltaTime)
 {
-	SpawnParticles(emitter, 0.0f, 0.0f, vec3(0.0f), deltaTime);
+	SpawnParticles(emitter, vec3(0.0f, -15.0f, 0.0f), vec3(0.0f), deltaTime);
 
 	for (int i = emitter.count - 1; i >= 0; i--)
 	{
@@ -102,9 +114,9 @@ static void UpdateRainParticles(ParticleEmitter& emitter, World* world, float de
 	}
 }
 
-static void UpdateFountainParticles(ParticleEmitter& emitter, World* world, float deltaTime)
+static void UpdateSnowParticles(ParticleEmitter& emitter, World* world, float deltaTime)
 {
-	SpawnParticles(emitter, 0.0f, 0.0f, vec3(0.0f, 5.0f, 0.0f), deltaTime);
+	SpawnParticles(emitter, vec3(0.0f), vec3(RandNormal() * 5.0f, -20.0f, RandNormal() * 5.0f), deltaTime);
 
 	for (int i = emitter.count - 1; i >= 0; i--)
 	{
@@ -117,21 +129,17 @@ static void UpdateFountainParticles(ParticleEmitter& emitter, World* world, floa
 			continue;
 		}
 
-		MoveParticleLocal(particle, emitter.pos, deltaTime);
+		particle.pos += (particle.velocity * deltaTime);
+		particle.wPos = vec3(emitter.pos.x + particle.pos.x, particle.pos.y, emitter.pos.z + particle.pos.z);
 
-		ivec3 bPos = BlockPos(particle.wPos);
-		Block block = GetBlock(world, bPos);
+		Block block = GetBlock(world, BlockPos(particle.wPos));
 
 		if (!IsPassable(world, block))
-		{
-			float diff = abs(particle.wPos.y - bPos.y);
-			particle.pos.y += diff;
-			particle.velocity.y = -particle.velocity.y * 0.3f;
-		}
+			DestroyParticle(emitter, i);
 	}
 }
 
-static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* cam, ImageID image)
+static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* cam)
 {
 	if (emitter.count == 0) return;
 
@@ -152,7 +160,7 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 	SetUniform(shader->view, cam->view);
 	SetUniform(shader->proj, state->renderer.perspective);
 
-	glBindTexture(GL_TEXTURE_2D, GetTexture(state, image).id);
+	glBindTexture(GL_TEXTURE_2D, GetTexture(state, emitter.image).id);
 
 	glBindVertexArray(emitter.mesh.va);
 	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh.indexCount, GL_UNSIGNED_SHORT, 0, emitter.count);

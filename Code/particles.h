@@ -2,7 +2,9 @@
 // Gamecraft
 //
 
-#define MAX_PARTICLES 8192
+struct ParticleEmitter;
+
+using ParticleFunc = void(*)(ParticleEmitter& emitter, World* world, float deltaTime);
 
 struct Particle
 {
@@ -15,13 +17,15 @@ struct ParticleEmitter
 {
 	bool active;
 	vec3 pos;
-	Particle particles[MAX_PARTICLES];
-	int count;
-	int spawnCount;
+	Particle* particles;
+	int count, spawnCount;
+	int maxParticles;
 	float lifeTime, timer;
 	float radius;
+	ImageID image;
 	Mesh mesh;
 	GLuint modelBuffer;
+	ParticleFunc update;
 };
 
-static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* cam, ImageID image);
+static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* cam);

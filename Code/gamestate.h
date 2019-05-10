@@ -50,13 +50,10 @@ struct GameState
 	AudioEngine audio;
 	UI ui;
 
-	float ambient;
-	vec3 clearColor;
-
 	float deltaTime;
 
 	ParticleEmitter rain;
-	ParticleEmitter fountain;
+	ParticleEmitter snow;
 
 	PauseState pauseState;
 	LoadingInfo loadInfo;

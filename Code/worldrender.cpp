@@ -148,7 +148,7 @@ static void RemoveOverflowAndRebuild(World* world, Chunk* chunk)
     }
 }
 
-static void ProcessVisibleChunks(GameState* state, World* world, Renderer& rend)
+static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
 {
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
         rend.meshLists[i].clear();
@@ -208,6 +208,9 @@ static void ProcessVisibleChunks(GameState* state, World* world, Renderer& rend)
             } break;
         }
     }
+
+    Biome& biome = GetCurrentBiome(world);
+    rend.emitters.push_back(biome.weather.emitter);
 }
 
 static void GetVisibleChunks(World* world, Camera* cam)

@@ -114,6 +114,14 @@ static inline float Clamp(float value, float min, float max)
     return value <= min ? min : value >= max ? max : value;
 }
 
+static inline ivec3 Clamp(ivec3 v, int min, int max)
+{
+    v.x = Clamp(v.x, min, max);
+    v.y = Clamp(v.y, min, max);
+    v.z = Clamp(v.z, min, max);
+    return v;
+}
+
 static inline int Square(int value)
 {
     return value * value;
@@ -142,6 +150,11 @@ static inline ivec3 CeilToInt(vec3 value)
 static inline int RoundToInt(float value)
 {
     return (int)roundf(value);
+}
+
+static inline ivec3 RoundToInt(vec3 v)
+{
+    return ivec3(RoundToInt(v.x), RoundToInt(v.y), RoundToInt(v.z));
 }
 
 static inline int FloorToInt(float value)
@@ -184,16 +197,33 @@ static inline vec3 GetV3(ivec3 v)
     return { v.x, v.y, v.z };
 }
 
+template <typename T>
 struct LerpData
 {
-    float start, end;
+    T start, end;
     float t, time;
 };
 
 // Linear interpolation.
-static inline float Lerp(float a, float b, float t)
+template <typename T>
+static inline T Lerp(T a, T b, float t)
 {
     return a + t * (b - a);
+}
+
+template <typename T>
+static inline T Lerp(LerpData<T>& data, float deltaTime, bool& complete)
+{
+    T result = Lerp(data.start, data.end, data.t);
+    data.t += deltaTime / data.time;
+
+    if (data.t >= 1.0f)
+    {
+        result = data.end;
+        complete = true;
+    }
+
+    return result;
 }
 
 static inline float SCurve3(float a)

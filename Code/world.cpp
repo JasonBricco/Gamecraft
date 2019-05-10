@@ -122,6 +122,11 @@ static inline WorldP LWorldToWorldP(World* world, LWorldP p)
     return ivec3(wP.x + rel.x, p.y, wP.z + rel.z);
 }
 
+static inline Biome& GetCurrentBiome(World* world)
+{
+    return world->biomes[world->properties.biome];
+}
+
 // Returns an index into the chunk group array from the given chunk position.
 static inline int32_t GroupIndex(World* world, int32_t lcX, int32_t lcZ)
 {
@@ -643,7 +648,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     GetCameraPlanes(cam);
     GetVisibleChunks(world, cam);
 
-    ProcessVisibleChunks(state, world, state->renderer);
+    PrepareWorldRender(state, world, state->renderer);
 
     auto& destroyQueue = world->destroyQueue;
     int destroyLim = 0;
@@ -681,7 +686,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         // Load range worth of groups on each side plus the middle group.
         world->size = (loadRange * 2) + 1;
 
-        CreateBiomes(world);
+        CreateBiomes(state, world);
 
         world->totalGroups = Square(world->size);
         world->groups = new ChunkGroup*[world->totalGroups]();
@@ -723,6 +728,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         world->properties.homePos = {};
     }
 
+    ResetEnvironment(state, world);
     world->falloffRadius = world->properties.radius - (CHUNK_SIZE_H * 2);
 
     world->spawnGroup = ivec3(0, 0, 0);

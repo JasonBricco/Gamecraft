@@ -184,7 +184,7 @@ static void UpdateAudio(AudioEngine* engine, float deltaTime)
 	if (engine->muted) return;
 
 	IXAudio2SourceVoice* music = engine->musicSource;
-	LerpData& lData = engine->volumeLerp;
+	LerpData<float>& lData = engine->volumeLerp;
 
 	if (lData.t < 1.0f)
 	{

@@ -261,15 +261,25 @@ static void ListUniforms(Shader* shader)
 	}
 }
 
+static void ApplyClearColor(GameState* state, Renderer& rend)
+{
+	glClearColor(rend.clearColor.r, rend.clearColor.g, rend.clearColor.b, 1.0f);
+
+	AssetDatabase& db = state->assets;
+
+	Shader* diffuseArray = &db.shaders[SHADER_DIFFUSE_ARRAY];
+	UseShader(diffuseArray);
+	SetUniform(diffuseArray->fogColor, rend.clearColor);
+
+	Shader* fluidArray = &db.shaders[SHADER_FLUID_ARRAY];
+	UseShader(fluidArray);
+    SetUniform(fluidArray->fogColor, rend.clearColor);
+}
+
 static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int screenHeight, int threads)
 {
 	rend.meshData.Create(threads * MESH_TYPE_COUNT * 2);
 
-	state->ambient = 1.0f;
-	vec3 clearColor = vec3(0.53f, 0.80f, 0.92f);
-	state->clearColor = clearColor;
-
-	glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_CULL_FACE);
 
@@ -294,7 +304,6 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
     UseShader(diffuseArray);
     SetUniform(diffuseArray->fogStart, fogStart);
     SetUniform(diffuseArray->fogEnd, fogEnd);
-    SetUniform(diffuseArray->fogColor, clearColor);
 
     Shader* fluidArray = &db.shaders[SHADER_FLUID_ARRAY];
     fluidArray->view = glGetUniformLocation(fluidArray->handle, "view");
@@ -309,7 +318,6 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
     UseShader(fluidArray);
     SetUniform(fluidArray->fogStart, fogStart);
     SetUniform(fluidArray->fogEnd, fogEnd);
-    SetUniform(fluidArray->fogColor, clearColor);
 
     Shader* crosshair = &db.shaders[SHADER_CROSSHAIR];
     crosshair->model = glGetUniformLocation(crosshair->handle, "model");
@@ -474,7 +482,7 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);
 	SetUniform(shader->proj, rend.perspective);
-	SetUniform(shader->ambient, state->ambient);
+	SetUniform(shader->ambient, rend.ambient);
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, GetBlockTextureArray(state).id);
 	size_t count = rend.meshLists[MESH_TYPE_OPAQUE].size();
@@ -505,7 +513,7 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	SetUniform(shader->proj, rend.perspective);
 	assert(rend.animTime >= 0.0f && rend.animTime < 1.0f);
 	SetUniform(shader->time, rend.animTime);
-	SetUniform(shader->ambient, state->ambient);
+	SetUniform(shader->ambient, rend.ambient);
 
 	if (rend.disableFluidCull) 
 		glDisable(GL_CULL_FACE);
@@ -522,8 +530,10 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	if (!rend.disableFluidCull)
 		glDisable(GL_CULL_FACE);
 
-	DrawParticles(state, state->rain, cam, IMAGE_RAIN);
-	DrawParticles(state, state->fountain, cam, IMAGE_GENERIC_PARTICLE);
+	for (int i = 0; i < rend.emitters.size(); i++)
+		DrawParticles(state, *rend.emitters[i], cam);
+
+	rend.emitters.clear();
 
 	glDisable(GL_DEPTH_TEST);
 

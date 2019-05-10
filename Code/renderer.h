@@ -67,6 +67,7 @@ struct Renderer
     mat4 perspective;
 
     vector<ChunkMesh> meshLists[MESH_TYPE_COUNT];
+    vector<ParticleEmitter*> emitters;
 
     Graphic* crosshair;
 
@@ -80,6 +81,13 @@ struct Renderer
 
     // Time for shader animation.
     float animTime;
+
+    float ambient;
+    vec3 clearColor;
+
+    bool fadeEnv;
+    LerpData<vec3> clearColorLerp;
+    LerpData<float> ambientLerp;
 
     // Antialiasing.
     int samplesAA;

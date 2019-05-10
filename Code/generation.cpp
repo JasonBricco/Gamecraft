@@ -521,36 +521,3 @@ static void GenerateVoidTerrain(World*, ChunkGroup* group)
         }
     }
 }
-
-static void CreateBiomes(World* world)
-{
-    Biome& grassy = world->biomes[BIOME_GRASSY];
-    grassy.name = "Grassy";
-    grassy.type = BIOME_GRASSY;
-    grassy.func = GenerateGrassyTerrain;
-
-    Biome& snow = world->biomes[BIOME_SNOW];
-    snow.name = "Snow";
-    snow.type = BIOME_SNOW;
-    snow.func = GenerateSnowTerrain;
-
-    Biome& desert = world->biomes[BIOME_DESERT];
-    desert.name = "Desert";
-    desert.type = BIOME_DESERT;
-    desert.func = GenerateDesertTerrain;
-
-    Biome& grid = world->biomes[BIOME_GRID];
-    grid.name = "Grid";
-    grid.type = BIOME_GRID;
-    grid.func = GenerateGridTerrain;
-
-    Biome& flat = world->biomes[BIOME_FLAT];
-    flat.name = "Flat";
-    flat.type = BIOME_FLAT;
-    flat.func = GenerateFlatTerrain;
-
-    Biome& empty = world->biomes[BIOME_VOID];
-    empty.name = "Void";
-    empty.type = BIOME_VOID;
-    empty.func = GenerateVoidTerrain;
-}
