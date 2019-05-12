@@ -7,6 +7,8 @@
 #define REGION_SIZE_3 256
 #define REGION_MASK 7
 
+typedef list<Region*>::iterator RegionEntry;
+
 struct Region
 {
     RegionP pos;

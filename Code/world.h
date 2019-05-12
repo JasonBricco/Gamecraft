@@ -141,8 +141,7 @@ struct World
     char* savePath;
 
     // Doubly-linked list of loaded regions.
-    Region* firstRegion;
-    int regionCount;
+    list<Region*> regions;
 
     CRITICAL_SECTION regionCS;
     CONDITION_VARIABLE regionsEmpty;

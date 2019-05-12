@@ -134,63 +134,32 @@ static void SaveRegion(World* world, Region* region)
 
 static void SaveAllRegions(World* world)
 {
-    assert(world->firstRegion != nullptr);
-
-    for (Region* region = world->firstRegion; region != nullptr; region = region->next)
+    for (Region* region : world->regions)
         SaveRegion(world, region);
 }
 
-static inline void AddRegion(World* world, Region* region)
+static RegionEntry GetRegion(World* world, RegionP pos)
 {
-    if (world->firstRegion == nullptr)
-        world->firstRegion = region;
-    else
+    for (auto it = world->regions.begin(); it != world->regions.end(); it++)
     {
-        world->firstRegion->prev = region;
-        region->next = world->firstRegion;
-        world->firstRegion = region;
+        if ((*it)->pos == pos)
+            return it;
     }
 
-    world->regionCount++;
-}
-
-static inline void RemoveRegion(World* world, Region* region)
-{
-    if (region->prev != nullptr)
-        region->prev->next = region->next;
-
-    if (region->next != nullptr)
-        region->next->prev = region->prev;
-
-    world->regionCount--;
-
-    if (region == world->firstRegion)
-        world->firstRegion = region->next;
-
-    memset(region, 0, sizeof(Region));
-    world->regionPool.Return(region);
-}
-
-static Region* GetRegion(World* world, RegionP pos)
-{
-    for (Region* region = world->firstRegion; region != nullptr; region = region->next)
-    {
-        if (region->pos == pos)
-            return region;
-    }
-        
-    return nullptr;
+    return world->regions.end();
 }
 
 static Region* GetOrLoadRegion(World* world, RegionP pos)
 {
-    Region* region = GetRegion(world, pos);
+    RegionEntry entry = GetRegion(world, pos);
+    Region* region;
 
-    if (region == nullptr)
+    if (entry == world->regions.end())
     {
         region = LoadRegionFile(world, pos);
-        AddRegion(world, region);
+        world->regions.push_back(region);
     }
+    else region = *entry;
 
     return region;
 }
@@ -257,13 +226,17 @@ static void RemoveFromRegion(World* world, ChunkGroup* group)
 
     EnterCriticalSection(&world->regionCS);
 
-    Region* region = GetRegion(world, regionP);
+    RegionEntry it = GetRegion(world, regionP);
+
+    Region* region = *it;
     region->activeCount--;
 
     if (region->activeCount == 0)
     {
         SaveRegion(world, region);
-        RemoveRegion(world, region);
+        memset(region, 0, sizeof(Region));
+        world->regionPool.Return(region);
+        world->regions.erase(it);
     }
 
     LeaveCriticalSection(&world->regionCS);
@@ -283,8 +256,9 @@ static void SaveGroup(GameState*, World* world, void* groupPtr)
 
         RegionP regionP = ChunkToRegionP(p);
         
-        Region* region = GetRegion(world, regionP);
-        assert(region != nullptr);
+        RegionEntry entry = GetRegion(world, regionP);
+        assert(entry != world->regions.end());
+        Region* region = *entry;
 
         region->modified = true;
 
