@@ -52,7 +52,6 @@ enum ChunkState
     CHUNK_DEFAULT,
     CHUNK_LOADED_DATA,
     CHUNK_BUILDING,
-    CHUNK_REBUILDING,
     CHUNK_NEEDS_FILL,
     CHUNK_BUILT,
     CHUNK_STATE_COUNT
@@ -149,6 +148,7 @@ struct World
     ChunkGroup* groupHash[GROUP_HASH_SIZE];
 
     vector<Chunk*> visibleChunks;
+    vector<Chunk*> chunksToRebuild;
 
     // Chunks currently awaiting destruction.
     queue<ChunkGroup*> destroyQueue;
@@ -170,8 +170,7 @@ struct World
     CRITICAL_SECTION regionCS;
     CONDITION_VARIABLE regionsEmpty;
 
-    bool chunkRebuilding;
-    CRITICAL_SECTION updateCS;
+    bool chunksRebuilding;
 
     Player* player;
 
@@ -192,6 +191,13 @@ struct RebasedPos
 {
     Chunk* chunk;
     int rX, rY, rZ;
+};
+
+struct NeighborBlocks
+{
+    RebasedPos up, down;
+    RebasedPos front, back;
+    RebasedPos left, right;
 };
 
 struct WorldConfig

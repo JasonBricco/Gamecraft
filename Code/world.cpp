@@ -273,6 +273,76 @@ static inline Block GetBlock(Chunk* chunk, RelP pos)
     return GetBlock(chunk, pos.x, pos.y, pos.z);
 }
 
+static inline NeighborBlocks GetNeighborBlocks(World* world, Chunk* chunk, int x, int y, int z)
+{
+    LChunkP lcP = chunk->lcPos;
+
+    RebasedPos up = { chunk, x, y + 1, z };
+    RebasedPos down = { chunk, x, y - 1, z };
+    RebasedPos front = { chunk, x, y, z + 1 };
+    RebasedPos back = { chunk, x, y, z - 1 };
+    RebasedPos left = { chunk, x - 1, y, z };
+    RebasedPos right = { chunk, x + 1, y, z };
+
+    if (up.rY == CHUNK_SIZE_V)
+    {
+        LChunkP tar = lcP + DIR_UP;
+
+        if (tar.y >= WORLD_CHUNK_HEIGHT)
+        {
+            up.chunk = nullptr;
+            up.rY = 1;
+        }
+        else
+        {
+            up.chunk = GetChunk(world, tar);
+            up.rY = 0;
+        }
+    }
+
+    if (down.rY < 0)
+    {
+        LChunkP tar = lcP + DIR_DOWN;
+
+        if (tar.y < 0)
+        {
+            down.chunk = nullptr;
+            down.rY = -1;
+        }
+        else
+        {
+            down.chunk = GetChunk(world, tar);
+            down.rY = CHUNK_V_MASK;
+        }
+    }
+
+    if (right.rX == CHUNK_SIZE_H)
+    {
+        right.chunk = GetChunk(world, lcP + DIR_RIGHT);
+        right.rX = 0;
+    }
+
+    if (left.rX < 0)
+    {
+        left.chunk = GetChunk(world, lcP + DIR_LEFT);
+        left.rX = CHUNK_H_MASK;
+    }
+
+    if (front.rZ == CHUNK_SIZE_H)
+    {
+        front.chunk = GetChunk(world, lcP + DIR_FRONT);
+        front.rZ = 0;
+    }
+
+    if (back.rZ < 0)
+    {
+        back.chunk = GetChunk(world, lcP + DIR_BACK);
+        back.rZ = CHUNK_H_MASK;
+    }
+
+    return { up, down, front, back, left, right };
+}
+
 static inline RebasedPos Rebase(World* world, LChunkP lP, int rX, int rY, int rZ)
 {
     assert(ChunkInsideWorld(world, lP.x, lP.y, lP.z));
@@ -424,13 +494,25 @@ static inline void SetBlock(World* world, LWorldP wPos, Block block)
 	assert(chunk != nullptr);
     assert(!IsEdgeChunk(world, chunk));
 
-	RelP rP = LWorldToRelP(wPos);
+    // If the chunk doesn't have a build mask, we don't know its number of vertices.
+    // Setting the block in that case would be unsafe and could overflow the chunk.
+    if (!chunk->hasBuildMask)
+        return;
 
-    if (GetBlock(chunk, rP.x, rP.y, rP.z) != block)
+	RelP rP = LWorldToRelP(wPos);
+    int index = BlockIndex(rP.x, rP.y, rP.z);
+
+    if (chunk->blocks[index] != block)
     {
-        SetBlock(chunk, rP.x, rP.y, rP.z, block);
-        PlaySound(GetBlockSetSound(world, block));
-        FlagChunkForUpdate(world, chunk, lP, rP);
+        chunk->blocks[index] = block;
+
+        if (ChunkOverflowed(world, chunk, rP.x, rP.y, rP.z))
+            chunk->blocks[index] = BLOCK_AIR;
+        else
+        {
+            PlaySound(GetBlockSetSound(world, block));
+            FlagChunkForUpdate(world, chunk, lP, rP);
+        }
     }
 }
 
@@ -731,7 +813,6 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
 
         world->blockToSet = BLOCK_GRASS;
 
-        InitializeCriticalSection(&world->updateCS);
         InitializeCriticalSection(&world->regionCS);
         InitializeConditionVariable(&world->regionsEmpty);
     }

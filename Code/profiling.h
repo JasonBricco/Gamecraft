@@ -8,6 +8,7 @@
 enum MeasureSection
 {
     MEASURE_GAME_LOOP,
+    MEASURE_GENERIC,
     MEASURE_COUNT
 };
 
@@ -16,6 +17,7 @@ struct CycleCounter
     char* label;
     uint64_t cycles;
     uint64_t calls;
+    bool noFlush;
 };
 
 static CycleCounter g_counters[MEASURE_COUNT];
@@ -51,8 +53,11 @@ static void FlushCounters()
                 sprintf(buffer, "%s: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u\n", g_counters[i].label, cycles, calls, cyclesPerCall);
                 OutputDebugString(buffer);
 
-                g_counters[i].cycles = 0;
-                g_counters[i].calls = 0;
+                if (!g_counters[i].noFlush)
+                {
+                    g_counters[i].cycles = 0;
+                    g_counters[i].calls = 0;
+                }
             }
         }
 
@@ -60,15 +65,17 @@ static void FlushCounters()
     }
 }
 
-inline void EndTimedBlock(int ID, char* label, uint64_t start)
+inline void EndTimedBlock(int ID, char* label, uint64_t start, bool noFlush = false)
 {
     g_counters[ID].label = label;
     g_counters[ID].cycles += __rdtsc() - start;
     g_counters[ID].calls++;
+    g_counters[ID].noFlush = noFlush;
 }
 
 #define BEGIN_TIMED_BLOCK(ID) uint64_t startCount##ID = __rdtsc();
 #define END_TIMED_BLOCK(ID) EndTimedBlock(MEASURE_##ID, #ID, startCount##ID)
+#define END_TIMED_BLOCK_NO_FLUSH(ID) EndTimedBlock(MEASURE_##ID, #ID, startCount##ID, true)
 #define FLUSH_COUNTERS() FlushCounters();
 
 #else

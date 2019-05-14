@@ -31,21 +31,41 @@ static inline bool CheckFace(World* world, CullType cull, Block block, RebasedPo
     return false;
 }
 
-static inline void UpdateBlockMask(RebasedPos p, BuildMask mask)
-{
-    int index = BlockIndex(p.rX, p.rY, p.rZ);
-
-    if (p.chunk->blocks[index] != BLOCK_AIR)
-        p.chunk->buildMask[index] |= mask;
-}
-
 // Returns true if an assertion should be triggered due to overflow and 
 // false otherwise. If the chunk has a build mask already, we do not want 
 // to assert on overflow as we'll handle this case separately.
 static inline bool DebugOverflowCheck(Chunk* chunk, int vAdded)
 {
-    if (chunk->hasBuildMask) return false;
     return chunk->totalVertices + vAdded > MAX_VERTICES;
+}
+
+static inline bool ChunkOverflowed(World* world, Chunk* chunk, int x, int y, int z)
+{
+    int index = BlockIndex(x, y, z);
+    Block block = chunk->blocks[index];
+
+    if (block != BLOCK_AIR)
+    {
+        CullType cull = GetCullType(world, block);
+
+        // The number of vertices we'll add by building this block. If it exceeds the 
+        // chunk limit, we'll return immediately.
+        int vAdded = 0;
+
+        NeighborBlocks adj = GetNeighborBlocks(world, chunk, x, y, z);
+        
+        CheckFace(world, cull, block, adj.up, vAdded);
+        CheckFace(world, cull, block, adj.down, vAdded);
+        CheckFace(world, cull, block, adj.front, vAdded);
+        CheckFace(world, cull, block, adj.back, vAdded);
+        CheckFace(world, cull, block, adj.right, vAdded);
+        CheckFace(world, cull, block, adj.left, vAdded);
+
+        if (chunk->totalVertices + vAdded > MAX_VERTICES)
+            return true;
+    }
+
+    return false;
 }
 
 static void CreateBuildMask(World* world, Chunk* chunk)
@@ -55,69 +75,47 @@ static void CreateBuildMask(World* world, Chunk* chunk)
 
     chunk->totalVertices = 0;
 
-    for (int y = 0; y < CHUNK_SIZE_V; y++)
+    for (int z = 0; z < CHUNK_SIZE_H; z++)
     {
-        for (int z = 0; z < CHUNK_SIZE_H; z++)
+        for (int y = 0; y < CHUNK_SIZE_V; y++)
         {
             for (int x = 0; x < CHUNK_SIZE_H; x++)
             {
-                Block block = GetBlock(chunk, x, y, z);
+                int index = BlockIndex(x, y, z);
+                Block block = chunk->blocks[index];
 
                 if (block != BLOCK_AIR)
                 {
-                    int index = BlockIndex(x, y, z);
                     uint8_t& mask = chunk->buildMask[index];
-
                     CullType cull = GetCullType(world, block);
 
-                    // The number of vertices we'll add by building this block. If it exceeds the 
-                    // chunk limit, we'll return immediately.
                     int vAdded = 0;
-
-                    RebasedPos up = Rebase(world, chunk->lcPos, x, y + 1, z);
-                    RebasedPos down = Rebase(world, chunk->lcPos, x, y - 1, z);
-                    RebasedPos front = Rebase(world, chunk->lcPos, x, y, z + 1);
-                    RebasedPos back = Rebase(world, chunk->lcPos, x, y, z - 1);
-                    RebasedPos left = Rebase(world, chunk->lcPos, x - 1, y, z);
-                    RebasedPos right = Rebase(world, chunk->lcPos, x + 1, y, z);
+                    NeighborBlocks adj = GetNeighborBlocks(world, chunk, x, y, z);
                     
-                    if (CheckFace(world, cull, block, up, vAdded))
+                    if (CheckFace(world, cull, block, adj.up, vAdded))
                         mask |= BUILD_UP;
 
-                    if (CheckFace(world, cull, block, down, vAdded))
+                    if (CheckFace(world, cull, block, adj.down, vAdded))
                         mask |= BUILD_DOWN;
 
-                    if (CheckFace(world, cull, block, front, vAdded))
+                    if (CheckFace(world, cull, block, adj.front, vAdded))
                         mask |= BUILD_FRONT;
 
-                    if (CheckFace(world, cull, block, back, vAdded))
+                    if (CheckFace(world, cull, block, adj.back, vAdded))
                         mask |= BUILD_BACK;
 
-                    if (CheckFace(world, cull, block, right, vAdded))
+                    if (CheckFace(world, cull, block, adj.right, vAdded))
                         mask |= BUILD_RIGHT;
 
-                    if (CheckFace(world, cull, block, left, vAdded))
+                    if (CheckFace(world, cull, block, adj.left, vAdded))
                         mask |= BUILD_LEFT;
 
                     assert(!DebugOverflowCheck(chunk, vAdded));
-
-                    if (chunk->totalVertices + vAdded > MAX_VERTICES)
-                    {
-                        // TODO: we need to reject the blocks trying to be added.
-                        // We need a way to store those blocks. Use a hash table for
-                        // this. The key is the chunk position, and value is a list of
-                        // blocks being added. At the point of building the mask here,
-                        // we can clear the chunk from the table. Store the block we're
-                        // adding and what the block was, so we can fix the mask upon
-                        // rejection.
-                    }
-                    else chunk->totalVertices += vAdded;
+                    chunk->totalVertices += vAdded;
                 }
             }
         }
     }
-
-    Print("%d\n", chunk->totalVertices);
 
     chunk->hasBuildMask = true;
 }
@@ -126,8 +124,7 @@ static void CreateBuildMask(World* world, Chunk* chunk)
 static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
 {
     Chunk* chunk = (Chunk*)chunkPtr;
-    chunk->totalVertices = 0;
-
+    
     for (int y = 0; y < CHUNK_SIZE_V; y++)
     {
         for (int z = 0; z < CHUNK_SIZE_H; z++)
@@ -148,29 +145,47 @@ static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
     }
 }
 
+static void RebuildChunksAsync(GameState* state, World* world, void* chunksPtr)
+{
+    auto& chunks = *(vector<Chunk*>*)chunksPtr;
+
+    for (int i = 0; i < chunks.size(); i++)
+    {
+        // Rebuild the build mask to reflect the changes to this chunk. This can only
+        // be called if all neighbor groups are preprocessed, and only one rebuild
+        // is allowed at a time.
+        CreateBuildMask(world, chunks[i]);
+
+        BuildChunkAsync(state, world, chunks[i]);
+    }
+}
+
 static void OnChunkBuilt(GameState*, World* world, void* chunkPtr)
 {
     Chunk* chunk = (Chunk*)chunkPtr;
     world->workCount--;
     assert(world->workCount >= 0);
     chunk->state = CHUNK_NEEDS_FILL;
-
-    if (world->chunkRebuilding)
-    {
-        LeaveCriticalSection(&world->updateCS);
-        world->chunkRebuilding = false;
-    }
 }
 
-static bool BuildChunk(GameState* state, World* world, Chunk* chunk, ChunkState buildState)
+static void OnChunksRebuilt(GameState*, World* world, void* chunksPtr)
 {
-    Renderer& rend = state->renderer;
+    auto& chunks = *(vector<Chunk*>*)chunksPtr;
 
+    for (int i = 0; i < chunks.size(); i++)
+        chunks[i]->state = CHUNK_NEEDS_FILL;
+
+    chunks.clear();
+
+    world->chunksRebuilding = false;
+
+    world->workCount--;
+    assert(world->workCount >= 0);
+}
+
+static inline bool SetChunkMeshData(Renderer& rend, Chunk* chunk)
+{
     assert(chunk->state != CHUNK_BUILDING);
-    assert(chunk->state != CHUNK_REBUILDING);
-
-    if (!rend.meshData.CanGet(MESH_TYPE_COUNT))
-        return false;
 
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
     {
@@ -178,21 +193,42 @@ static bool BuildChunk(GameState* state, World* world, Chunk* chunk, ChunkState 
         chunk->meshData[i] = GetMeshData(rend.meshData);
     }
 
-    world->workCount++;
-    chunk->state = buildState;
+    return true;
+}
 
-    if (buildState == CHUNK_REBUILDING)
-    {
-        // Only allow a single chunk to rebuild at a time in the background
-        // to prevent threading issues with updating lighting/build masks.
-        EnterCriticalSection(&world->updateCS);
-        world->chunkRebuilding = true;
-        CreateBuildMask(world, chunk);
-    }
+static void BuildChunk(GameState* state, World* world, Chunk* chunk)
+{
+    Renderer& rend = state->renderer;
+
+    if (!rend.meshData.CanGet(MESH_TYPE_COUNT))
+        return;
+
+    SetChunkMeshData(rend, chunk);
+
+    world->workCount++;
+    chunk->state = CHUNK_BUILDING;
 
     QueueAsync(state, BuildChunkAsync, world, chunk, OnChunkBuilt);
+}
 
-    return true;
+static void RebuildChunks(GameState* state, World* world)
+{
+    Renderer& rend = state->renderer;
+    auto& chunks = world->chunksToRebuild;
+
+    if (!rend.meshData.CanGet(MESH_TYPE_COUNT * (int)chunks.size()))
+        return;
+
+    for (int i = 0; i < chunks.size(); i++)
+    {
+        chunks[i]->pendingUpdate = false;
+        SetChunkMeshData(rend, chunks[i]);
+    }
+
+    world->workCount++;
+    world->chunksRebuilding = true;
+
+    QueueAsync(state, RebuildChunksAsync, world, &world->chunksToRebuild, OnChunksRebuilt);
 }
 
 static void ReturnChunkMeshes(Renderer& rend, Chunk* chunk)
@@ -238,12 +274,6 @@ static void DestroyChunkMeshes(Chunk* chunk)
 {
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
         DestroyMesh(chunk->meshes[i]);
-}
-
-static void RebuildChunk(GameState* state, World* world, Chunk* chunk)
-{
-    if (BuildChunk(state, world, chunk, CHUNK_REBUILDING))
-        chunk->pendingUpdate = false;
 }
 
 static bool AllowPreprocess(World* world, ChunkGroup* group)
@@ -294,7 +324,7 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
         {
             case CHUNK_DEFAULT:
             case CHUNK_LOADED_DATA:
-                BuildChunk(state, world, chunk, CHUNK_BUILDING);
+                BuildChunk(state, world, chunk);
                 break;
 
             case CHUNK_NEEDS_FILL:
@@ -307,10 +337,9 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
             }
 
             case CHUNK_BUILT:
-            case CHUNK_REBUILDING:
             {
-                if (chunk->state != CHUNK_REBUILDING && chunk->pendingUpdate)
-                    RebuildChunk(state, world, chunk);
+                if (chunk->pendingUpdate)
+                    world->chunksToRebuild.push_back(chunk);
 
                 for (int m = 0; m < MESH_TYPE_COUNT; m++)
                 {
@@ -326,6 +355,9 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
             } break;
         }
     }
+
+    if (!world->chunksRebuilding && world->chunksToRebuild.size() > 0)
+        RebuildChunks(state, world);
 
     Biome& biome = GetCurrentBiome(world);
     rend.emitters.push_back(biome.weather.emitter);
@@ -463,8 +495,8 @@ static inline ivec3 VertexLight(World* world, Chunk* chunk, Axis axis, RelP pos,
     if (t1 || t2) 
     {
         u8vec3 c1 = BLOCK_TRANSPARENT(a) ? u8vec3(255) : u8vec3(65);
-        u8vec3 c2 = BLOCK_TRANSPARENT(b) ? u8vec3(255) : u8vec3(65);
-        u8vec3 c3 = BLOCK_TRANSPARENT(c) ? u8vec3(255) : u8vec3(65);
+        u8vec3 c2 = t1 ? u8vec3(255) : u8vec3(65);
+        u8vec3 c3 = t2 ? u8vec3(255) : u8vec3(65);
         u8vec3 c4 = BLOCK_TRANSPARENT(d) ? u8vec3(255) : u8vec3(65);
 
         return AverageColor(c1, c2, c3, c4);
@@ -472,8 +504,8 @@ static inline ivec3 VertexLight(World* world, Chunk* chunk, Axis axis, RelP pos,
     else 
     {
         u8vec3 c1 = BLOCK_TRANSPARENT(a) ? u8vec3(255) : u8vec3(65);
-        u8vec3 c2 = BLOCK_TRANSPARENT(b) ? u8vec3(255) : u8vec3(65);
-        u8vec3 c3 = BLOCK_TRANSPARENT(c) ? u8vec3(255) : u8vec3(65);
+        u8vec3 c2 = t1 ? u8vec3(255) : u8vec3(65);
+        u8vec3 c3 = t2 ? u8vec3(255) : u8vec3(65);
 
         return AverageColor(c1, c2, c3);
     }
