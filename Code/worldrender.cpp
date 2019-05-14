@@ -2,6 +2,126 @@
 // Gamecraft
 //
 
+// Returns true if the current block should draw its face when placed
+// next to the adjacent block.
+static inline bool CanDrawFace(World* world, CullType cur, Block block, Block adjBlock)
+{
+    CullType adj = GetCullType(world, adjBlock);
+
+    switch (cur)
+    {
+        case CULL_OPAQUE:
+            return adj >= CULL_TRANSPARENT;
+        
+        case CULL_TRANSPARENT:
+            return adj >= CULL_TRANSPARENT && adjBlock != block;
+    }
+
+    return false;
+}
+
+static inline bool CheckFace(World* world, CullType cull, Block block, RebasedPos p, int& vAdded)
+{
+    if (CanDrawFace(world, cull, block, GetBlockSafe(p)))
+    {
+        vAdded += 4;
+        return true;
+    }
+
+    return false;
+}
+
+static inline void UpdateBlockMask(RebasedPos p, BuildMask mask)
+{
+    int index = BlockIndex(p.rX, p.rY, p.rZ);
+
+    if (p.chunk->blocks[index] != BLOCK_AIR)
+        p.chunk->buildMask[index] |= mask;
+}
+
+// Returns true if an assertion should be triggered due to overflow and 
+// false otherwise. If the chunk has a build mask already, we do not want 
+// to assert on overflow as we'll handle this case separately.
+static inline bool DebugOverflowCheck(Chunk* chunk, int vAdded)
+{
+    if (chunk->hasBuildMask) return false;
+    return chunk->totalVertices + vAdded > MAX_VERTICES;
+}
+
+static void CreateBuildMask(World* world, Chunk* chunk)
+{
+    if (chunk->hasBuildMask)
+        memset(chunk->buildMask, 0, sizeof(chunk->buildMask));
+
+    chunk->totalVertices = 0;
+
+    for (int y = 0; y < CHUNK_SIZE_V; y++)
+    {
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
+        {
+            for (int x = 0; x < CHUNK_SIZE_H; x++)
+            {
+                Block block = GetBlock(chunk, x, y, z);
+
+                if (block != BLOCK_AIR)
+                {
+                    int index = BlockIndex(x, y, z);
+                    uint8_t& mask = chunk->buildMask[index];
+
+                    CullType cull = GetCullType(world, block);
+
+                    // The number of vertices we'll add by building this block. If it exceeds the 
+                    // chunk limit, we'll return immediately.
+                    int vAdded = 0;
+
+                    RebasedPos up = Rebase(world, chunk->lcPos, x, y + 1, z);
+                    RebasedPos down = Rebase(world, chunk->lcPos, x, y - 1, z);
+                    RebasedPos front = Rebase(world, chunk->lcPos, x, y, z + 1);
+                    RebasedPos back = Rebase(world, chunk->lcPos, x, y, z - 1);
+                    RebasedPos left = Rebase(world, chunk->lcPos, x - 1, y, z);
+                    RebasedPos right = Rebase(world, chunk->lcPos, x + 1, y, z);
+                    
+                    if (CheckFace(world, cull, block, up, vAdded))
+                        mask |= BUILD_UP;
+
+                    if (CheckFace(world, cull, block, down, vAdded))
+                        mask |= BUILD_DOWN;
+
+                    if (CheckFace(world, cull, block, front, vAdded))
+                        mask |= BUILD_FRONT;
+
+                    if (CheckFace(world, cull, block, back, vAdded))
+                        mask |= BUILD_BACK;
+
+                    if (CheckFace(world, cull, block, right, vAdded))
+                        mask |= BUILD_RIGHT;
+
+                    if (CheckFace(world, cull, block, left, vAdded))
+                        mask |= BUILD_LEFT;
+
+                    assert(!DebugOverflowCheck(chunk, vAdded));
+
+                    if (chunk->totalVertices + vAdded > MAX_VERTICES)
+                    {
+                        // TODO: we need to reject the blocks trying to be added.
+                        // We need a way to store those blocks. Use a hash table for
+                        // this. The key is the chunk position, and value is a list of
+                        // blocks being added. At the point of building the mask here,
+                        // we can clear the chunk from the table. Store the block we're
+                        // adding and what the block was, so we can fix the mask upon
+                        // rejection.
+                    }
+                    else chunk->totalVertices += vAdded;
+                }
+            }
+        }
+    }
+
+    Print("%d\n", chunk->totalVertices);
+
+    chunk->hasBuildMask = true;
+}
+
 // Builds mesh data for the chunk.
 static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
 {
@@ -21,8 +141,7 @@ static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
                     BlockMeshType type = GetMeshType(world, block);
                     MeshData* data = chunk->meshData[type];
 
-                    if (!BuildFunc(world, block)(world, chunk, data, x, y, z, block))
-                        chunk->overflowCount++;
+                    BuildFunc(world, block)(world, chunk, data, x, y, z, block);
                 }
             }
         }
@@ -32,9 +151,15 @@ static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
 static void OnChunkBuilt(GameState*, World* world, void* chunkPtr)
 {
     Chunk* chunk = (Chunk*)chunkPtr;
-    world->buildCount--;
-    assert(world->buildCount >= 0);
+    world->workCount--;
+    assert(world->workCount >= 0);
     chunk->state = CHUNK_NEEDS_FILL;
+
+    if (world->chunkRebuilding)
+    {
+        LeaveCriticalSection(&world->updateCS);
+        world->chunkRebuilding = false;
+    }
 }
 
 static bool BuildChunk(GameState* state, World* world, Chunk* chunk, ChunkState buildState)
@@ -53,8 +178,18 @@ static bool BuildChunk(GameState* state, World* world, Chunk* chunk, ChunkState 
         chunk->meshData[i] = GetMeshData(rend.meshData);
     }
 
-    world->buildCount++;
+    world->workCount++;
     chunk->state = buildState;
+
+    if (buildState == CHUNK_REBUILDING)
+    {
+        // Only allow a single chunk to rebuild at a time in the background
+        // to prevent threading issues with updating lighting/build masks.
+        EnterCriticalSection(&world->updateCS);
+        world->chunkRebuilding = true;
+        CreateBuildMask(world, chunk);
+    }
+
     QueueAsync(state, BuildChunkAsync, world, chunk, OnChunkBuilt);
 
     return true;
@@ -111,41 +246,37 @@ static void RebuildChunk(GameState* state, World* world, Chunk* chunk)
         chunk->pendingUpdate = false;
 }
 
-static bool NeighborsLoaded(World* world, Chunk* chunk)
+static bool AllowPreprocess(World* world, ChunkGroup* group)
 {
-    LChunkP p = chunk->lcPos;
+    LChunkP p = group->chunks->lcPos;
 
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 9; i++)
     {
         LChunkP next = p + DIRS[i];
-        ChunkGroup* group = GetGroupSafe(world, next.x, next.z);
 
-        if (group == nullptr || !group->loaded)
+        ChunkGroup* adj = GetGroup(world, next.x, next.z);
+        assert(adj != nullptr);
+
+        if (adj->state == CHUNK_DEFAULT || adj->state == GROUP_PREPROCESSING)
             return false;
     }
 
     return true;
 }
 
-static void RemoveOverflowAndRebuild(World* world, Chunk* chunk)
+static void PreprocessGroup(GameState*, World* world, void* groupPtr)
 {
-    for (int y = CHUNK_SIZE_V - 1; y >= 0; y--)
-    {
-        for (int z = 0; z < CHUNK_SIZE_H; z++)
-        {
-            for (int x = 0; x < CHUNK_SIZE_H; x++)
-            {
-                if (GetBlock(chunk, x, y, z) != BLOCK_AIR)
-                {
-                    SetBlock(chunk, x, y, z, BLOCK_AIR);
-                    FlagChunkForUpdate(world, chunk, chunk->lcPos, ivec3(x, y, z), false);
+    ChunkGroup* group = (ChunkGroup*)groupPtr;
 
-                    if (--chunk->overflowCount == 0)
-                        return;
-                }
-            }
-        }
-    }
+    for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
+        CreateBuildMask(world, group->chunks + i);
+
+    group->state = GROUP_PREPROCESSED;
+}
+
+static void OnGroupPreprocessed(GameState*, World* world, void*)
+{
+    world->workCount--;
 }
 
 static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
@@ -153,15 +284,7 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
         rend.meshLists[i].clear();
 
-    vec2 playerChunk = vec2(world->loadRange, world->loadRange);
-
-    vector<Chunk*>& visible = world->visibleChunks;
-    sort(visible.begin(), visible.end(), [playerChunk](auto a, auto b)
-    {
-        float distA = distance2(vec2(a->lcPos.x, a->lcPos.z), playerChunk);
-        float distB = distance2(vec2(b->lcPos.x, b->lcPos.z), playerChunk);
-        return distA < distB;
-    });
+    auto& visible = world->visibleChunks;
 
     for (int i = 0; i < visible.size(); i++)
     {
@@ -171,10 +294,8 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
         {
             case CHUNK_DEFAULT:
             case CHUNK_LOADED_DATA:
-            {
-                if (NeighborsLoaded(world, chunk))
-                    BuildChunk(state, world, chunk, CHUNK_BUILDING);
-            } break;
+                BuildChunk(state, world, chunk, CHUNK_BUILDING);
+                break;
 
             case CHUNK_NEEDS_FILL:
             {
@@ -183,9 +304,6 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
                 else FillChunkMeshes(rend, chunk);
 
                 chunk->state = CHUNK_BUILT;
-
-                if (chunk->overflowCount > 0)
-                    RemoveOverflowAndRebuild(world, chunk);
             }
 
             case CHUNK_BUILT:
@@ -213,69 +331,82 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
     rend.emitters.push_back(biome.weather.emitter);
 }
 
-static void GetVisibleChunks(World* world, Camera* cam)
+static void WorldRenderUpdate(GameState* state, World* world, Camera* cam)
 {    
     world->visibleChunks.clear();
+    world->groupsToProcess.clear();
 
     for (int g = 0; g < world->totalGroups; g++)
     {
         ChunkGroup* group = world->groups[g];
 
-        if (!group->loaded || group->pendingDestroy) 
+        if (group->pendingDestroy || IsEdgeGroup(world, group)) 
             continue;
 
-        if (IsEdgeGroup(world, group))
-            continue;
+        world->groupsToProcess.push_back(group);
+    }
 
-        for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
+    vec2 playerChunk = vec2(world->loadRange, world->loadRange);
+
+    auto& groups = world->groupsToProcess;
+    sort(groups.begin(), groups.end(), [playerChunk](auto a, auto b)
+    {
+        float distA = distance2(vec2(a->chunks->lcPos.x, a->chunks->lcPos.z), playerChunk);
+        float distB = distance2(vec2(b->chunks->lcPos.x, b->chunks->lcPos.z), playerChunk);
+        return distA < distB;
+    });
+        
+    for (int g = 0; g < world->groupsToProcess.size(); g++)
+    {
+        ChunkGroup* group = world->groupsToProcess[g];
+
+        if (group->state == GROUP_LOADED && AllowPreprocess(world, group))
         {
-            Chunk* chunk = group->chunks + i;
+            group->state = GROUP_PREPROCESSING;
+            world->workCount++;
+            QueueAsync(state, PreprocessGroup, world, group, OnGroupPreprocessed);
+        }
 
-            if (chunk->state == CHUNK_NEEDS_FILL)
+        LChunkP lcP = group->chunks->lcPos;
+        bool allowVisible = true;
+
+        for (int i = 0; i < 9; i++)
+        {
+            LChunkP next = lcP + DIRS[i];
+
+            ChunkGroup* adj = GetGroup(world, next.x, next.z);
+            assert(adj != nullptr);
+
+            if (adj->state != GROUP_PREPROCESSED)
             {
-                world->visibleChunks.push_back(chunk);
-                continue;
+                allowVisible = false;
+                break;
             }
-            
-            ivec3 cP = LChunkToLWorldP(chunk->lcPos);
-            vec3 min = vec3(cP.x, cP.y, cP.z);
-            vec3 max = min + (vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H) - 1.0f);
+        }
 
-            FrustumVisibility visibility = TestFrustum(cam, min, max);
+        if (allowVisible)
+        {
+            for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
+            {
+                Chunk* chunk = group->chunks + i;
 
-            if (visibility >= FRUSTUM_VISIBLE)
-                world->visibleChunks.push_back(chunk);
+                if (chunk->state == CHUNK_NEEDS_FILL)
+                {
+                    world->visibleChunks.push_back(chunk);
+                    continue;
+                }
+                
+                ivec3 cP = LChunkToLWorldP(chunk->lcPos);
+                vec3 min = vec3(cP.x, cP.y, cP.z);
+                vec3 max = min + (vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H) - 1.0f);
+
+                FrustumVisibility visibility = TestFrustum(cam, min, max);
+
+                if (visibility >= FRUSTUM_VISIBLE)
+                    world->visibleChunks.push_back(chunk);
+            }
         }
     }
-}
-
-// Returns true if the current block should draw its face when placed
-// next to the adjacent block.
-static inline bool CanDrawFace(World* world, CullType cur, Block block, Block adjBlock)
-{
-    CullType adj = GetCullType(world, adjBlock);
-
-    switch (cur)
-    {
-        case CULL_OPAQUE:
-            return adj >= CULL_TRANSPARENT;
-        
-        case CULL_TRANSPARENT:
-            return adj >= CULL_TRANSPARENT && adjBlock != block;
-    }
-
-    return false;
-}
-
-static inline bool CheckFace(World* world, Chunk* chunk, CullType cull, Block block, int x, int y, int z, int& vAdded)
-{
-    if (CanDrawFace(world, cull, block, GetBlockSafe(world, chunk, x, y, z)))
-    {
-        vAdded += 4;
-        return true;
-    }
-
-    return false;
 }
 
 static inline u8vec3 AverageColor(u8vec3 first, u8vec3 second, u8vec3 third, u8vec3 fourth)
@@ -358,31 +489,17 @@ static inline void SetFaceVertexData(MeshData* data, int index, float x, float y
 
 // Builds mesh data for a single block. x, y, and z are relative to the
 // chunk in local world space.
-static bool BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int yi, int zi, Block block)
+static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int yi, int zi, Block block)
 {
     uint16_t* textures = GetTextures(world, block);
 
-    RelP rP = ivec3(xi, yi, zi);
+    ivec3 rP = ivec3(xi, yi, zi);
     float x = (float)xi, y = (float)yi, z = (float)zi;
 
     uint8_t alpha = GetBlockAlpha(world, block);
-    CullType cull = GetCullType(world, block);
+    uint8_t& mask = chunk->buildMask[BlockIndex(xi, yi, zi)];
 
-    // The number of vertices we'll add by building this block. If it exceeds the 
-    // chunk limit, we'll return immediately.
-    int vAdded = 0;
-    
-    bool up = CheckFace(world, chunk, cull, block, xi, yi + 1, zi, vAdded);
-    bool down = CheckFace(world, chunk, cull, block, xi, yi - 1, zi, vAdded);
-    bool front = CheckFace(world, chunk, cull, block, xi, yi, zi + 1, vAdded);
-    bool back = CheckFace(world, chunk, cull, block, xi, yi, zi - 1, vAdded);
-    bool right = CheckFace(world, chunk, cull, block, xi + 1, yi, zi, vAdded);
-    bool left = CheckFace(world, chunk, cull, block, xi - 1, yi, zi, vAdded);
-
-    if (chunk->totalVertices + vAdded > MAX_VERTICES)
-        return false;
-
-    if (up)
+    if (mask & BUILD_UP)
     {
         int count = data->vertCount;
 
@@ -397,7 +514,7 @@ static bool BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (down)
+    if (mask & BUILD_DOWN)
     {
         int count = data->vertCount;
 
@@ -412,7 +529,7 @@ static bool BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (front)
+    if (mask & BUILD_FRONT)
     {
         int count = data->vertCount;
 
@@ -427,7 +544,7 @@ static bool BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (back)
+    if (mask & BUILD_BACK)
     {
         int count = data->vertCount;
 
@@ -437,12 +554,12 @@ static bool BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         SetFaceVertexData(data, count, x + 0.5f, y - 0.5f, z - 0.5f, LIGHT(Z, 1, -1, -1));
         SetFaceVertexData(data, count + 1, x + 0.5f, y + 0.5f, z - 0.5f, LIGHT(Z, 1, 1, -1));
         SetFaceVertexData(data, count + 2, x - 0.5f, y + 0.5f, z - 0.5f, LIGHT(Z, -1, 1, -1));
-        SetFaceVertexData(data, count + 3, x - 0.5f, y - 0.5f, z - 0.5f, LIGHT(Z, -1, -1, -1)); 
+        SetFaceVertexData(data, count + 3, x - 0.5f, y - 0.5f, z - 0.5f, LIGHT(Z, -1, -1, -1));
 
         data->vertCount += 4;
     }
 
-    if (right)
+    if (mask & BUILD_RIGHT)
     {
         int count = data->vertCount;
 
@@ -457,7 +574,7 @@ static bool BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (left)
+    if (mask & BUILD_LEFT)
     {
         int count = data->vertCount;
 
@@ -471,7 +588,4 @@ static bool BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
 
         data->vertCount += 4;
     }
-
-    chunk->totalVertices += vAdded;
-    return true;
 }

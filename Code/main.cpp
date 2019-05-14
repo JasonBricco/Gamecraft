@@ -243,7 +243,7 @@ static void ProcessLoading(GameState* state, World* world, float deltaTime)
 	}
 	else
 	{
-		if (IsBuilding(world))
+		if (HasBackgroundWork(world))
 			return;
 
 		info.callback(state, world);
@@ -368,7 +368,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	WorldConfig worldConfig = {};
 	worldConfig.radius = 1024;
 
-	World* world = NewWorld(state, 7, worldConfig);
+	World* world = NewWorld(state, 8, worldConfig);
 
 	Player* player = NewPlayer();
 	world->player = player;

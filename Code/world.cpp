@@ -253,10 +253,15 @@ static inline void AddGroupToHash(World* world, ChunkGroup* group)
     world->groupHash[bucket] = group;
 }
 
+static inline int BlockIndex(int x, int y, int z)
+{
+    return x + CHUNK_SIZE_H * (y + CHUNK_SIZE_V * z);
+}
+
 static inline Block GetBlock(Chunk* chunk, int rX, int rY, int rZ)
 {
     assert(rY >= 0 && rY < CHUNK_SIZE_V);
-    int index = rX + CHUNK_SIZE_H * (rY + CHUNK_SIZE_V * rZ);
+    int index = BlockIndex(rX, rY, rZ);
     assert(index >= 0 && index < CHUNK_SIZE_3);
     Block block = chunk->blocks[index];
     assert(block >= 0 && block < BLOCK_COUNT);
@@ -310,11 +315,8 @@ static inline RebasedPos Rebase(World* world, LChunkP lP, RelP rP)
     return Rebase(world, lP, rP.x, rP.y, rP.z);
 }
 
-static inline Block GetBlockSafe(World* world, Chunk* chunk, int rX, int rY, int rZ)
+static inline Block GetBlockSafe(RebasedPos p)
 {
-    assert(GetGroup(world, chunk->lcPos.x, chunk->lcPos.z)->loaded);
-    RebasedPos p = Rebase(world, chunk->lcPos, rX, rY, rZ);
-
     if (p.chunk == nullptr)
     {
         assert(p.rY == -1 || p.rY == 1);
@@ -322,6 +324,12 @@ static inline Block GetBlockSafe(World* world, Chunk* chunk, int rX, int rY, int
     }
 
     return GetBlock(p.chunk, p.rX, p.rY, p.rZ);
+}
+
+static inline Block GetBlockSafe(World* world, Chunk* chunk, int rX, int rY, int rZ)
+{
+    RebasedPos p = Rebase(world, chunk->lcPos, rX, rY, rZ);
+    return GetBlockSafe(Rebase(world, chunk->lcPos, rX, rY, rZ));
 }
 
 static inline Block GetBlockSafe(World* world, Chunk* chunk, RelP p)
@@ -339,8 +347,8 @@ static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
     LChunkP lcPos = LWorldToLChunkP(lwX, lwY, lwZ);
     ChunkGroup* group = GetGroup(world, lcPos.x, lcPos.z);
 
-    if (group == nullptr || !group->loaded)
-        return BLOCK_STONE;
+    if (group == nullptr || group->state == GROUP_DEFAULT)
+        return BLOCK_AIR;
 
     RelP rPos = LWorldToRelP(lwX, lwY, lwZ);
     return GetBlock(GetChunk(group, lcPos.y), rPos);
@@ -361,7 +369,7 @@ static inline void SetBlock(Chunk* chunk, int index, Block block)
 static inline void SetBlock(Chunk* chunk, int rX, int rY, int rZ, Block block)
 {
     assert(block >= 0 && block < BLOCK_COUNT);
-    int index = rX + CHUNK_SIZE_H * (rY + CHUNK_SIZE_V * rZ);
+    int index = BlockIndex(rX, rY, rZ);
     assert(index >= 0 && index < CHUNK_SIZE_3);
     chunk->blocks[index] = block;
 }
@@ -437,6 +445,19 @@ static void FillChunk(Chunk* chunk, Block block)
         chunk->blocks[i] = block;
 }
 
+static int CountNonAirBlocks(Chunk* chunk)
+{
+    int count = 0;
+
+    for (int i = 0; i < CHUNK_SIZE_3; i++)
+    {
+        if (chunk->blocks[i] != BLOCK_AIR)
+            count++;
+    }
+
+    return count;
+}
+
 static void LoadGroup(GameState*, World* world, void* groupPtr)
 {
     ChunkGroup* group = (ChunkGroup*)groupPtr;
@@ -444,7 +465,12 @@ static void LoadGroup(GameState*, World* world, void* groupPtr)
     if (!LoadGroupFromDisk(world, group))
         world->biomes[world->properties.biome].func(world, group);
 
-    group->loaded = true;
+    group->state = GROUP_LOADED;
+}
+
+static void OnGroupLoaded(GameState*, World* world, void*)
+{
+    world->workCount--;
 }
 
 static ChunkGroup* CreateChunkGroup(GameState* state, World* world, int lcX, int lcZ, int cX, int cZ)
@@ -468,7 +494,9 @@ static ChunkGroup* CreateChunkGroup(GameState* state, World* world, int lcX, int
             chunk->group = group;
         }
 
-        QueueAsync(state, LoadGroup, world, group);
+        world->workCount++;
+        QueueAsync(state, LoadGroup, world, group, OnGroupLoaded);
+
 		world->groups[index] = group;
 	}
 
@@ -608,9 +636,9 @@ static void CheckWorld(GameState* state, World* world, Player* player)
     }
 }
 
-static inline bool IsBuilding(World* world)
+static inline bool HasBackgroundWork(World* world)
 {
-    return world->buildCount > 0;
+    return world->workCount > 0;
 }
 
 static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* player)
@@ -619,7 +647,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     {
         LChunkP cP = LWorldToLChunkP(player->pos);
 
-        if (!ChunkInsideGroup(cP.y) || GetGroup(world, cP.x, cP.y)->loaded)
+        if (!ChunkInsideGroup(cP.y) || GetGroup(world, cP.x, cP.y)->state != GROUP_DEFAULT)
         {
             ivec3 bP = BlockPos(player->pos);
 
@@ -636,18 +664,18 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
         LChunkP lP = ChunkToLChunkP(world->spawnGroup, world->ref);
         ChunkGroup* spawnGroup = GetGroup(world, lP.x, lP.z);
 
-        if (spawnGroup->loaded)
+        if (spawnGroup->state != GROUP_DEFAULT)
             SpawnPlayer(state, world, player, world->pBounds);
     }
     else 
     {
-        if (!IsBuilding(world))
+        if (!HasBackgroundWork(world))
             CheckWorld(state, world, player);
     }
 
     GetCameraPlanes(cam);
-    GetVisibleChunks(world, cam);
 
+    WorldRenderUpdate(state, world, cam);
     PrepareWorldRender(state, world, state->renderer);
 
     auto& destroyQueue = world->destroyQueue;
@@ -657,13 +685,8 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     {
         ChunkGroup* group = destroyQueue.front();
         destroyQueue.pop();
-
-        if (group->loaded)
-        {
-            group->pendingDestroy = true;
-            QueueAsync(state, SaveGroup, world, group, DestroyGroup);
-        }
-        else destroyQueue.push(group);
+        group->pendingDestroy = true;
+        QueueAsync(state, SaveGroup, world, group, DestroyGroup);
     }
 }
 
@@ -707,6 +730,8 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
             world->properties = { rand(), config.radius, BIOME_GRASSY };
 
         world->blockToSet = BLOCK_GRASS;
+
+        InitializeCriticalSection(&world->updateCS);
         InitializeCriticalSection(&world->regionCS);
         InitializeConditionVariable(&world->regionsEmpty);
     }

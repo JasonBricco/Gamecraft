@@ -58,7 +58,7 @@ enum BlockCollider
     COLLIDER_BOUNCE
 };
 
-using BuildBlockFunc = bool(*)(World*, Chunk*, MeshData*, int, int, int, Block);
+using BuildBlockFunc = void(*)(World*, Chunk*, MeshData*, int, int, int, Block);
 
 struct BlockData
 {

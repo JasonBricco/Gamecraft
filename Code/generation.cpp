@@ -221,35 +221,32 @@ static void GenerateGridTerrain(World* world, ChunkGroup* group)
 
         if (chunk->state == CHUNK_LOADED_DATA)
             continue;
-
-        if (i == 0)
-        {
-            for (int x = 0; x < CHUNK_SIZE_H; x++)
-            {
-                for (int z = 0; z < CHUNK_SIZE_H; z++)
-                {
-                    for (int y = 0; y < SEA_LEVEL; y++)
-                    {
-                        if (GetBlock(chunk, x, y, z) == BLOCK_AIR)
-                            SetBlock(chunk, x, y, z, BLOCK_WATER);
-                    }
-                }
-            }
-        }
         
-        for (int x = 0; x < CHUNK_SIZE_H; x += 2)
+        for (int z = 0; z < CHUNK_SIZE_H; z += 2)
         {
-            for (int z = 0; z < CHUNK_SIZE_H; z += 2)
+            for (int x = 0; x < CHUNK_SIZE_H; x += 2)
             {
                 int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
 
                 if (valueInCircle < world->properties.radius)
                 {
-                    for (int y = 0; y < CHUNK_SIZE_V; y += 2)
+                    for (int y = 2; y < 14; y += 2)
                         SetBlock(chunk, x, y, z, BLOCK_METAL_CRATE);
                 }
             }
         }
+
+        for (int z = -2; z <= 2; z += 2)
+        {
+            for (int x = -2; x <= 2; x += 2)
+            {
+                for (int y = 14; y < 40; y += 2)
+                    SetBlock(chunk, x + 16, y, z + 16, BLOCK_METAL_CRATE);
+            }
+        }
+
+        for (int y = 40; y <= 64; y += 2)
+            SetBlock(chunk, 16, y, 16, BLOCK_METAL_CRATE);
     }
 }
 

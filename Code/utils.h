@@ -67,6 +67,7 @@ struct Ray
     vec3 dir;
 };
 
+#define DIR_ZERO ivec3(0)
 #define DIR_LEFT ivec3(-1, 0, 0)
 #define DIR_RIGHT ivec3(1, 0, 0)
 #define DIR_BACK ivec3(0, 0, -1)
@@ -80,7 +81,7 @@ struct Ray
 #define DIR_LEFT_DOWN_BACK ivec3(-1, -1, -1)
 #define DIR_RIGHT_UP_FRONT ivec3(1, 1, 1)
 
-static const ivec3 DIRS[8] = 
+static const ivec3 DIRS[9] = 
 { 
     DIR_LEFT,
     DIR_RIGHT, 
@@ -89,7 +90,8 @@ static const ivec3 DIRS[8] =
     DIR_LEFT_BACK, 
     DIR_LEFT_FRONT, 
     DIR_RIGHT_BACK, 
-    DIR_RIGHT_FRONT
+    DIR_RIGHT_FRONT,
+    DIR_ZERO
 };
 
 enum DIR_ID

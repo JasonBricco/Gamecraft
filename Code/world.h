@@ -58,6 +58,25 @@ enum ChunkState
     CHUNK_STATE_COUNT
 };
 
+enum GroupState
+{
+    GROUP_DEFAULT,
+    GROUP_LOADED,
+    GROUP_PREPROCESSING,
+    GROUP_PREPROCESSED
+};
+
+enum BuildMask : uint8_t
+{
+    BUILD_NONE = 0,
+    BUILD_UP = 1,
+    BUILD_DOWN = 2,
+    BUILD_LEFT = 4,
+    BUILD_RIGHT = 8,
+    BUILD_FRONT = 16,
+    BUILD_BACK = 32
+};
+
 struct ChunkGroup;
 
 struct Chunk
@@ -66,7 +85,10 @@ struct Chunk
     LWorldP lwPos;
 
     Block blocks[CHUNK_SIZE_3];
-    int totalVertices, overflowCount;
+    int totalVertices;
+
+    bool hasBuildMask;
+    uint8_t buildMask[CHUNK_SIZE_3];
 
     Mesh meshes[MESH_TYPE_COUNT];
     MeshData* meshData[MESH_TYPE_COUNT];
@@ -82,7 +104,8 @@ struct ChunkGroup
     ChunkP pos;
     Chunk chunks[WORLD_CHUNK_HEIGHT];
 
-    bool active, loaded, pendingDestroy;
+    GroupState state;
+    bool active, pendingDestroy;
 };
 
 struct WorldLocation
@@ -117,10 +140,11 @@ struct World
     // All actively loaded chunk groups around the player.
     ChunkGroup** groups;
     int totalGroups;
-    int buildCount;
+    int workCount;
     
     vector<ivec4> groupsToCreate;
-
+    vector<ChunkGroup*> groupsToProcess;
+    
     // Chunk hash table to store chunks that need to transition.
     ChunkGroup* groupHash[GROUP_HASH_SIZE];
 
@@ -145,6 +169,9 @@ struct World
 
     CRITICAL_SECTION regionCS;
     CONDITION_VARIABLE regionsEmpty;
+
+    bool chunkRebuilding;
+    CRITICAL_SECTION updateCS;
 
     Player* player;
 
