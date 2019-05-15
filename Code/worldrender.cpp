@@ -2,128 +2,11 @@
 // Gamecraft
 //
 
-// Returns true if the current block should draw its face when placed
-// next to the adjacent block.
-static inline bool CanDrawFace(World* world, CullType cur, Block block, Block adjBlock)
-{
-    CullType adj = GetCullType(world, adjBlock);
-
-    switch (cur)
-    {
-        case CULL_OPAQUE:
-            return adj >= CULL_TRANSPARENT;
-        
-        case CULL_TRANSPARENT:
-            return adj >= CULL_TRANSPARENT && adjBlock != block;
-    }
-
-    return false;
-}
-
-static inline bool CheckFace(World* world, CullType cull, Block block, RebasedPos p, int& vAdded)
-{
-    if (CanDrawFace(world, cull, block, GetBlockSafe(p)))
-    {
-        vAdded += 4;
-        return true;
-    }
-
-    return false;
-}
-
-// Returns true if an assertion should be triggered due to overflow and 
-// false otherwise. If the chunk has a build mask already, we do not want 
-// to assert on overflow as we'll handle this case separately.
-static inline bool DebugOverflowCheck(Chunk* chunk, int vAdded)
-{
-    return chunk->totalVertices + vAdded > MAX_VERTICES;
-}
-
-static inline bool ChunkOverflowed(World* world, Chunk* chunk, int x, int y, int z)
-{
-    int index = BlockIndex(x, y, z);
-    Block block = chunk->blocks[index];
-
-    if (block != BLOCK_AIR)
-    {
-        CullType cull = GetCullType(world, block);
-
-        // The number of vertices we'll add by building this block. If it exceeds the 
-        // chunk limit, we'll return immediately.
-        int vAdded = 0;
-
-        NeighborBlocks adj = GetNeighborBlocks(world, chunk, x, y, z);
-        
-        CheckFace(world, cull, block, adj.up, vAdded);
-        CheckFace(world, cull, block, adj.down, vAdded);
-        CheckFace(world, cull, block, adj.front, vAdded);
-        CheckFace(world, cull, block, adj.back, vAdded);
-        CheckFace(world, cull, block, adj.right, vAdded);
-        CheckFace(world, cull, block, adj.left, vAdded);
-
-        if (chunk->totalVertices + vAdded > MAX_VERTICES)
-            return true;
-    }
-
-    return false;
-}
-
-static void CreateBuildMask(World* world, Chunk* chunk)
-{
-    if (chunk->hasBuildMask)
-        memset(chunk->buildMask, 0, sizeof(chunk->buildMask));
-
-    chunk->totalVertices = 0;
-
-    for (int z = 0; z < CHUNK_SIZE_H; z++)
-    {
-        for (int y = 0; y < CHUNK_SIZE_V; y++)
-        {
-            for (int x = 0; x < CHUNK_SIZE_H; x++)
-            {
-                int index = BlockIndex(x, y, z);
-                Block block = chunk->blocks[index];
-
-                if (block != BLOCK_AIR)
-                {
-                    uint8_t& mask = chunk->buildMask[index];
-                    CullType cull = GetCullType(world, block);
-
-                    int vAdded = 0;
-                    NeighborBlocks adj = GetNeighborBlocks(world, chunk, x, y, z);
-                    
-                    if (CheckFace(world, cull, block, adj.up, vAdded))
-                        mask |= BUILD_UP;
-
-                    if (CheckFace(world, cull, block, adj.down, vAdded))
-                        mask |= BUILD_DOWN;
-
-                    if (CheckFace(world, cull, block, adj.front, vAdded))
-                        mask |= BUILD_FRONT;
-
-                    if (CheckFace(world, cull, block, adj.back, vAdded))
-                        mask |= BUILD_BACK;
-
-                    if (CheckFace(world, cull, block, adj.right, vAdded))
-                        mask |= BUILD_RIGHT;
-
-                    if (CheckFace(world, cull, block, adj.left, vAdded))
-                        mask |= BUILD_LEFT;
-
-                    assert(!DebugOverflowCheck(chunk, vAdded));
-                    chunk->totalVertices += vAdded;
-                }
-            }
-        }
-    }
-
-    chunk->hasBuildMask = true;
-}
-
 // Builds mesh data for the chunk.
 static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
 {
     Chunk* chunk = (Chunk*)chunkPtr;
+    chunk->totalVertices = 0;
     
     for (int y = 0; y < CHUNK_SIZE_V; y++)
     {
@@ -150,14 +33,7 @@ static void RebuildChunksAsync(GameState* state, World* world, void* chunksPtr)
     auto& chunks = *(vector<Chunk*>*)chunksPtr;
 
     for (int i = 0; i < chunks.size(); i++)
-    {
-        // Rebuild the build mask to reflect the changes to this chunk. This can only
-        // be called if all neighbor groups are preprocessed, and only one rebuild
-        // is allowed at a time.
-        CreateBuildMask(world, chunks[i]);
-
         BuildChunkAsync(state, world, chunks[i]);
-    }
 }
 
 static void OnChunkBuilt(GameState*, World* world, void* chunkPtr)
@@ -294,13 +170,9 @@ static bool AllowPreprocess(World* world, ChunkGroup* group)
     return true;
 }
 
-static void PreprocessGroup(GameState*, World* world, void* groupPtr)
+static void PreprocessGroup(GameState*, World*, void* groupPtr)
 {
     ChunkGroup* group = (ChunkGroup*)groupPtr;
-
-    for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
-        CreateBuildMask(world, group->chunks + i);
-
     group->state = GROUP_PREPROCESSED;
 }
 
@@ -519,6 +391,72 @@ static inline void SetFaceVertexData(MeshData* data, int index, float x, float y
     data->colors[index] = c;
 }
 
+// Returns true if the current block should draw its face when placed
+// next to the adjacent block.
+static inline bool CanDrawFace(World* world, CullType cur, Block block, Block adjBlock)
+{
+    CullType adj = GetCullType(world, adjBlock);
+
+    switch (cur)
+    {
+        case CULL_OPAQUE:
+            return adj >= CULL_TRANSPARENT;
+        
+        case CULL_TRANSPARENT:
+            return adj >= CULL_TRANSPARENT && adjBlock != block;
+    }
+
+    return false;
+}
+
+static inline bool CheckFace(World* world, CullType cull, Block block, RebasedPos p, int& vAdded)
+{
+    if (CanDrawFace(world, cull, block, GetBlockSafe(p)))
+    {
+        vAdded += 4;
+        return true;
+    }
+
+    return false;
+}
+
+// Returns true if an assertion should be triggered due to overflow and 
+// false otherwise. If the chunk has a build mask already, we do not want 
+// to assert on overflow as we'll handle this case separately.
+static inline bool DebugOverflowCheck(Chunk* chunk, int vAdded)
+{
+    return chunk->totalVertices + vAdded > MAX_VERTICES;
+}
+
+static inline bool ChunkOverflowed(World* world, Chunk* chunk, int x, int y, int z)
+{
+    int index = BlockIndex(x, y, z);
+    Block block = chunk->blocks[index];
+
+    if (block != BLOCK_AIR)
+    {
+        CullType cull = GetCullType(world, block);
+
+        // The number of vertices we'll add by building this block. If it exceeds the 
+        // chunk limit, we'll return immediately.
+        int vAdded = 0;
+
+        NeighborBlocks adj = GetNeighborBlocks(world, chunk, x, y, z);
+        
+        CheckFace(world, cull, block, adj.up, vAdded);
+        CheckFace(world, cull, block, adj.down, vAdded);
+        CheckFace(world, cull, block, adj.front, vAdded);
+        CheckFace(world, cull, block, adj.back, vAdded);
+        CheckFace(world, cull, block, adj.right, vAdded);
+        CheckFace(world, cull, block, adj.left, vAdded);
+
+        if (chunk->totalVertices + vAdded > MAX_VERTICES)
+            return true;
+    }
+
+    return false;
+}
+
 // Builds mesh data for a single block. x, y, and z are relative to the
 // chunk in local world space.
 static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int yi, int zi, Block block)
@@ -529,9 +467,12 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     float x = (float)xi, y = (float)yi, z = (float)zi;
 
     uint8_t alpha = GetBlockAlpha(world, block);
-    uint8_t& mask = chunk->buildMask[BlockIndex(xi, yi, zi)];
+    CullType cull = GetCullType(world, block);
 
-    if (mask & BUILD_UP)
+    int vAdded = 0;
+    NeighborBlocks adj = GetNeighborBlocks(world, chunk, xi, yi, zi);
+
+    if (CheckFace(world, cull, block, adj.up, vAdded))
     {
         int count = data->vertCount;
 
@@ -546,7 +487,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (mask & BUILD_DOWN)
+    if (CheckFace(world, cull, block, adj.down, vAdded))
     {
         int count = data->vertCount;
 
@@ -561,7 +502,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (mask & BUILD_FRONT)
+    if (CheckFace(world, cull, block, adj.front, vAdded))
     {
         int count = data->vertCount;
 
@@ -576,7 +517,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (mask & BUILD_BACK)
+    if (CheckFace(world, cull, block, adj.back, vAdded))
     {
         int count = data->vertCount;
 
@@ -591,7 +532,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (mask & BUILD_RIGHT)
+    if (CheckFace(world, cull, block, adj.right, vAdded))
     {
         int count = data->vertCount;
 
@@ -606,7 +547,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         data->vertCount += 4;
     }
 
-    if (mask & BUILD_LEFT)
+    if (CheckFace(world, cull, block, adj.left, vAdded))
     {
         int count = data->vertCount;
 
@@ -620,4 +561,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
 
         data->vertCount += 4;
     }
+
+    assert(!DebugOverflowCheck(chunk, vAdded));
+    chunk->totalVertices += vAdded;
 }

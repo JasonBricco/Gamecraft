@@ -494,9 +494,9 @@ static inline void SetBlock(World* world, LWorldP wPos, Block block)
 	assert(chunk != nullptr);
     assert(!IsEdgeChunk(world, chunk));
 
-    // If the chunk doesn't have a build mask, we don't know its number of vertices.
+    // If the chunk isn't built, we don't know its number of vertices.
     // Setting the block in that case would be unsafe and could overflow the chunk.
-    if (!chunk->hasBuildMask)
+    if (chunk->state != CHUNK_BUILT)
         return;
 
 	RelP rP = LWorldToRelP(wPos);

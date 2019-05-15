@@ -65,17 +65,6 @@ enum GroupState
     GROUP_PREPROCESSED
 };
 
-enum BuildMask : uint8_t
-{
-    BUILD_NONE = 0,
-    BUILD_UP = 1,
-    BUILD_DOWN = 2,
-    BUILD_LEFT = 4,
-    BUILD_RIGHT = 8,
-    BUILD_FRONT = 16,
-    BUILD_BACK = 32
-};
-
 struct ChunkGroup;
 
 struct Chunk
@@ -85,9 +74,6 @@ struct Chunk
 
     Block blocks[CHUNK_SIZE_3];
     int totalVertices;
-
-    bool hasBuildMask;
-    uint8_t buildMask[CHUNK_SIZE_3];
 
     Mesh meshes[MESH_TYPE_COUNT];
     MeshData* meshData[MESH_TYPE_COUNT];
