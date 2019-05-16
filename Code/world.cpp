@@ -434,7 +434,7 @@ static Chunk* GetRelative(World* world, int lwX, int lwY, int lwZ, RelP& rel)
     assert(group != nullptr && group->state != GROUP_DEFAULT);
 
     rel = LWorldToRelP(lwX, lwY, lwZ);
-    
+
     return GetChunk(group, lcPos.y);
 }
 
@@ -578,7 +578,7 @@ static void LoadGroup(GameState*, World* world, void* groupPtr)
     if (!LoadGroupFromDisk(world, group))
         world->biomes[world->properties.biome].func(world, group);
 
-    ComputeSurface(world, group);
+    ComputeSurface(group);
     group->state = GROUP_LOADED;
 }
 

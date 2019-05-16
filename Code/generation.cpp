@@ -278,7 +278,7 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
                     p = 1.0f - ((valueInCircle - world->falloffRadius) / (float)(world->properties.radius - world->falloffRadius));
 
                 float terrainVal = GetNoiseValue2D(base, x, z);
-                terrainVal = ((terrainVal * 0.2f) * 30.0f) + 10.0f;
+                terrainVal = ((terrainVal * 0.2f) * 30.0f) + 12.0f;
 
                 int height = (int)(terrainVal * p);
                 surfaceMap[z * CHUNK_SIZE_H + x] = height;

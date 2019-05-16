@@ -2,15 +2,13 @@
 // Gamecraft
 //
 
-static inline void ComputeSurfaceAt(World* world, ChunkGroup* group, int x, int z)
+static inline void ComputeSurfaceAt(ChunkGroup* group, int x, int z)
 {
     int index = z * CHUNK_SIZE_H + x;
 
     for (int y = WORLD_BLOCK_HEIGHT - 2; y >= 0; y--)
     {
-        Block block = GetBlock(group, x, y, z);
-
-        if (IsOpaque(world, block))
+        if (GetBlock(group, x, y, z) != BLOCK_AIR)
         {
             group->surface[index] = (uint8_t)(y + 1);
             break;
@@ -18,12 +16,12 @@ static inline void ComputeSurfaceAt(World* world, ChunkGroup* group, int x, int 
     }
 }
 
-static inline void ComputeSurface(World* world, ChunkGroup* group)
+static inline void ComputeSurface(ChunkGroup* group)
 {
     for (int z = 0; z < CHUNK_SIZE_H; z++) 
     {
         for (int x = 0; x < CHUNK_SIZE_H; x++)
-            ComputeSurfaceAt(world, group, x, z);
+            ComputeSurfaceAt(group, x, z);
     }
 }
 
@@ -476,6 +474,9 @@ static const uint8_t lightOutput[] = { 0, 17, 34, 51, 68, 85, 102, 119, 136, 153
         
 static inline Colori GetFinalLight(Chunk* chunk, int rX, int rY, int rZ)
 {
+    if (chunk == nullptr)
+        return rY == -1 ? Colori(0) : Colori(255);
+    
     int index = BlockIndex(rX, rY, rZ);
 
     uint8_t light = lightOutput[chunk->blockLight[index]];
@@ -516,8 +517,8 @@ static inline Colori VertexLight(World* world, Chunk* chunk, Axis axis, RelP pos
     RebasedPos b = Rebase(world, chunk->lcPos, rB);
     RebasedPos c = Rebase(world, chunk->lcPos, rC);
 
-    bool t1 = !IsOpaque(world, GetBlock(b.chunk, b.rX, b.rY, b.rZ));
-    bool t2 = !IsOpaque(world, GetBlock(c.chunk, c.rX, c.rY, c.rZ));
+    bool t1 = !IsOpaque(world, GetBlockSafe(b));
+    bool t2 = !IsOpaque(world, GetBlockSafe(c));
 
     if (t1 || t2) 
     {
