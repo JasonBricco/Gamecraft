@@ -29,6 +29,32 @@ struct ObjectPool
 };
 
 template <typename T>
+struct LockedObjectPool : public ObjectPool<T>
+{
+	CRITICAL_SECTION cs;
+
+	LockedObjectPool()
+	{
+		InitializeCriticalSection(&cs);
+	}
+
+	T* Get()
+	{
+		EnterCriticalSection(&cs);
+		T* item = ObjectPool::Get();
+		LeaveCriticalSection(&cs);
+		return item;
+	}
+
+	void Return(T* item)
+	{
+		EnterCriticalSection(&cs);
+		ObjectPool::Return(item);
+		LeaveCriticalSection(&cs);
+	}
+};
+
+template <typename T>
 struct FixedObjectPool
 {
 	int _max;

@@ -110,6 +110,11 @@ static const ivec3 DIRS_3[6] =
     DIR_LEFT, DIR_RIGHT
 };
 
+static inline bool IsPowerOf2(int x)
+{
+    return (x & (x - 1)) == 0;
+}
+
 static inline int Clamp(int value, int min, int max)
 {
     return value <= min ? min : value >= max ? max : value;

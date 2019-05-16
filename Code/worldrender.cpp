@@ -92,12 +92,11 @@ static inline bool SetMaxSunlight(Chunk* chunk, int light, int lwY, RelP rel)
     return false;
 }
 
-static inline void ScatterSunlight(World* world, queue<ivec3>& sunNodes)
+static inline void ScatterSunlight(World* world, Queue<ivec3>& sunNodes)
 {
-    while (!sunNodes.empty())
+    while (!sunNodes.Empty())
     {
-        LWorldP node = sunNodes.front();
-        sunNodes.pop();
+        LWorldP node = sunNodes.Dequeue();
 
         RelP rel;
         Chunk* chunk = GetRelative(world, node.x, node.y, node.z, rel);
@@ -121,12 +120,12 @@ static inline void ScatterSunlight(World* world, queue<ivec3>& sunNodes)
             Block adjBlock = GetBlock(next, rel);
 
             if (!IsOpaque(world, adjBlock) && SetMaxSunlight(next, light, nextP.y, rel))
-                sunNodes.emplace(nextP.x, nextP.y, nextP.z);
+                sunNodes.Enqueue(ivec3(nextP.x, nextP.y, nextP.z));
         }
     }
 }
 
-static void SetSunlightNodes(World* world, ChunkGroup* group, queue<ivec3>& sunNodes)
+static void SetSunlightNodes(World* world, ChunkGroup* group, Queue<ivec3>& sunNodes)
 {
     LWorldP lwP = group->chunks->lwPos;
 
@@ -138,7 +137,7 @@ static void SetSunlightNodes(World* world, ChunkGroup* group, queue<ivec3>& sunN
             int maxY = Min(ComputeMaxY(world, group, x, z, surface), WORLD_BLOCK_HEIGHT - 1);
 
             for (int lwY = surface; lwY <= maxY; lwY++)
-                sunNodes.emplace(lwP.x + x, lwY, lwP.z + z);
+                sunNodes.Enqueue(ivec3(lwP.x + x, lwY, lwP.z + z));
         }
     }
 
@@ -317,7 +316,7 @@ static void PreprocessGroup(GameState*, World* world, void* groupPtr)
 {
     ChunkGroup* group = (ChunkGroup*)groupPtr;
 
-    queue<ivec3> sunNodes;
+    Queue<ivec3> sunNodes(262144);
     SetSunlightNodes(world, group, sunNodes);
 
     group->state = GROUP_PREPROCESSED;
@@ -476,7 +475,7 @@ static inline Colori GetFinalLight(Chunk* chunk, int rX, int rY, int rZ)
 {
     if (chunk == nullptr)
         return rY == -1 ? Colori(0) : Colori(255);
-    
+
     int index = BlockIndex(rX, rY, rZ);
 
     uint8_t light = lightOutput[chunk->blockLight[index]];

@@ -47,3 +47,48 @@ struct List
 		size = 0;
 	}
 };
+
+template <typename T>
+struct Queue
+{
+	T* items;
+	int read, write;
+	int size, capacity;
+
+	Queue(int capacity)
+	{
+		assert(IsPowerOf2(capacity));
+		items = new T[capacity];
+		size = 0;
+		read = 0;
+		write = 0;
+		this->capacity = capacity;
+	}
+
+	T Dequeue()
+	{
+		assert(size > 0);
+		T item = items[read];
+		read = (read + 1) & (capacity - 1);
+		size--;
+		return item;
+	}
+
+	void Enqueue(T item)
+	{
+		items[write] = item;
+		write = (write + 1) & (capacity - 1);
+		size++;
+		assert(read != write);
+	}
+
+	bool Empty()
+	{
+		return size == 0;
+	}
+
+	~Queue()
+	{
+		delete[] items;
+	}
+};
