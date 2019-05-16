@@ -39,10 +39,7 @@ typedef vec4 Color;
 #define BLACK_COLOR vec4(0.0f, 0.0f, 0.0f, 1.0f)
 #define WHITE_COLOR vec4(1.0f, 1.0f, 1.0f, 1.0f)
 
-struct Colori
-{
-    uint8_t r, g, b, a;
-};
+typedef u8vec4 Colori;
 
 static inline Colori NewColori(uint8_t value)
 {
@@ -81,7 +78,7 @@ struct Ray
 #define DIR_LEFT_DOWN_BACK ivec3(-1, -1, -1)
 #define DIR_RIGHT_UP_FRONT ivec3(1, 1, 1)
 
-static const ivec3 DIRS[9] = 
+static const ivec3 DIRS_2[9] = 
 { 
     DIR_LEFT,
     DIR_RIGHT, 
@@ -104,6 +101,13 @@ enum DIR_ID
     DIR_ID_LEFT_FRONT, 
     DIR_ID_RIGHT_BACK, 
     DIR_ID_RIGHT_FRONT
+};
+
+static const ivec3 DIRS_3[6] =
+{
+    DIR_UP, DIR_DOWN,
+    DIR_FRONT, DIR_BACK,
+    DIR_LEFT, DIR_RIGHT
 };
 
 static inline int Clamp(int value, int min, int max)

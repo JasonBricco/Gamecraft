@@ -19,8 +19,15 @@ void main()
 	vec4 upper = texture(tex, vec3(uv.x, uv.y, uv.z + highIndex));
 
     outColor = mix(lower, upper, blendFactor);
-	vec3 amb = vec3(ambient) * vertColor.rgb;
+
+    vec3 light = vertColor.rgb;
+	float sun = vertColor.a;
+
+	vec3 amb = vec3(ambient) * sun;
+	amb = max(amb, 0.0666);
+	amb = max(amb, light);
+
 	outColor.xyz *= amb;
-    outColor.xyz = mix(fogColor, outColor.xyz, fogFactor);
-    outColor.a = vertColor.a;
+	outColor.xyz = mix(fogColor, outColor.xyz, fogFactor);
+	outColor.a = 0.5;
 }

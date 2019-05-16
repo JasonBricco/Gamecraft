@@ -2,9 +2,14 @@
 // Gamecraft
 //
 
+static inline bool BlockInsideChunkH(int x, int z)
+{
+    return x >= 0 && x < CHUNK_SIZE_H && z >= 0 && z < CHUNK_SIZE_H;
+}
+
 static inline bool BlockInsideChunk(int x, int y, int z)
 {
-    return x >= 0 && x < CHUNK_SIZE_H && y >= 0 && y < CHUNK_SIZE_V && z >= 0 && z < CHUNK_SIZE_H;
+    return BlockInsideChunkH(x, z) && y >= 0 && y < CHUNK_SIZE_V;
 }
 
 static inline bool BlockInsideChunk(RelP p)
@@ -47,6 +52,11 @@ static inline bool IsEdgeChunk(World* world, Chunk* chunk)
 static inline bool IsEdgeGroup(World* world, ChunkGroup* group)
 {
     return IsEdgeChunk(world, group->chunks);
+}
+
+static inline int RelToLWorldP(Chunk* chunk, int rY)
+{
+    return chunk->lwPos.y + rY;
 }
 
 static inline RelP LWorldToRelP(int lwX, int lwY, int lwZ)
@@ -273,6 +283,13 @@ static inline Block GetBlock(Chunk* chunk, RelP pos)
     return GetBlock(chunk, pos.x, pos.y, pos.z);
 }
 
+static inline Block GetBlock(ChunkGroup* group, int rX, int lwY, int rZ)
+{
+    int lcY = lwY >> CHUNK_V_BITS;
+    Chunk* chunk = group->chunks + lcY;
+    return GetBlock(chunk, rX, lwY & CHUNK_V_MASK, rZ);
+}
+
 static inline NeighborBlocks GetNeighborBlocks(World* world, Chunk* chunk, int x, int y, int z)
 {
     LChunkP lcP = chunk->lcPos;
@@ -405,6 +422,20 @@ static inline Block GetBlockSafe(World* world, Chunk* chunk, int rX, int rY, int
 static inline Block GetBlockSafe(World* world, Chunk* chunk, RelP p)
 {
     return GetBlockSafe(world, chunk, p.x, p.y, p.z);
+}
+
+static Chunk* GetRelative(World* world, int lwX, int lwY, int lwZ, RelP& rel)
+{
+    assert(lwY >= 0 && lwY < WORLD_BLOCK_HEIGHT);
+
+    LChunkP lcPos = LWorldToLChunkP(lwX, lwY, lwZ);
+    ChunkGroup* group = GetGroup(world, lcPos.x, lcPos.z);
+
+    assert(group != nullptr && group->state != GROUP_DEFAULT);
+
+    rel = LWorldToRelP(lwX, lwY, lwZ);
+    
+    return GetChunk(group, lcPos.y);
 }
 
 static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
@@ -547,6 +578,7 @@ static void LoadGroup(GameState*, World* world, void* groupPtr)
     if (!LoadGroupFromDisk(world, group))
         world->biomes[world->properties.biome].func(world, group);
 
+    ComputeSurface(world, group);
     group->state = GROUP_LOADED;
 }
 

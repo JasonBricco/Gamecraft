@@ -75,6 +75,9 @@ struct Chunk
     Block blocks[CHUNK_SIZE_3];
     int totalVertices;
 
+    uint8_t sunlight[CHUNK_SIZE_3];
+    uint8_t blockLight[CHUNK_SIZE_3];
+
     Mesh meshes[MESH_TYPE_COUNT];
     MeshData* meshData[MESH_TYPE_COUNT];
 
@@ -88,6 +91,8 @@ struct ChunkGroup
 {
     ChunkP pos;
     Chunk chunks[WORLD_CHUNK_HEIGHT];
+
+    uint8_t surface[CHUNK_SIZE_2];
 
     GroupState state;
     bool active, pendingDestroy;
@@ -179,11 +184,22 @@ struct RebasedPos
     int rX, rY, rZ;
 };
 
-struct NeighborBlocks
+struct RebasedGroupPos
 {
-    RebasedPos up, down;
-    RebasedPos front, back;
-    RebasedPos left, right;
+    ChunkGroup* group;
+    int rX, rZ;
+};
+
+union NeighborBlocks
+{
+    struct
+    {
+        RebasedPos up, down;
+        RebasedPos front, back;
+        RebasedPos left, right;
+    };
+
+    RebasedPos data[6];
 };
 
 struct WorldConfig

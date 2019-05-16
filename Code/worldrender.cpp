@@ -2,6 +2,151 @@
 // Gamecraft
 //
 
+static inline void ComputeSurfaceAt(World* world, ChunkGroup* group, int x, int z)
+{
+    int index = z * CHUNK_SIZE_H + x;
+
+    for (int y = WORLD_BLOCK_HEIGHT - 2; y >= 0; y--)
+    {
+        Block block = GetBlock(group, x, y, z);
+
+        if (IsOpaque(world, block))
+        {
+            group->surface[index] = (uint8_t)(y + 1);
+            break;
+        }
+    }
+}
+
+static inline void ComputeSurface(World* world, ChunkGroup* group)
+{
+    for (int z = 0; z < CHUNK_SIZE_H; z++) 
+    {
+        for (int x = 0; x < CHUNK_SIZE_H; x++)
+            ComputeSurfaceAt(world, group, x, z);
+    }
+}
+
+static inline int ComputeMaxY(World* world, ChunkGroup* group, int x, int z, int surface)
+{
+    LChunkP lcP = group->chunks->lcPos;
+
+    RebasedGroupPos front = { group, x, z + 1 };
+    RebasedGroupPos back = { group, x, z - 1 };
+    RebasedGroupPos left = { group, x - 1, z };
+    RebasedGroupPos right = { group, x + 1, z };
+
+    if (right.rX == CHUNK_SIZE_H)
+    {
+        right.group = GetGroup(world, lcP + DIR_RIGHT);
+        right.rX = 0;
+    }
+
+    if (left.rX < 0)
+    {
+        left.group = GetGroup(world, lcP + DIR_LEFT);
+        left.rX = CHUNK_H_MASK;
+    }
+
+    if (front.rZ == CHUNK_SIZE_H)
+    {
+        front.group = GetGroup(world, lcP + DIR_FRONT);
+        front.rZ = 0;
+    }
+
+    if (back.rZ < 0)
+    {
+        back.group = GetGroup(world, lcP + DIR_BACK);
+        back.rZ = CHUNK_H_MASK;
+    }
+
+    surface = Max(surface, front.group->surface[front.rZ * CHUNK_SIZE_H + front.rX]);
+    surface = Max(surface, back.group->surface[back.rZ * CHUNK_SIZE_H + back.rX]);
+    surface = Max(surface, left.group->surface[left.rZ * CHUNK_SIZE_H + left.rX]);
+    surface = Max(surface, right.group->surface[right.rZ * CHUNK_SIZE_H + right.rX]);
+    
+    return surface;
+}
+
+static inline uint8_t GetSunlight(Chunk* chunk, int rX, int lwY, int rZ, int index)
+{
+    assert(BlockInsideChunkH(rX, rZ));
+
+    if (lwY >= chunk->group->surface[rZ * CHUNK_SIZE_H + rX])
+        return MAX_LIGHT;
+
+    uint8_t light = chunk->sunlight[index];
+    
+    return light == 0 ? MIN_LIGHT : light;
+}
+
+static inline bool SetMaxSunlight(Chunk* chunk, int light, int lwY, RelP rel) 
+{
+    int index = BlockIndex(rel.x, rel.y, rel.z);
+    int oldLight = GetSunlight(chunk, rel.x, lwY, rel.z, index);
+    
+    if (oldLight < light) 
+    {
+        chunk->sunlight[index] = (uint8_t)light;
+        return true;
+    }
+    
+    return false;
+}
+
+static inline void ScatterSunlight(World* world, queue<ivec3>& sunNodes)
+{
+    while (!sunNodes.empty())
+    {
+        LWorldP node = sunNodes.front();
+        sunNodes.pop();
+
+        RelP rel;
+        Chunk* chunk = GetRelative(world, node.x, node.y, node.z, rel);
+
+        int index = BlockIndex(rel.x, rel.y, rel.z);
+        Block block = chunk->blocks[index];
+
+        int light = GetSunlight(chunk, rel.x, node.y, rel.z, index) - GetLightStep(world, block);
+
+        if (light <= MIN_LIGHT)
+            continue;
+
+        for (int i = 0; i < 6; i++)
+        {
+            LWorldP nextP = node + DIRS_3[i];
+
+            if (nextP.y < 0 || nextP.y >= WORLD_BLOCK_HEIGHT)
+                continue;
+
+            Chunk* next = GetRelative(world, nextP.x, nextP.y, nextP.z, rel);
+            Block adjBlock = GetBlock(next, rel);
+
+            if (!IsOpaque(world, adjBlock) && SetMaxSunlight(next, light, nextP.y, rel))
+                sunNodes.emplace(nextP.x, nextP.y, nextP.z);
+        }
+    }
+}
+
+static void SetSunlightNodes(World* world, ChunkGroup* group, queue<ivec3>& sunNodes)
+{
+    LWorldP lwP = group->chunks->lwPos;
+
+    for (int z = 0; z < CHUNK_SIZE_H; z++) 
+    {
+        for (int x = 0; x < CHUNK_SIZE_H; x++)
+        {
+            int surface = group->surface[z * CHUNK_SIZE_H + x];
+            int maxY = Min(ComputeMaxY(world, group, x, z, surface), WORLD_BLOCK_HEIGHT - 1);
+
+            for (int lwY = surface; lwY <= maxY; lwY++)
+                sunNodes.emplace(lwP.x + x, lwY, lwP.z + z);
+        }
+    }
+
+    ScatterSunlight(world, sunNodes);
+}
+
 // Builds mesh data for the chunk.
 static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
 {
@@ -158,21 +303,25 @@ static bool AllowPreprocess(World* world, ChunkGroup* group)
 
     for (int i = 0; i < 9; i++)
     {
-        LChunkP next = p + DIRS[i];
+        LChunkP next = p + DIRS_2[i];
 
         ChunkGroup* adj = GetGroup(world, next.x, next.z);
         assert(adj != nullptr);
 
-        if (adj->state == CHUNK_DEFAULT || adj->state == GROUP_PREPROCESSING)
+        if (adj->state == GROUP_DEFAULT || adj->state == GROUP_PREPROCESSING)
             return false;
     }
 
     return true;
 }
 
-static void PreprocessGroup(GameState*, World*, void* groupPtr)
+static void PreprocessGroup(GameState*, World* world, void* groupPtr)
 {
     ChunkGroup* group = (ChunkGroup*)groupPtr;
+
+    queue<ivec3> sunNodes;
+    SetSunlightNodes(world, group, sunNodes);
+
     group->state = GROUP_PREPROCESSED;
 }
 
@@ -276,7 +425,7 @@ static void WorldRenderUpdate(GameState* state, World* world, Camera* cam)
 
         for (int i = 0; i < 9; i++)
         {
-            LChunkP next = lcP + DIRS[i];
+            LChunkP next = lcP + DIRS_2[i];
 
             ChunkGroup* adj = GetGroup(world, next.x, next.z);
             assert(adj != nullptr);
@@ -313,77 +462,85 @@ static void WorldRenderUpdate(GameState* state, World* world, Camera* cam)
     }
 }
 
-static inline u8vec3 AverageColor(u8vec3 first, u8vec3 second, u8vec3 third, u8vec3 fourth)
+static inline Colori AverageColor(Colori first, Colori second, Colori third, Colori fourth)
 {
-    int r = (first.r + second.r + third.r + fourth.r) >> 2;
-    int b = (first.b + second.b + third.b + fourth.b) >> 2;
-    int g = (first.g + second.g + third.g + fourth.g) >> 2;
-    
-    return u8vec3(r, g, b);
+    return ((ivec4)first + (ivec4)second + (ivec4)third + (ivec4)fourth) >> 2;
 }
 
-static inline u8vec3 AverageColor(u8vec3 first, u8vec3 second, u8vec3 third)
+static inline Colori AverageColor(Colori first, Colori second, Colori third)
 {
-    int r = (first.r + second.r + third.r) / 3;
-    int b = (first.b + second.b + third.b) / 3;
-    int g = (first.g + second.g + third.g) / 3;
-    
-    return u8vec3(r, b, g);
+    return ((ivec4)first + (ivec4)second + (ivec4)third) / 3;
 }
 
-#define BLOCK_TRANSPARENT(pos) GetCullType(world, GetBlockSafe(world, chunk, pos)) >= CULL_TRANSPARENT
-
-static inline ivec3 VertexLight(World* world, Chunk* chunk, Axis axis, RelP pos, int dx, int dy, int dz)
+static const uint8_t lightOutput[] = { 0, 17, 34, 51, 68, 85, 102, 119, 136, 153, 170, 187, 204, 221, 238, 255 };
+        
+static inline Colori GetFinalLight(Chunk* chunk, int rX, int rY, int rZ)
 {
-    RelP a, b, c, d;
+    int index = BlockIndex(rX, rY, rZ);
+
+    uint8_t light = lightOutput[chunk->blockLight[index]];
+    uint8_t sun = lightOutput[GetSunlight(chunk, rX, RelToLWorldP(chunk, rY), rZ, index)];
+
+    return Colori(light, light, light, sun);
+}
+
+static inline Colori VertexLight(World* world, Chunk* chunk, Axis axis, RelP pos, int dx, int dy, int dz)
+{
+    RelP rA, rB, rC, rD;
 
     switch (axis)
     {
         case AXIS_X:
-            a = pos + ivec3(dx, 0, 0);
-            b = pos + ivec3(dx, dy, 0);
-            c = pos + ivec3(dx, 0, dz);
-            d = pos + ivec3(dx, dy, dz);
+            rA = pos + ivec3(dx, 0, 0);
+            rB = pos + ivec3(dx, dy, 0);
+            rC = pos + ivec3(dx, 0, dz);
+            rD = pos + ivec3(dx, dy, dz);
             break;
 
         case AXIS_Y:
-            a = pos + ivec3(0, dy, 0);
-            b = pos + ivec3(dx, dy, 0);
-            c = pos + ivec3(0, dy, dz);
-            d = pos + ivec3(dx, dy, dz);
+            rA = pos + ivec3(0, dy, 0);
+            rB = pos + ivec3(dx, dy, 0);
+            rC = pos + ivec3(0, dy, dz);
+            rD = pos + ivec3(dx, dy, dz);
             break;
 
         default:
-            a = pos + ivec3(0, 0, dz);
-            b = pos + ivec3(dx, 0, dz);
-            c = pos + ivec3(0, dy, dz);
-            d = pos + ivec3(dx, dy, dz);
+            rA = pos + ivec3(0, 0, dz);
+            rB = pos + ivec3(dx, 0, dz);
+            rC = pos + ivec3(0, dy, dz);
+            rD = pos + ivec3(dx, dy, dz);
             break;
     }
 
-    bool t1 = BLOCK_TRANSPARENT(b);
-    bool t2 = BLOCK_TRANSPARENT(c);
+    RebasedPos a = Rebase(world, chunk->lcPos, rA);
+    RebasedPos b = Rebase(world, chunk->lcPos, rB);
+    RebasedPos c = Rebase(world, chunk->lcPos, rC);
+
+    bool t1 = !IsOpaque(world, GetBlock(b.chunk, b.rX, b.rY, b.rZ));
+    bool t2 = !IsOpaque(world, GetBlock(c.chunk, c.rX, c.rY, c.rZ));
 
     if (t1 || t2) 
     {
-        u8vec3 c1 = BLOCK_TRANSPARENT(a) ? u8vec3(255) : u8vec3(65);
-        u8vec3 c2 = t1 ? u8vec3(255) : u8vec3(65);
-        u8vec3 c3 = t2 ? u8vec3(255) : u8vec3(65);
-        u8vec3 c4 = BLOCK_TRANSPARENT(d) ? u8vec3(255) : u8vec3(65);
+        RebasedPos d = Rebase(world, chunk->lcPos, rD);
+
+        Colori c1 = GetFinalLight(a.chunk, a.rX, a.rY, a.rZ);
+        Colori c2 = GetFinalLight(b.chunk, b.rX, b.rY, b.rZ);
+        Colori c3 = GetFinalLight(c.chunk, c.rX, c.rY, c.rZ);
+        Colori c4 = GetFinalLight(d.chunk, d.rX, d.rY, d.rZ);
 
         return AverageColor(c1, c2, c3, c4);
     }
     else 
     {
-        u8vec3 c1 = BLOCK_TRANSPARENT(a) ? u8vec3(255) : u8vec3(65);
-        u8vec3 c2 = t1 ? u8vec3(255) : u8vec3(65);
-        u8vec3 c3 = t2 ? u8vec3(255) : u8vec3(65);
+        Colori c1 = GetFinalLight(a.chunk, a.rX, a.rY, a.rZ);
+        Colori c2 = GetFinalLight(b.chunk, b.rX, b.rY, b.rZ);
+        Colori c3 = GetFinalLight(c.chunk, c.rX, c.rY, c.rZ);
 
         return AverageColor(c1, c2, c3);
     }
 }
 
-#define LIGHT(a, o1, o2, o3) NewColori(VertexLight(world, chunk, AXIS_##a, rP, o1, o2, o3), alpha)
+#define LIGHT(a, o1, o2, o3) VertexLight(world, chunk, AXIS_##a, rP, o1, o2, o3)
 
 static inline void SetFaceVertexData(MeshData* data, int index, float x, float y, float z, Colori c)
 {
@@ -466,7 +623,6 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     ivec3 rP = ivec3(xi, yi, zi);
     float x = (float)xi, y = (float)yi, z = (float)zi;
 
-    uint8_t alpha = GetBlockAlpha(world, block);
     CullType cull = GetCullType(world, block);
 
     int vAdded = 0;

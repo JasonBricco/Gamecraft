@@ -68,6 +68,7 @@ struct BlockData
     CullType cull;
     BuildBlockFunc buildFunc;
     uint8_t alpha;
+    int lightStep;
     Sound onSetSound;
     BlockSurface surface;
     BlockCollider collider;
