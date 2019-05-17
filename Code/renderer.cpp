@@ -7,6 +7,11 @@ static inline void SetUniform(GLint loc, GLfloat f)
     glUniform1f(loc, f);
 }
 
+static inline void SetUniform(GLint loc, GLint f)
+{
+    glUniform1i(loc, f);
+}
+
 static inline void SetUniform(GLint loc, vec2 v)
 {
     glUniform2f(loc, v.x, v.y);
@@ -307,11 +312,11 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
     fluidArray->view = glGetUniformLocation(fluidArray->handle, "view");
     fluidArray->model = glGetUniformLocation(fluidArray->handle, "model");
     fluidArray->proj = glGetUniformLocation(fluidArray->handle, "projection");
-    fluidArray->time = glGetUniformLocation(fluidArray->handle, "time");
     fluidArray->ambient = glGetUniformLocation(fluidArray->handle, "ambient");
     fluidArray->fogStart = glGetUniformLocation(fluidArray->handle, "fogStart");
     fluidArray->fogEnd = glGetUniformLocation(fluidArray->handle, "fogEnd");
     fluidArray->fogColor = glGetUniformLocation(fluidArray->handle, "fogColor");
+    fluidArray->animIndex = glGetUniformLocation(fluidArray->handle, "animIndex");
 
     UseShader(fluidArray);
     SetUniform(fluidArray->fogStart, fogStart);
@@ -506,11 +511,12 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	// Fluid pass.
 	shader = GetShader(state, SHADER_FLUID_ARRAY);
 
+	rend.animIndex = (int)PingPong(state->time * 2.0f, 7.0f);
+
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);
 	SetUniform(shader->proj, rend.perspective);
-	assert(rend.animTime >= 0.0f && rend.animTime < 1.0f);
-	SetUniform(shader->time, rend.animTime);
+	SetUniform(shader->animIndex, rend.animIndex);
 	SetUniform(shader->ambient, rend.ambient);
 
 	if (rend.disableFluidCull) 

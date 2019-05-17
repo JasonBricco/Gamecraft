@@ -16,7 +16,7 @@ static char* g_buildType = "RELEASE";
 #define SWAP_INTERVAL 1
 #endif
 
-static int g_buildID = 260;
+static int g_buildID = 261;
 
 #pragma warning(push, 0)
 
@@ -93,7 +93,7 @@ using namespace std;
 #endif
 
 #include "Utils.h"
-#include "Memory.h"
+#include "ObjectPool.h"
 #include "Containers.h"
 #include "Random.h"
 #include "Profiling.h"
@@ -411,7 +411,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
 		state->deltaTime = deltaTime;
-		rend.animTime = fmodf(rend.animTime + (deltaTime * 0.5f), 1.0f);
+		state->time += deltaTime;
 		lastTime = endTime;
 	}
 

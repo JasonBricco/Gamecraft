@@ -27,6 +27,10 @@ enum ImageID
 	IMAGE_WATER2,
 	IMAGE_WATER3,
 	IMAGE_WATER4,
+	IMAGE_WATER5,
+	IMAGE_WATER6,
+	IMAGE_WATER7,
+	IMAGE_WATER8,
 	IMAGE_WOOD,
 	IMAGE_WOOD_TOP,
 	IMAGE_CROSSHAIR,
@@ -58,7 +62,7 @@ struct Shader
 {
     GLuint handle;
     GLint model, view, proj, ambient;
-    GLint time, fadeColor;
+    GLint fadeColor, animIndex;
     GLint fogColor, fogStart, fogEnd;
 };
 

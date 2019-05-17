@@ -133,6 +133,16 @@ static inline ivec3 Clamp(ivec3 v, int min, int max)
     return v;
 }
 
+static inline float PingPong(float t, float length)
+{
+    float lim = length * 2.0f;
+    float m = fmod(t, lim);
+
+    if (m >= 0.0f && m < length)
+        return m;
+    else return lim - m;
+}
+
 static inline int Square(int value)
 {
     return value * value;

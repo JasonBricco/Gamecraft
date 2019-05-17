@@ -50,7 +50,7 @@ struct GameState
 	AudioEngine audio;
 	UI ui;
 
-	float deltaTime;
+	float time, deltaTime;
 
 	ParticleEmitter rain;
 	ParticleEmitter snow;

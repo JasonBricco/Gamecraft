@@ -3,22 +3,17 @@
 in vec3 uv;
 in vec4 vertColor;
 in float fogFactor;
-in flat int lowIndex;
-in flat int highIndex;
-in flat float blendFactor;
 
 out vec4 outColor;
 
 uniform sampler2DArray tex;
+uniform int animIndex;
 uniform float ambient;
 uniform vec3 fogColor;
 
 void main()
 {
-	vec4 lower = texture(tex, vec3(uv.x, uv.y, uv.z + lowIndex));
-	vec4 upper = texture(tex, vec3(uv.x, uv.y, uv.z + highIndex));
-
-    outColor = mix(lower, upper, blendFactor);
+	outColor = texture(tex, vec3(uv.x, uv.y, uv.z + animIndex));
 
     vec3 light = vertColor.rgb;
 	float sun = vertColor.a;
