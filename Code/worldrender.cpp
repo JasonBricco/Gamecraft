@@ -54,12 +54,11 @@ static void OnChunksRebuilt(GameState*, World* world, void* chunksPtr)
     chunks.clear();
 
     world->chunksRebuilding = false;
-
     world->workCount--;
     assert(world->workCount >= 0);
 }
 
-static inline bool SetChunkMeshData(Renderer& rend, Chunk* chunk)
+static inline void SetChunkMeshData(Renderer& rend, Chunk* chunk)
 {
     assert(chunk->state != CHUNK_BUILDING);
 
@@ -67,18 +66,13 @@ static inline bool SetChunkMeshData(Renderer& rend, Chunk* chunk)
     {
         assert(chunk->meshData[i] == nullptr);
         chunk->meshData[i] = GetMeshData(rend.meshData);
+        assert(chunk->meshData[i] != nullptr);
     }
-
-    return true;
 }
 
 static void BuildChunk(GameState* state, World* world, Chunk* chunk)
 {
     Renderer& rend = state->renderer;
-
-    if (!rend.meshData.CanGet(MESH_TYPE_COUNT))
-        return;
-
     SetChunkMeshData(rend, chunk);
 
     world->workCount++;
@@ -92,18 +86,11 @@ static void RebuildChunks(GameState* state, World* world)
     Renderer& rend = state->renderer;
     auto& chunks = world->chunksToRebuild;
 
-    if (!rend.meshData.CanGet(MESH_TYPE_COUNT * (int)chunks.size()))
-        return;
-
     for (int i = 0; i < chunks.size(); i++)
-    {
-        chunks[i]->pendingUpdate = false;
         SetChunkMeshData(rend, chunks[i]);
-    }
 
-    world->workCount++;
     world->chunksRebuilding = true;
-
+    world->workCount++;
     QueueAsync(state, RebuildChunksAsync, world, &world->chunksToRebuild, OnChunksRebuilt);
 }
 
@@ -215,8 +202,11 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
 
             case CHUNK_BUILT:
             {
-                if (chunk->pendingUpdate)
+                if (!world->chunksRebuilding && chunk->pendingUpdate)
+                {
                     world->chunksToRebuild.push_back(chunk);
+                    chunk->pendingUpdate = false;
+                }
 
                 for (int m = 0; m < MESH_TYPE_COUNT; m++)
                 {

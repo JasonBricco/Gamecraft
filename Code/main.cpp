@@ -16,7 +16,7 @@ static char* g_buildType = "RELEASE";
 #define SWAP_INTERVAL 1
 #endif
 
-static int g_buildID = 259;
+static int g_buildID = 260;
 
 #pragma warning(push, 0)
 
@@ -349,14 +349,14 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	InitUI(window, state->ui);
 	InitAudio(&state->audio);
 	
-	int threads = CreateThreads(state);
+	CreateThreads(state);
 	LoadAssets(state);
 
 	Camera* cam = NewCamera();
 	state->camera = cam;
 
 	Renderer& rend = state->renderer;
-	InitRenderer(state, rend, screenWidth, screenHeight, threads);
+	InitRenderer(state, rend, screenWidth, screenHeight);
 
 	glfwSetWindowUserPointer(window, state);
 	glfwSetKeyCallback(window, OnKey);

@@ -527,7 +527,7 @@ static inline void SetBlock(World* world, LWorldP wPos, Block block)
 
     // If the chunk isn't built, we don't know its number of vertices.
     // Setting the block in that case would be unsafe and could overflow the chunk.
-    if (chunk->state != CHUNK_BUILT)
+    if (chunk->state < CHUNK_NEEDS_FILL)
         return;
 
 	RelP rP = LWorldToRelP(wPos);
@@ -747,6 +747,7 @@ static void CheckWorld(GameState* state, World* world, Player* player)
         player->pos = pos;
         MoveCamera(state->camera, player->pos);
         UpdateCameraVectors(state->camera);
+        UpdateViewMatrix(state->camera);
         ShiftWorld(state, world);
     }
 }

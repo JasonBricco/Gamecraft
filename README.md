@@ -8,8 +8,10 @@ Current supported platforms: Windows 10, OpenGL 4.4 or higher with AVX support.
 ## Current Features ##
 - Basic world generation (grassy, flat, snow, desert, void, grid)
 - Collision
+- Voxel lighting
 - Weather effects
 - Ice with sliding
+- Trampolines
 - World editing
 - Region saving/loading
 - Audio with XAudio2

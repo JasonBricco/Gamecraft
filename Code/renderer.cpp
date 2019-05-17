@@ -276,10 +276,8 @@ static void ApplyClearColor(GameState* state, Renderer& rend)
     SetUniform(fluidArray->fogColor, rend.clearColor);
 }
 
-static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int screenHeight, int threads)
+static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int screenHeight)
 {
-	rend.meshData.Create(threads * MESH_TYPE_COUNT * 2);
-
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_CULL_FACE);
 
