@@ -266,7 +266,7 @@ static inline ImVec2 GetButtonLoc(ImVec2 btnSize, float winW, float y)
 
 static void CreatePauseUI(GameState* state, World* world, GLFWwindow* window)
 {
-    ImVec2 size = CenteredUIWindow(175.0f, 220.0f);
+    ImVec2 size = CenteredUIWindow(175.0f, 255.0f);
 
     ImGui::Begin("Pause", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
     WindowHeader("Paused", size.x);
@@ -288,7 +288,9 @@ static void CreatePauseUI(GameState* state, World* world, GLFWwindow* window)
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
 
-    Weather& weather = GetCurrentBiome(world).weather;
+    Biome& biome = GetCurrentBiome(world);
+
+    Weather& weather = biome.weather;
     bool weatherOn = weather.emitter->active;
 
     if (ImGui::Button(weatherOn ? "Disable Weather" : "Enable Weather", btnSize))
@@ -296,8 +298,22 @@ static void CreatePauseUI(GameState* state, World* world, GLFWwindow* window)
         weather.emitter->active = !weatherOn;
 
         if (!weatherOn)
-            FadeDarker(world, state->renderer, 3.0f);
-        else FadeLighter(world, state->renderer, 3.0f);
+            FadeAmbient(world, state->renderer, 0.6f, 3.0f);
+        else FadeAmbient(world, state->renderer, 1.0f, 3.0f);
+
+        Unpause(state);
+    }
+
+    cursorPos.y += 35.0f;
+    ImGui::SetCursorPos(cursorPos);
+
+    bool isNight = state->renderer.ambient < 0.2f;
+
+    if (ImGui::Button(isNight ? "Set Day" : "Set Night", btnSize))
+    {
+        if (isNight)
+            FadeAmbient(world, state->renderer, 1.0f, 0.5f);
+        else FadeAmbient(world, state->renderer, 0.05f, 0.5f);
 
         Unpause(state);
     }

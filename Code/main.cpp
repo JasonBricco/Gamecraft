@@ -16,7 +16,7 @@ static char* g_buildType = "RELEASE";
 #define SWAP_INTERVAL 1
 #endif
 
-static int g_buildID = 258;
+static int g_buildID = 259;
 
 #pragma warning(push, 0)
 
@@ -111,6 +111,7 @@ using namespace std;
 #include "World.h"
 #include "WorldIO.h"
 #include "Renderer.h"
+#include "Lighting.h"
 #include "WorldRender.h"
 #include "Simulation.h"
 #include "Async.h"
@@ -134,6 +135,7 @@ static inline ivec2 FramebufferSize();
 #include "Renderer.cpp"
 #include "Block.cpp"
 #include "World.cpp"
+#include "Lighting.cpp"
 #include "WorldRender.cpp"
 #include "Particles.cpp"
 #include "Environment.cpp"

@@ -2,148 +2,6 @@
 // Gamecraft
 //
 
-static inline void ComputeSurfaceAt(ChunkGroup* group, int x, int z)
-{
-    int index = z * CHUNK_SIZE_H + x;
-
-    for (int y = WORLD_BLOCK_HEIGHT - 2; y >= 0; y--)
-    {
-        if (GetBlock(group, x, y, z) != BLOCK_AIR)
-        {
-            group->surface[index] = (uint8_t)(y + 1);
-            break;
-        }
-    }
-}
-
-static inline void ComputeSurface(ChunkGroup* group)
-{
-    for (int z = 0; z < CHUNK_SIZE_H; z++) 
-    {
-        for (int x = 0; x < CHUNK_SIZE_H; x++)
-            ComputeSurfaceAt(group, x, z);
-    }
-}
-
-static inline int ComputeMaxY(World* world, ChunkGroup* group, int x, int z, int surface)
-{
-    LChunkP lcP = group->chunks->lcPos;
-
-    RebasedGroupPos front = { group, x, z + 1 };
-    RebasedGroupPos back = { group, x, z - 1 };
-    RebasedGroupPos left = { group, x - 1, z };
-    RebasedGroupPos right = { group, x + 1, z };
-
-    if (right.rX == CHUNK_SIZE_H)
-    {
-        right.group = GetGroup(world, lcP + DIR_RIGHT);
-        right.rX = 0;
-    }
-
-    if (left.rX < 0)
-    {
-        left.group = GetGroup(world, lcP + DIR_LEFT);
-        left.rX = CHUNK_H_MASK;
-    }
-
-    if (front.rZ == CHUNK_SIZE_H)
-    {
-        front.group = GetGroup(world, lcP + DIR_FRONT);
-        front.rZ = 0;
-    }
-
-    if (back.rZ < 0)
-    {
-        back.group = GetGroup(world, lcP + DIR_BACK);
-        back.rZ = CHUNK_H_MASK;
-    }
-
-    surface = Max(surface, front.group->surface[front.rZ * CHUNK_SIZE_H + front.rX]);
-    surface = Max(surface, back.group->surface[back.rZ * CHUNK_SIZE_H + back.rX]);
-    surface = Max(surface, left.group->surface[left.rZ * CHUNK_SIZE_H + left.rX]);
-    surface = Max(surface, right.group->surface[right.rZ * CHUNK_SIZE_H + right.rX]);
-    
-    return surface;
-}
-
-static inline uint8_t GetSunlight(Chunk* chunk, int rX, int lwY, int rZ, int index)
-{
-    assert(BlockInsideChunkH(rX, rZ));
-
-    if (lwY >= chunk->group->surface[rZ * CHUNK_SIZE_H + rX])
-        return MAX_LIGHT;
-
-    uint8_t light = chunk->sunlight[index];
-    
-    return light == 0 ? MIN_LIGHT : light;
-}
-
-static inline bool SetMaxSunlight(Chunk* chunk, int light, int lwY, RelP rel) 
-{
-    int index = BlockIndex(rel.x, rel.y, rel.z);
-    int oldLight = GetSunlight(chunk, rel.x, lwY, rel.z, index);
-    
-    if (oldLight < light) 
-    {
-        chunk->sunlight[index] = (uint8_t)light;
-        return true;
-    }
-    
-    return false;
-}
-
-static inline void ScatterSunlight(World* world, Queue<ivec3>& sunNodes)
-{
-    while (!sunNodes.Empty())
-    {
-        LWorldP node = sunNodes.Dequeue();
-
-        RelP rel;
-        Chunk* chunk = GetRelative(world, node.x, node.y, node.z, rel);
-
-        int index = BlockIndex(rel.x, rel.y, rel.z);
-        Block block = chunk->blocks[index];
-
-        int light = GetSunlight(chunk, rel.x, node.y, rel.z, index) - GetLightStep(world, block);
-
-        if (light <= MIN_LIGHT)
-            continue;
-
-        for (int i = 0; i < 6; i++)
-        {
-            LWorldP nextP = node + DIRS_3[i];
-
-            if (nextP.y < 0 || nextP.y >= WORLD_BLOCK_HEIGHT)
-                continue;
-
-            Chunk* next = GetRelative(world, nextP.x, nextP.y, nextP.z, rel);
-            Block adjBlock = GetBlock(next, rel);
-
-            if (!IsOpaque(world, adjBlock) && SetMaxSunlight(next, light, nextP.y, rel))
-                sunNodes.Enqueue(ivec3(nextP.x, nextP.y, nextP.z));
-        }
-    }
-}
-
-static void SetSunlightNodes(World* world, ChunkGroup* group, Queue<ivec3>& sunNodes)
-{
-    LWorldP lwP = group->chunks->lwPos;
-
-    for (int z = 0; z < CHUNK_SIZE_H; z++) 
-    {
-        for (int x = 0; x < CHUNK_SIZE_H; x++)
-        {
-            int surface = group->surface[z * CHUNK_SIZE_H + x];
-            int maxY = Min(ComputeMaxY(world, group, x, z, surface), WORLD_BLOCK_HEIGHT - 1);
-
-            for (int lwY = surface; lwY <= maxY; lwY++)
-                sunNodes.Enqueue(ivec3(lwP.x + x, lwY, lwP.z + z));
-        }
-    }
-
-    ScatterSunlight(world, sunNodes);
-}
-
 // Builds mesh data for the chunk.
 static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
 {
@@ -316,8 +174,9 @@ static void PreprocessGroup(GameState*, World* world, void* groupPtr)
 {
     ChunkGroup* group = (ChunkGroup*)groupPtr;
 
-    Queue<ivec3> sunNodes(262144);
-    SetSunlightNodes(world, group, sunNodes);
+    Queue<ivec3> sunNodes(MAX_LIGHT_NODES);
+    Queue<ivec3> lightNodes(MAX_LIGHT_NODES);
+    SetLightNodes(world, group, sunNodes, lightNodes);
 
     group->state = GROUP_PREPROCESSED;
 }

@@ -542,6 +542,7 @@ static inline void SetBlock(World* world, LWorldP wPos, Block block)
         else
         {
             PlaySound(GetBlockSetSound(world, block));
+            RecomputeLight(world, chunk, rP.x, rP.y, rP.z);
             FlagChunkForUpdate(world, chunk, lP, rP);
         }
     }

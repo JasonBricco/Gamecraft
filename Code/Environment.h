@@ -27,7 +27,6 @@ struct Biome
 {
 	char* name;
 	vec3 skyColor;
-	float ambient;
 	Weather weather;
 	BiomeType type;
 	BiomeFunc func;

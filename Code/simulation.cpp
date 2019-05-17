@@ -572,9 +572,53 @@ static Player* NewPlayer()
 	return player;
 }
 
+static vec2 TryFindLand(World* world)
+{
+	ChunkGroup* group = GetGroup(world, world->loadRange, world->loadRange);
+
+	vec2 center = vec2(CHUNK_SIZE_H * 0.5f);
+	float closestDist = FLT_MAX;
+	vec2 closestP = center;
+
+	for (int z = 0; z < CHUNK_SIZE_H; z++)
+	{
+		for (int x = 0; x < CHUNK_SIZE_H; x++)
+		{
+			for (int y = WORLD_BLOCK_HEIGHT - 1; y >= 0; y--)
+			{
+				Block block = GetBlock(group, x, y, z);
+				
+				if (!IsPassable(world, block))
+				{
+					float dist = distance2(center, vec2(x, z));
+
+					if (dist < closestDist)
+					{
+						closestDist = dist;
+						closestP = vec2(x, z);
+					}
+
+					break;
+				}
+				else
+				{
+					if (block != BLOCK_AIR)
+						break;
+				}
+			}
+		}
+	}
+
+	return closestP;
+}
+
 static void SpawnPlayer(GameState* state, World* world, Player* player, Rectf spawnBounds)
 {
-	vec3 spawn = spawnBounds.min + (CHUNK_SIZE_H / 2.0f);
+	vec2 p = TryFindLand(world); 
+
+	vec3 spawn = spawnBounds.min;
+	spawn.x += p.x;
+	spawn.z += p.y;
 
 	Ray ray = { vec3(spawn.x, WORLD_BLOCK_HEIGHT, spawn.z), vec3(0.0, -1.0f, 0.0f) };
 

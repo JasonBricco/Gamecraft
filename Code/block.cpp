@@ -67,6 +67,11 @@ static inline int GetLightStep(World* world, Block block)
     return world->blockData[block].lightStep;
 }
 
+static inline int GetLightEmitted(World* world, Block block)
+{
+    return world->blockData[block].lightEmitted;
+}
+
 static inline void SetBlockTextures(BlockData& data, uint16_t top, uint16_t bottom, uint16_t front, uint16_t back, uint16_t right, uint16_t left)
 {
     data.textures[FACE_TOP] = top;
@@ -195,7 +200,8 @@ static void CreateBlockData(GameState* state, BlockData* data)
     SetBlockTextures(lantern, IMAGE_LANTERN_ON);
     lantern.buildFunc = BuildBlock;
     lantern.onSetSound = GetSound(state, SOUND_STONE);
-    lantern.lightStep = INT_MAX;
+    lantern.lightStep = 1;
+    lantern.lightEmitted = MAX_LIGHT;
     lantern.name = "Lantern";
 
     BlockData& trampoline = data[BLOCK_TRAMPOLINE];
