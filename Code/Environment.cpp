@@ -69,12 +69,19 @@ static void CreateBiomes(GameState* state, World* world)
 	InitParticleEmitter(state->renderer, state->snow, 4, 4, 12000);
 	SetEmitterProperties(state->snow, IMAGE_SNOWFLAKE, 8, 20.0f, 20.0f, UpdateSnowParticles);
 
-    Biome& grassy = world->biomes[BIOME_GRASSY];
-    grassy.name = "Grassy";
-    grassy.type = BIOME_GRASSY;
-    grassy.func = GenerateGrassyTerrain;
-    grassy.skyColor = vec3(0.53f, 0.80f, 0.92f);
-    grassy.weather.emitter = &state->rain;
+    Biome& forest = world->biomes[BIOME_FOREST];
+    forest.name = "Forest";
+    forest.type = BIOME_FOREST;
+    forest.func = GenerateForestTerrain;
+    forest.skyColor = vec3(0.53f, 0.80f, 0.92f);
+    forest.weather.emitter = &state->rain;
+
+    Biome& islands = world->biomes[BIOME_ISLANDS];
+    islands.name = "Islands";
+    islands.type = BIOME_ISLANDS;
+    islands.func = GenerateIslandsTerrain;
+    islands.skyColor = vec3(0.53f, 0.80f, 0.92f);
+    islands.weather.emitter = &state->rain;
 
     Biome& snow = world->biomes[BIOME_SNOW];
     snow.name = "Snow";

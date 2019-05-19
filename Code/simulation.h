@@ -10,7 +10,7 @@ enum CollisionFlags
     HIT_NONE = 0,
     HIT_UP = 1,
     HIT_DOWN = 2,
-    HIT_OTHER = 4
+    HIT_SIDES = 4
 };
 
 struct HitInfo
@@ -35,6 +35,13 @@ struct MinMaxAABB
     vec3 max;
 };
 
+enum MoveState
+{
+    MOVE_NORMAL,
+    MOVE_FLYING,
+    MOVE_SWIMMING
+};
+
 struct Player
 {
     vec3 pos;
@@ -42,11 +49,15 @@ struct Player
     float speed;
     float friction;
     uint8_t colFlags;
-    bool flying, speedMode;
     bool spawned, suspended;
+
+    MoveState moveState;
 
     // The surface the player is standing on.
     BlockSurface surface;
+
+    vector<Block> upperOverlap;
+    vector<Block> lowerOverlap;
 
     vector<AABB> possibleCollides;
 };

@@ -379,7 +379,7 @@ static void WorldConfigUI(GameState* state, World* world, WorldConfig& config)
         ImGui::End();
     }
 
-    ImVec2 size = CenteredUIWindow(300.0f, 155.0f);
+    ImVec2 size = CenteredUIWindow(300.0f, 180.0f);
 
     ImGui::Begin("WorldConfig", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
     WindowHeader("World Settings", size.x);
@@ -410,11 +410,11 @@ static void WorldConfigUI(GameState* state, World* world, WorldConfig& config)
     ImVec2 btSize = ImGui::CalcTextSize("Biome ");
     ImGui::SameLine();
 
-    int numPerLine[] = { 3, 3 };
+    int numPerLine[] = { 3, 3, 1 };
     int curBiome = 0;
 
     ImVec2 baseCursor = ImGui::GetCursorPos();
-    float biomeGap = 70.0f;
+    float biomeGap = 75.0f;
 
     for (int n = 0; n < ArrayLength(numPerLine); n++)
     {

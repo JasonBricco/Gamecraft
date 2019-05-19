@@ -28,6 +28,12 @@ static inline AABB GetPlayerAABB(Player* player)
 	return AABBFromCenter(player->pos, vec3(0.6f, 1.8f, 0.6f));
 }
 
+static inline void GetLowerUpperAABB(Player* player, AABB& lower, AABB& upper)
+{
+	lower = AABBFromCenter(player->pos - 0.45f, vec3(0.6f, 0.9f, 0.6f));
+	upper = AABBFromCenter(player->pos + 0.45f, vec3(0.6f, 0.9f, 0.6f));
+}
+
 static inline MinMaxAABB GetMinMaxAABB(AABB bb)
 {
 	vec3 min = bb.pos - bb.radius;
@@ -255,7 +261,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	if (IsPassable(world, left) && TestWall(delta, a.pos, wMin.x, wMin, wMax, 0, 1, 2, tMin))
 	{
 		normal = vec3(-1.0f, 0.0f, 0.0f);
-		player->colFlags |= HIT_OTHER;
+		player->colFlags |= HIT_SIDES;
 		collider = GetBlockCollider(world, GetBlock(world, bPos));
 	}
 
@@ -263,7 +269,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	if (IsPassable(world, right) && TestWall(delta, a.pos, wMax.x, wMin, wMax, 0, 1, 2, tMin))
 	{
 		normal = vec3(1.0f, 0.0f, 0.0f);
-		player->colFlags |= HIT_OTHER;
+		player->colFlags |= HIT_SIDES;
 		collider = GetBlockCollider(world, GetBlock(world, bPos));
 	}
 
@@ -271,7 +277,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	if (IsPassable(world, front) && TestWall(delta, a.pos, wMax.z, wMin, wMax, 2, 0, 1, tMin))
 	{
 		normal = vec3(0.0f, 0.0f, 1.0f);
-		player->colFlags |= HIT_OTHER;
+		player->colFlags |= HIT_SIDES;
 		collider = GetBlockCollider(world, GetBlock(world, bPos));
 	}
 
@@ -279,7 +285,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	if (IsPassable(world, back) && TestWall(delta, a.pos, wMin.z, wMin, wMax, 2, 0, 1, tMin))
 	{
 		normal = vec3(0.0f, 0.0f, -1.0f);
-		player->colFlags |= HIT_OTHER;
+		player->colFlags |= HIT_SIDES;
 		collider = GetBlockCollider(world, GetBlock(world, bPos));
 	}
 }
@@ -295,6 +301,10 @@ static void ApplyBlockSurface(Player* player, vec3 accel, float deltaTime)
 			player->velocity.z = (accel.z * 0.1f) * deltaTime + player->velocity.z;
 		} break;
 
+		case SURFACE_WATER:
+			player->velocity = (accel * 0.35f) * deltaTime + player->velocity;
+			break;
+
 		default:
 			player->velocity = accel * deltaTime + player->velocity;
 	}
@@ -302,13 +312,13 @@ static void ApplyBlockSurface(Player* player, vec3 accel, float deltaTime)
 	player->velocity.y = Max(player->velocity.y, -100.0f);
 }
 
-static void Move(World* world, Player* player, vec3 accel, float deltaTime)
+static void Move(World* world, Player* player, vec3 accel, float deltaTime, float gravity)
 {
 	accel *= player->speed;
 	accel += player->velocity * player->friction;
 
-	// Gravity.
-	if (!player->flying) accel.y = -30.0f;
+	if (gravity != 0.0f)
+		accel.y = gravity;
 
 	// Using the following equations of motion:
 
@@ -346,6 +356,12 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 	int maxY = Max(start.y, end.y) + bSize.y;
 	int maxZ = Max(start.z, end.z) + bSize.z;
 
+	AABB lower, upper;
+	GetLowerUpperAABB(player, lower, upper);
+
+	player->lowerOverlap.clear();
+	player->upperOverlap.clear();
+
 	for (int z = minZ; z <= maxZ; z++)
 	{
 		for (int y = minY; y <= maxY; y++)
@@ -358,6 +374,16 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime)
 				{
 					AABB bb = AABBFromCenter(vec3(x, y, z), vec3(1.0f));
 					player->possibleCollides.push_back(bb);
+				}
+				else if (block != BLOCK_AIR)
+				{
+					AABB bb = AABBFromCenter(vec3(x, y, z), vec3(1.0f));
+
+					if (OverlapAABB(bb, lower))
+						player->lowerOverlap.push_back(block);
+
+					if (OverlapAABB(bb, upper))
+						player->upperOverlap.push_back(block);
 				}
 			}
 		}
@@ -472,6 +498,17 @@ static void HandleEditInput(GameState* state, Input& input, World* world, float 
 	}
 }
 
+static inline bool ListContainsBlock(vector<Block>& list, Block block)
+{
+	for (Block next : list)
+	{
+		if (next == block)
+			return true;
+	}
+
+	return false;
+}
+
 static void Simulate(GameState* state, World* world, Player* player, float deltaTime)
 {
 	if (player->suspended) return;
@@ -482,42 +519,83 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 
 	vec3 accel = vec3(0.0f);
 
-	if (KeyHeld(input, KEY_UP)) accel += GetXZ(cam->forward);
-	if (KeyHeld(input, KEY_DOWN)) accel += GetXZ(-cam->forward);
-	if (KeyHeld(input, KEY_LEFT)) accel += GetXZ(-cam->right);
-	if (KeyHeld(input, KEY_RIGHT)) accel += GetXZ(cam->right);
+	if (KeyHeld(input, KEY_UP)) accel += cam->forward;
+	if (KeyHeld(input, KEY_DOWN)) accel += -cam->forward;
+	if (KeyHeld(input, KEY_LEFT)) accel += -cam->right;
+	if (KeyHeld(input, KEY_RIGHT)) accel += cam->right;
 
 	if (accel != vec3(0.0f))
 		accel = normalize(accel);
 
 	if (KeyPressed(input, KEY_TAB))
-		player->flying = !player->flying;
-
-	if (KeyPressed(input, KEY_P))
-		player->speedMode = !player->speedMode;
-
-	if (player->flying)
 	{
-		player->speed = player->speedMode ? 1000.0f : 200.0f;
-
-		if (KeyHeld(input, KEY_SPACE))
-			accel.y = 1.0f;
-
-		if (KeyHeld(input, KEY_SHIFT)) accel.y = -1.0f;
-	}
-	else 
-	{
-		player->speed = 50.0f;
-
-		if ((player->colFlags & HIT_DOWN) && KeyHeld(input, KEY_SPACE))
-			player->velocity.y = 10.0f;
+		if (player->moveState == MOVE_FLYING)
+			player->moveState = MOVE_NORMAL;
+		else player->moveState = MOVE_FLYING;
 	}
 
-	Move(world, player, accel, deltaTime);
+	float gravity = -30.0f;
+
+	switch (player->moveState)
+	{
+		case MOVE_NORMAL:
+		{
+			player->speed = 50.0f;
+			player->friction = -8.0f;
+
+			if ((player->colFlags & HIT_DOWN) && KeyHeld(input, KEY_SPACE))
+				player->velocity.y = 10.0f;
+
+			if (ListContainsBlock(player->lowerOverlap, BLOCK_WATER) || ListContainsBlock(player->upperOverlap, BLOCK_WATER))
+				player->moveState = MOVE_SWIMMING;
+		} break;
+
+		case MOVE_FLYING:
+		{ 
+			player->speed = 200.0f;
+			player->friction = -8.0f;
+			gravity = 0.0f;
+			accel.y = 0.0f;
+
+			// Gravity subtracts 30 from acceleration. These values will
+			// ensure it becomes 1 or -1 when flying.
+			if (KeyHeld(input, KEY_SPACE))
+				accel.y = 1.0f;
+
+			if (KeyHeld(input, KEY_SHIFT)) 
+				accel.y = -1.0f;
+		} break;
+
+		case MOVE_SWIMMING:
+		{
+			player->speed = 50.0f;
+			player->friction = -10.0f;
+			gravity = 0.0f;
+
+			bool below = ListContainsBlock(player->lowerOverlap, BLOCK_WATER);
+			bool above = ListContainsBlock(player->upperOverlap, BLOCK_WATER);
+
+			if (!above && !below)
+				player->moveState = MOVE_NORMAL;
+			else
+			{
+				player->surface = SURFACE_WATER;
+
+				if (KeyHeld(input, KEY_SPACE))
+					accel.y = 0.6f;
+
+				if (KeyHeld(input, KEY_SHIFT)) 
+					accel.y = -0.6f;
+			}
+
+		} break;
+	}
+
+	Move(world, player, accel, deltaTime, gravity);
 
 	float min = 0.0f, max = (float)(world->size * CHUNK_SIZE_H - 1);
-	player->pos.x = std::clamp(player->pos.x, min, max);
-	player->pos.z = std::clamp(player->pos.z, min, max);
+	player->pos.x = Clamp(player->pos.x, min, max);
+	player->pos.z = Clamp(player->pos.z, min, max);
 
 	MoveCamera(cam, player->pos);
 	UpdateCameraVectors(cam);
@@ -562,12 +640,9 @@ static Player* NewPlayer()
 	Player* player = new Player();
 	
 	player->velocity = vec3(0.0f);
-	player->speed = 50.0f;
-	player->friction = -8.0f;
 	player->colFlags = HIT_NONE;
-	player->flying = false;
-	player->speedMode = false;
 	player->spawned = false;
+	player->moveState = MOVE_NORMAL;
 	
 	return player;
 }

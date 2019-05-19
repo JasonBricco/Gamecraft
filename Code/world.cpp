@@ -843,7 +843,7 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
         CreateBlockData(state, world->blockData);
 
         if (!LoadWorldFileData(state, world))
-            world->properties = { rand(), config.radius, BIOME_GRASSY };
+            world->properties = { rand(), config.radius, BIOME_FOREST };
 
         world->blockToSet = BLOCK_GRASS;
 

@@ -203,11 +203,6 @@ static inline int InRange(int val, int min, int max)
     return val >= min && val <= max;
 }
 
-static inline vec3 GetXZ(vec3 value)
-{
-    return vec3(value.x, 0.0f, value.z);
-}
-
 static inline ivec3 BlockPos(vec3 pos)
 {
     return { RoundToInt(pos.x), RoundToInt(pos.y), RoundToInt(pos.z) };

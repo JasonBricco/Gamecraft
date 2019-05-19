@@ -14,7 +14,8 @@ using BiomeFunc = void(*)(World*, ChunkGroup*);
 
 enum BiomeType
 {
-	BIOME_GRASSY,
+	BIOME_FOREST,
+	BIOME_ISLANDS,
 	BIOME_SNOW,
 	BIOME_DESERT,
 	BIOME_FLAT,
