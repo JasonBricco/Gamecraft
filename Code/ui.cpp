@@ -529,15 +529,41 @@ static void CreateDebugHUD(World* world)
         ivec3 lwP = world->cursorBlockPos;
         WorldP p = LWorldToWorldP(world, lwP);
 
-        char blockText[64];
-        sprintf_s(blockText, 64, "Block: %s", name);
-
-        char posText[64];
-        sprintf_s(posText, 64, "Position: %i, %i, %i (%i, %i, %i)", lwP.x, lwP.y, lwP.z, p.x, p.y, p.z);
+        char blockText[128];
+        sprintf_s(blockText, 64, "Block: %s, Position: %i, %i, %i (%i, %i, %i)", name, lwP.x, lwP.y, lwP.z, p.x, p.y, p.z);
 
         ImGui::Text(blockText);
-        ImGui::Text(posText);
     }
+
+    #if PROFILING
+
+    MultiSpacing(5);
+
+    ImGui::Text("Profiler");
+
+    for (int i = 0; i < MEASURE_COUNT; i++)
+    {
+        uint64_t calls = g_counters[i].calls;
+
+        if (calls > 0)
+        {
+            uint64_t cycles = g_counters[i].cycles;
+            uint64_t cyclesPerCall = cycles / calls;
+
+            char buffer[128];
+            sprintf(buffer, "%s: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u\n", g_counters[i].label, cycles, calls, cyclesPerCall);
+            
+            ImGui::Text(buffer);
+
+            if (!g_counters[i].noFlush)
+            {
+                g_counters[i].cycles = 0;
+                g_counters[i].calls = 0;
+            }
+        }
+    }
+
+    #endif
 
     ImGui::End();
 }

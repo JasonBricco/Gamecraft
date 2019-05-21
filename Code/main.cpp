@@ -2,7 +2,7 @@
 // Gamecraft
 //
 
-#define PROFILING 0
+#define PROFILING 1
 
 #if _DEBUG
 static char* g_buildType = "DEBUG";
@@ -204,7 +204,7 @@ static void Unpause(GameState* state)
 	state->pauseState = PLAYING;
 }
 
-static void BeginLoading(GameState* state, float fadeTime, function<void(GameState*, World*)> callback)
+static void BeginLoadingScreen(GameState* state, float fadeTime, function<void(GameState*, World*)> callback)
 {
 	LoadingInfo& info = state->loadInfo;
 	info.state = LOADING_FADE_IN;
@@ -215,7 +215,7 @@ static void BeginLoading(GameState* state, float fadeTime, function<void(GameSta
 	state->pauseState = LOADING;
 }
 
-static void ProcessLoading(GameState* state, World* world, float deltaTime)
+static void ProcessLoadingScreen(GameState* state, World* world, float deltaTime)
 {
 	LoadingInfo& info = state->loadInfo;
 	Renderer& rend = state->renderer;
@@ -315,7 +315,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	if (!glfwInit())
 		Error("GLFW failed to initialize.\n");
 
-	// Window creation.
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -335,7 +334,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	glewExperimental = GL_TRUE;
 
-	// Set vertical synchronization to the monitor refresh rate.
 	glfwSwapInterval(SWAP_INTERVAL);
 
 	srand((uint32_t)time(0));
@@ -406,7 +404,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		glfwSwapBuffers(window);
 
 		END_TIMED_BLOCK(GAME_LOOP);
-		FLUSH_COUNTERS();
 
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
@@ -419,8 +416,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	SaveGameSettings(state);
 
 	glfwTerminate();
-
-	FLUSH_COUNTERS();
 
 	return 0;
 }

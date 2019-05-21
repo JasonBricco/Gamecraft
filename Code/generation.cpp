@@ -67,7 +67,6 @@ static inline void CreateTree(ChunkGroup* group, ivec3 base, int minHeight, int 
 
 static inline bool IsWithinIsland(World* world, WorldP start, int x, int z, float& p)
 {
-    // Determine if this column is inside of the island. The world center is assumed to be the origin (0, 0).
     int valueInCircle = (int)sqrt(Square(start.x + x) + Square(start.z + z));
 
     if (valueInCircle < world->properties.radius)
@@ -118,11 +117,9 @@ static void GenerateForestTerrain(World* world, ChunkGroup* group)
                 float terrainVal;
                 float biomeVal = GetRawNoiseValue2D(biome, x, z);
 
-                // Value for flat terrain.
                 float flat = GetNoiseValue2D(base, x, z);
                 flat = ((flat * 0.2f) * 30.0f) + 10.0f;
 
-                // Value for mountainous terrain.
                 float mountain = GetNoiseValue2D(ridged, x, z);
                 mountain = (pow(mountain, 3.5f) * 30.0f) + 10.0f;
 
@@ -203,7 +200,6 @@ static void GenerateForestTerrain(World* world, ChunkGroup* group)
         }
     }
 
-    // Generate trees.
     int treeNum = RandRange(3, 6);
 
     for (int i = 0; i < treeNum; i++)
@@ -260,11 +256,9 @@ static void GenerateIslandsTerrain(World* world, ChunkGroup* group)
                 float terrainVal;
                 float biomeVal = GetRawNoiseValue2D(biome, x, z);
 
-                // Value for flat terrain.
                 float flat = GetNoiseValue2D(base, x, z);
                 flat = ((flat * 0.2f) * 30.0f) + 10.0f;
 
-                // Value for mountainous terrain.
                 float mountain = GetNoiseValue2D(ridged, x, z);
                 mountain = (pow(mountain, 3.5f) * 60.0f) + 20.0f;
 
@@ -277,8 +271,6 @@ static void GenerateIslandsTerrain(World* world, ChunkGroup* group)
                     terrainVal = mountain;
                 else
                 {
-                    // If we're close to the boundary between the two terrain types,
-                    // interpolate between them for a smooth transition.
                     float a = SCurve3((biomeVal - lower) / (upper - lower));
                     terrainVal = Lerp(flat, mountain, a);
                 }
@@ -345,7 +337,6 @@ static void GenerateIslandsTerrain(World* world, ChunkGroup* group)
         }
     }
 
-    // Generate trees.
     int treeNum = RandRange(1, 3);
 
     for (int i = 0; i < treeNum; i++)
@@ -569,8 +560,7 @@ static void GenerateDesertTerrain(World* world, ChunkGroup* group)
             }
         }
     }
-
-    // Generate cacti.
+    
     int cactusNum = RandRange(0, 2);
 
     for (int i = 0; i < cactusNum; i++)

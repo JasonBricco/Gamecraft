@@ -38,4 +38,3 @@ static inline void _AssertArrayEquals(T* value, T* expected, int size, char* fil
 }
 
 #define AssertArrayEquals(value, expected, size) _AssertArrayEquals(value, expected, size, __FILE__, __LINE__)
-

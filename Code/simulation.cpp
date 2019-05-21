@@ -314,6 +314,8 @@ static void ApplyBlockSurface(Player* player, vec3 accel, float deltaTime)
 
 static void Move(World* world, Player* player, vec3 accel, float deltaTime, float gravity)
 {
+	BEGIN_TIMED_BLOCK(PLAYER_MOVE);
+
 	accel *= player->speed;
 	accel += player->velocity * player->friction;
 
@@ -454,6 +456,8 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime, floa
 		player->surface = SURFACE_NORMAL;
 
     player->possibleCollides.clear();
+
+    END_TIMED_BLOCK(PLAYER_MOVE);
 }
 
 static bool OverlapsBlock(Player* player, int x, int y, int z)
