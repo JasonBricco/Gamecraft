@@ -96,7 +96,7 @@ using namespace std;
 #include "ObjectPool.h"
 #include "Containers.h"
 #include "Random.h"
-#include "Profiling.h"
+#include "Debug.h"
 #include "UI.h"
 #include "Audio.h"
 #include "FileHelper.h"
@@ -124,7 +124,7 @@ using namespace std;
 
 static void Pause(GameState* state, PauseState pauseState);
 static void Unpause(GameState* state);
-static void BeginLoading(GameState* state, float fadeTime, function<void(GameState*, World*)> callback);
+static void BeginLoadingScreen(GameState* state, float fadeTime, function<void(GameState*, World*)> callback);
 static inline ivec2 FramebufferSize();
 
 #include "Audio.cpp"
@@ -259,7 +259,7 @@ static void Update(GameState* state, Player* player, World* world, float deltaTi
 	Input& input = state->input;
 
 	if (state->pauseState == LOADING)
-		ProcessLoading(state, world, deltaTime);
+		ProcessLoadingScreen(state, world, deltaTime);
 	else
 	{
 		if (KeyPressed(input, KEY_ESCAPE))
@@ -385,7 +385,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	while (!glfwWindowShouldClose(window))
 	{
-		BEGIN_TIMED_BLOCK(GAME_LOOP);
+		TIMED_BLOCK(GAME_LOOP);
 
 		ResetInput(state->input);
 		glfwPollEvents();
@@ -402,8 +402,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		}
 
 		glfwSwapBuffers(window);
-
-		END_TIMED_BLOCK(GAME_LOOP);
 
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);

@@ -143,7 +143,7 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 {
 	if (emitter.count == 0) return;
 
-	BEGIN_TIMED_BLOCK(DRAW_PARTICLES);
+	TIMED_BLOCK(DRAW_PARTICLES);
 
 	glBindBuffer(GL_ARRAY_BUFFER, emitter.modelBuffer);
 	mat4* matrices = (mat4*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
@@ -166,6 +166,4 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 
 	glBindVertexArray(emitter.mesh.va);
 	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh.indexCount, GL_UNSIGNED_SHORT, 0, emitter.count);
-
-	END_TIMED_BLOCK(DRAW_PARTICLES);
 }

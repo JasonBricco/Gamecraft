@@ -470,7 +470,7 @@ static inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 
 static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 {
-	BEGIN_TIMED_BLOCK(RENDER_SCENE);
+	TIMED_BLOCK(RENDER_SCENE);
 
 	if (rend.samplesAA > 0)
 		glBindFramebuffer(GL_FRAMEBUFFER, rend.fboAA);
@@ -566,8 +566,6 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 		ivec2 size = FramebufferSize();
 		glBlitFramebuffer(0, 0, size.x, size.y, 0, 0, size.x, size.y, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	}
-
-	END_TIMED_BLOCK(RENDER_SCENE);
 }
 
 static Texture LoadTexture(int width, int height, uint8_t* pixels)

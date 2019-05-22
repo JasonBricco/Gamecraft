@@ -455,7 +455,7 @@ static void WorldConfigUI(GameState* state, World* world, WorldConfig& config)
             config.radius = radius;
             state->pendingConfig = &config;
             Unpause(state);
-            BeginLoading(state, 0.5f, RegenerateWorldCallback);
+            BeginLoadingScreen(state, 0.5f, RegenerateWorldCallback);
         }
     }
 

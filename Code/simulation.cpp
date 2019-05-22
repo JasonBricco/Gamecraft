@@ -184,7 +184,7 @@ static void TeleportPlayer(GameState* state, Player* player, WorldLocation p)
 {
 	player->suspended = true;
 	state->teleportLoc = p;
-	BeginLoading(state, 0.5f, TeleportPlayerCallback);
+	BeginLoadingScreen(state, 0.5f, TeleportPlayerCallback);
 }
 
 static inline bool InApproxRange(float& value, float min, float max)
@@ -314,7 +314,7 @@ static void ApplyBlockSurface(Player* player, vec3 accel, float deltaTime)
 
 static void Move(World* world, Player* player, vec3 accel, float deltaTime, float gravity)
 {
-	BEGIN_TIMED_BLOCK(PLAYER_MOVE);
+	TIMED_BLOCK(PLAYER_MOVE);
 
 	accel *= player->speed;
 	accel += player->velocity * player->friction;
@@ -456,8 +456,6 @@ static void Move(World* world, Player* player, vec3 accel, float deltaTime, floa
 		player->surface = SURFACE_NORMAL;
 
     player->possibleCollides.clear();
-
-    END_TIMED_BLOCK(PLAYER_MOVE);
 }
 
 static bool OverlapsBlock(Player* player, int x, int y, int z)

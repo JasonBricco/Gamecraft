@@ -6,7 +6,7 @@ The game is inspired by voxel engines such as Minecraft and Eden: World Builder.
 Current supported platforms: Windows 10, OpenGL 4.4 or higher with AVX support.
 
 ## Current Features ##
-- Basic world generation (grassy, flat, snow, desert, void, grid)
+- World generation (forest, islands, flat, snow, desert, void, grid)
 - Collision
 - Voxel lighting
 - Weather effects
@@ -19,3 +19,5 @@ Current supported platforms: Windows 10, OpenGL 4.4 or higher with AVX support.
 - Antialiasing
 - OpenGL renderer
 - Object pooling
+- Custom profiler
+- Asset packer
