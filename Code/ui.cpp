@@ -541,25 +541,22 @@ static void CreateDebugHUD(World* world)
 
     ImGui::Text("Profiler");
 
-    for (int i = 0; i < MEASURE_COUNT; i++)
+    for (int i = 0; i < MAX_CYCLE_COUNTS; i++)
     {
+        CycleCounter& c = g_counters[i];
         uint64_t calls = g_counters[i].calls;
 
         if (calls > 0)
         {
-            uint64_t cycles = g_counters[i].cycles;
+            uint64_t cycles = c.cycles;
             uint64_t cyclesPerCall = cycles / calls;
 
             char buffer[128];
-            sprintf(buffer, "%s: Cycles: %I64u, Calls: %I64u, Cycles/Call: %I64u\n", g_counters[i].label, cycles, calls, cyclesPerCall);
+            sprintf(buffer, "%s (%i): Cycles: %llu, Calls: %llu, Cycles/Call: %llu\n", c.func, c.line, cycles, calls, cyclesPerCall);
             
             ImGui::Text(buffer);
-
-            if (!g_counters[i].noFlush)
-            {
-                g_counters[i].cycles = 0;
-                g_counters[i].calls = 0;
-            }
+            c.cycles = 0;
+            c.calls = 0;
         }
     }
 

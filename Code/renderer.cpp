@@ -470,7 +470,7 @@ static inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 
 static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 {
-	TIMED_BLOCK(RENDER_SCENE);
+	TIMED_BLOCK;
 
 	if (rend.samplesAA > 0)
 		glBindFramebuffer(GL_FRAMEBUFFER, rend.fboAA);

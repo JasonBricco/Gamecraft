@@ -5,57 +5,46 @@
 #if PROFILING
 #pragma message("Profiling enabled.")
 
-enum MeasureSection
-{
-    MEASURE_GAME_LOOP,
-    MEASURE_PLAYER_MOVE,
-    MEASURE_DRAW_PARTICLES,
-    MEASURE_RENDER_SCENE,
-    MEASURE_COUNT
-};
+#define MAX_CYCLE_COUNTS 128
 
 struct CycleCounter
 {
-    char* label;
+    char* func;
+    int line;
     uint64_t cycles;
     uint64_t calls;
-    bool noFlush;
 };
 
-static CycleCounter g_counters[MEASURE_COUNT];
+static CycleCounter g_counters[MAX_CYCLE_COUNTS];
 
 struct TimedBlock
 {
     uint64_t start;
-    char* label;
-    bool noFlush;
-    int id;
+    char* func;
+    int id, line;
 
-    TimedBlock(int id, char* label, bool noFlush)
+    TimedBlock(int id, char* func, int line)
     {
         start = __rdtsc();
         this->id = id;
-        this->label = label;
-        this->noFlush = noFlush;
+        this->func = func;
+        this->line = line;
     }
 
     ~TimedBlock()
     {
-        g_counters[id].label = label;
+        g_counters[id].func = func;
+        g_counters[id].line = line;
         g_counters[id].cycles += __rdtsc() - start;
         g_counters[id].calls++;
-        g_counters[id].noFlush = noFlush;
     }
 };
 
-#define TIMED_BLOCK(ID) TimedBlock timedBlock##ID = TimedBlock(MEASURE_##ID, #ID, false)
-#define TIMED_BLOCK_NO_FLUSH(ID) TimedBlock(MEASURE_##ID, #ID, true)
-#define FLUSH_COUNTERS() FlushCounters();
+#define _TIMED_BLOCK(ID, func, line) TimedBlock timedBlock##ID(ID, func, line)
+#define TIMED_BLOCK _TIMED_BLOCK(__COUNTER__, __FUNCTION__, __LINE__)
 
 #else
 
-#define BEGIN_TIMED_BLOCK(ID)
-#define END_TIMED_BLOCK(ID)
-#define FLUSH_COUNTERS()
+#define TIMED_BLOCK(ID)
 
 #endif

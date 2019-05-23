@@ -314,7 +314,7 @@ static void ApplyBlockSurface(Player* player, vec3 accel, float deltaTime)
 
 static void Move(World* world, Player* player, vec3 accel, float deltaTime, float gravity)
 {
-	TIMED_BLOCK(PLAYER_MOVE);
+	TIMED_BLOCK;
 
 	accel *= player->speed;
 	accel += player->velocity * player->friction;

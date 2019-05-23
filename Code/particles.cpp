@@ -143,7 +143,7 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 {
 	if (emitter.count == 0) return;
 
-	TIMED_BLOCK(DRAW_PARTICLES);
+	TIMED_BLOCK;
 
 	glBindBuffer(GL_ARRAY_BUFFER, emitter.modelBuffer);
 	mat4* matrices = (mat4*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);

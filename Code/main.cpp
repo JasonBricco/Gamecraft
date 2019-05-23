@@ -385,7 +385,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	while (!glfwWindowShouldClose(window))
 	{
-		TIMED_BLOCK(GAME_LOOP);
+		TIMED_BLOCK;
 
 		ResetInput(state->input);
 		glfwPollEvents();
