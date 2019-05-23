@@ -489,6 +489,8 @@ static double GetFPS()
 
 static void CreateDebugHUD(World* world)
 {
+    TIMED_BLOCK;
+
     double fps = GetFPS();
 
     ivec2 size = FramebufferSize();
@@ -567,6 +569,8 @@ static void CreateDebugHUD(World* world)
 
 static void RenderUI(GameState* state, Renderer& rend, UI& ui)
 {
+    TIMED_BLOCK;
+
     ImGui::Render();
 
     ImGuiIO& io = ImGui::GetIO();

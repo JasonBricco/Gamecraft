@@ -312,7 +312,7 @@ static void ApplyBlockSurface(Player* player, vec3 accel, float deltaTime)
 	player->velocity.y = Max(player->velocity.y, -100.0f);
 }
 
-static void Move(World* world, Player* player, vec3 accel, float deltaTime, float gravity)
+static void MovePlayer(World* world, Player* player, vec3 accel, float deltaTime, float gravity)
 {
 	TIMED_BLOCK;
 
@@ -515,6 +515,8 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 {
 	if (player->suspended) return;
 
+	TIMED_BLOCK;
+
 	Renderer& rend = state->renderer;
 	Input& input = state->input;
 	Camera* cam = state->camera;
@@ -593,7 +595,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 		} break;
 	}
 
-	Move(world, player, accel, deltaTime, gravity);
+	MovePlayer(world, player, accel, deltaTime, gravity);
 
 	float min = 0.0f, max = (float)(world->size * CHUNK_SIZE_H - 1);
 	player->pos.x = Clamp(player->pos.x, min, max);

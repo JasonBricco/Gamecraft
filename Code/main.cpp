@@ -41,6 +41,7 @@ static int g_buildID = 261;
 #include <fstream>
 #include <functional>
 #include <algorithm>
+#include <atomic>
 
 #define GLM_FORCE_AVX2
 #define GLM_FORCE_INLINE

@@ -175,6 +175,8 @@ static void OnGroupPreprocessed(GameState*, World* world, void*)
 
 static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
 {
+    TIMED_BLOCK;
+    
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
         rend.meshLists[i].clear();
 

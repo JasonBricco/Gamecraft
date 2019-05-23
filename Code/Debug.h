@@ -11,8 +11,8 @@ struct CycleCounter
 {
     char* func;
     int line;
-    uint64_t cycles;
-    uint64_t calls;
+    atomic<uint64_t> cycles;
+    atomic<uint64_t> calls;
 };
 
 static CycleCounter g_counters[MAX_CYCLE_COUNTS];
