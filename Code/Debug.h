@@ -5,9 +5,41 @@
 #if PROFILING
 #pragma message("Profiling enabled.")
 
-#define MAX_CYCLE_COUNTS 128
+#define MAX_DEBUG_RECORDS 128
+#define MAX_DEBUG_SNAPSHOTS 64
 
-struct CycleCounter
+struct DebugStat
+{
+    int count;
+    int64_t min, max, avg;
+};
+
+struct DebugSnapshot
+{
+    atomic<uint64_t> cycles;
+    atomic<uint64_t> calls;
+};
+
+struct DebugCounters
+{
+    char* func;
+    int line;
+
+    DebugSnapshot snapshots[MAX_DEBUG_SNAPSHOTS];
+};
+
+struct DebugState
+{
+    int framesUntilUpdate, snapshotIndex;
+    DebugCounters counters[MAX_DEBUG_RECORDS];
+
+    DebugStat calls[MAX_DEBUG_RECORDS];
+    DebugStat cycles[MAX_DEBUG_RECORDS];
+};
+
+static DebugState g_debugState;
+
+struct DebugRecord
 {
     char* func;
     int line;
@@ -15,7 +47,8 @@ struct CycleCounter
     atomic<uint64_t> calls;
 };
 
-static CycleCounter g_counters[MAX_CYCLE_COUNTS];
+// Debug records for the given frame.
+static DebugRecord g_debugRecords[MAX_DEBUG_RECORDS];
 
 struct TimedBlock
 {
@@ -25,6 +58,7 @@ struct TimedBlock
 
     TimedBlock(int id, char* func, int line)
     {
+        assert(id < MAX_DEBUG_RECORDS);
         start = __rdtsc();
         this->id = id;
         this->func = func;
@@ -33,10 +67,11 @@ struct TimedBlock
 
     ~TimedBlock()
     {
-        g_counters[id].func = func;
-        g_counters[id].line = line;
-        g_counters[id].cycles += __rdtsc() - start;
-        g_counters[id].calls++;
+        DebugRecord& record = g_debugRecords[id];
+        record.func = func;
+        record.line = line;
+        record.cycles += __rdtsc() - start;
+        record.calls++;
     }
 };
 
@@ -45,6 +80,6 @@ struct TimedBlock
 
 #else
 
-#define TIMED_BLOCK(ID)
+#define TIMED_BLOCK
 
 #endif

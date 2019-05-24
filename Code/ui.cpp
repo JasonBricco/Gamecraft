@@ -540,26 +540,30 @@ static void CreateDebugHUD(World* world)
     #if PROFILING
 
     MultiSpacing(5);
-
     ImGui::Text("Profiler");
 
-    for (int i = 0; i < MAX_CYCLE_COUNTS; i++)
+    DebugState& state = g_debugState;
+
+    if (state.framesUntilUpdate <= 0)
     {
-        CycleCounter& c = g_counters[i];
-        uint64_t calls = g_counters[i].calls;
+        UpdateDebugStats();
+        state.framesUntilUpdate = 60;
+    }
 
-        if (calls > 0)
-        {
-            uint64_t cycles = c.cycles;
-            uint64_t cyclesPerCall = cycles / calls;
+    for (int i = 0; i < MAX_DEBUG_RECORDS; i++)
+    {
+        DebugStat& calls = state.calls[i];
 
-            char buffer[128];
-            sprintf(buffer, "%s (%i): Cycles: %llu, Calls: %llu, Cycles/Call: %llu\n", c.func, c.line, cycles, calls, cyclesPerCall);
-            
-            ImGui::Text(buffer);
-            c.cycles = 0;
-            c.calls = 0;
-        }
+        if (calls.count == 0)
+            continue;
+
+        DebugStat& cycles = state.cycles[i];
+        DebugCounters& c = state.counters[i];
+
+        char buffer[128];
+        sprintf(buffer, "%s (%i) - Avg Cycles: %llu, Avg Calls: %llu\n", c.func, c.line, cycles.avg, calls.avg);
+
+        ImGui::Text(buffer);
     }
 
     #endif

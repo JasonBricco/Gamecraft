@@ -10,11 +10,7 @@ static char* g_buildType = "DEBUG";
 static char* g_buildType = "RELEASE";
 #endif
 
-#if PROFILING
-#define SWAP_INTERVAL 0
-#else
 #define SWAP_INTERVAL 1
-#endif
 
 static int g_buildID = 261;
 
@@ -128,6 +124,7 @@ static void Unpause(GameState* state);
 static void BeginLoadingScreen(GameState* state, float fadeTime, function<void(GameState*, World*)> callback);
 static inline ivec2 FramebufferSize();
 
+#include "Debug.cpp"
 #include "Audio.cpp"
 #include "Assets.cpp"
 #include "Async.cpp"
@@ -386,20 +383,22 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	while (!glfwWindowShouldClose(window))
 	{
-		TIMED_BLOCK;
-
-		ResetInput(state->input);
-		glfwPollEvents();
-
-		if (!state->minimized)
 		{
-			BeginNewUIFrame(window, state->ui, deltaTime);
+			TIMED_BLOCK;
 
-			CreateUI(state, window, world, worldConfig);
+			ResetInput(state->input);
+			glfwPollEvents();
 
-			RunAsyncCallbacks(state);
-			Update(state, player, world, deltaTime);
-			RenderScene(state, rend, cam);
+			if (!state->minimized)
+			{
+				BeginNewUIFrame(window, state->ui, deltaTime);
+
+				CreateUI(state, window, world, worldConfig);
+
+				RunAsyncCallbacks(state);
+				Update(state, player, world, deltaTime);
+				RenderScene(state, rend, cam);
+			}
 		}
 
 		glfwSwapBuffers(window);
@@ -409,6 +408,8 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		state->deltaTime = deltaTime;
 		state->time += deltaTime;
 		lastTime = endTime;
+
+		DebugEndFrame();
 	}
 
 	SaveWorld(state, world);
