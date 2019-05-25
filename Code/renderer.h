@@ -79,9 +79,6 @@ struct Renderer
     // Backface culling will be enabled if this is true.
     bool disableFluidCull;
 
-    // Animation index for shaders that animate.
-    int animIndex;
-
     float ambient;
     vec3 clearColor;
 

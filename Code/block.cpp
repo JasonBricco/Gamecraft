@@ -124,12 +124,13 @@ static void CreateBlockData(GameState* state, BlockData* data)
 
     BlockData& water = data[BLOCK_WATER];
     SetBlockTextures(water, IMAGE_WATER);
-    water.meshType = MESH_TYPE_FLUID;
+    water.meshType = MESH_TRANSPARENT_ANIMATED;
     water.buildFunc = BuildBlock;
     water.cull = CULL_TRANSPARENT;
     water.passable = true;
     water.onSetSound = GetSound(state, SOUND_STONE);
     water.lightStep = 2;
+    water.alpha = 127;
     water.name = "Water";
 
     BlockData& sand = data[BLOCK_SAND];
@@ -218,4 +219,13 @@ static void CreateBlockData(GameState* state, BlockData* data)
     cactus.onSetSound = GetSound(state, SOUND_STONE);
     cactus.lightStep = INT_MAX;
     cactus.name = "Cactus";
+
+    BlockData& magma = data[BLOCK_MAGMA];
+    SetBlockTextures(magma, IMAGE_MAGMA);
+    magma.meshType = MESH_OPAQUE_ANIMATED;
+    magma.buildFunc = BuildBlock;
+    magma.onSetSound = GetSound(state, SOUND_STONE);
+    magma.lightStep = 1;
+    magma.lightEmitted = 10;
+    magma.name = "Magma";
 }

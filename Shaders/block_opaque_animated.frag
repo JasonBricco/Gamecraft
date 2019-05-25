@@ -15,7 +15,7 @@ void main()
 {
 	outColor = texture(tex, vec3(uv.x, uv.y, uv.z + animIndex));
 
-    vec3 light = vertColor.rgb;
+	vec3 light = vertColor.rgb;
 	float sun = vertColor.a;
 
 	vec3 amb = vec3(ambient) * sun;
@@ -24,5 +24,4 @@ void main()
 
 	outColor.xyz *= amb;
 	outColor.xyz = mix(fogColor, outColor.xyz, fogFactor);
-	outColor.a = 0.5;
 }

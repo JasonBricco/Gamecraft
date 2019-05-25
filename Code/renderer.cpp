@@ -270,13 +270,21 @@ static void ApplyClearColor(GameState* state, Renderer& rend)
 
 	AssetDatabase& db = state->assets;
 
-	Shader* diffuseArray = &db.shaders[SHADER_DIFFUSE_ARRAY];
-	UseShader(diffuseArray);
-	SetUniform(diffuseArray->fogColor, rend.clearColor);
+	Shader* opaque = &db.shaders[SHADER_BLOCK_OPAQUE];
+	UseShader(opaque);
+	SetUniform(opaque->fogColor, rend.clearColor);
 
-	Shader* fluidArray = &db.shaders[SHADER_FLUID_ARRAY];
-	UseShader(fluidArray);
-    SetUniform(fluidArray->fogColor, rend.clearColor);
+	Shader* opaqueAnim = &db.shaders[SHADER_BLOCK_OPAQUE_ANIMATED];
+	UseShader(opaqueAnim);
+	SetUniform(opaqueAnim->fogColor, rend.clearColor);
+
+	Shader* alpha = &db.shaders[SHADER_BLOCK_TRANSPARENT];
+	UseShader(alpha);
+    SetUniform(alpha->fogColor, rend.clearColor);
+
+	Shader* alphaAnim = &db.shaders[SHADER_BLOCK_TRANSPARENT_ANIMATED];
+	UseShader(alphaAnim);
+    SetUniform(alphaAnim->fogColor, rend.clearColor);
 }
 
 static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int screenHeight)
@@ -293,32 +301,60 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 	AssetDatabase& db = state->assets;
 	float fogStart = 100.0f, fogEnd = 208.0f;
 
-    Shader* diffuseArray = &db.shaders[SHADER_DIFFUSE_ARRAY];
-    diffuseArray->view = glGetUniformLocation(diffuseArray->handle, "view");
-    diffuseArray->model = glGetUniformLocation(diffuseArray->handle, "model");
-    diffuseArray->proj = glGetUniformLocation(diffuseArray->handle, "projection");
-    diffuseArray->ambient = glGetUniformLocation(diffuseArray->handle, "ambient");
-    diffuseArray->fogStart = glGetUniformLocation(diffuseArray->handle, "fogStart");
-    diffuseArray->fogEnd = glGetUniformLocation(diffuseArray->handle, "fogEnd");
-    diffuseArray->fogColor = glGetUniformLocation(diffuseArray->handle, "fogColor");
+    Shader* opaque = &db.shaders[SHADER_BLOCK_OPAQUE];
+    opaque->view = glGetUniformLocation(opaque->handle, "view");
+    opaque->model = glGetUniformLocation(opaque->handle, "model");
+    opaque->proj = glGetUniformLocation(opaque->handle, "projection");
+    opaque->ambient = glGetUniformLocation(opaque->handle, "ambient");
+    opaque->fogStart = glGetUniformLocation(opaque->handle, "fogStart");
+    opaque->fogEnd = glGetUniformLocation(opaque->handle, "fogEnd");
+    opaque->fogColor = glGetUniformLocation(opaque->handle, "fogColor");
 
-    UseShader(diffuseArray);
-    SetUniform(diffuseArray->fogStart, fogStart);
-    SetUniform(diffuseArray->fogEnd, fogEnd);
+    UseShader(opaque);
+    SetUniform(opaque->fogStart, fogStart);
+    SetUniform(opaque->fogEnd, fogEnd);
 
-    Shader* fluidArray = &db.shaders[SHADER_FLUID_ARRAY];
-    fluidArray->view = glGetUniformLocation(fluidArray->handle, "view");
-    fluidArray->model = glGetUniformLocation(fluidArray->handle, "model");
-    fluidArray->proj = glGetUniformLocation(fluidArray->handle, "projection");
-    fluidArray->ambient = glGetUniformLocation(fluidArray->handle, "ambient");
-    fluidArray->fogStart = glGetUniformLocation(fluidArray->handle, "fogStart");
-    fluidArray->fogEnd = glGetUniformLocation(fluidArray->handle, "fogEnd");
-    fluidArray->fogColor = glGetUniformLocation(fluidArray->handle, "fogColor");
-    fluidArray->animIndex = glGetUniformLocation(fluidArray->handle, "animIndex");
+    Shader* opaqueAnim = &db.shaders[SHADER_BLOCK_OPAQUE_ANIMATED];
+    opaqueAnim->view = glGetUniformLocation(opaqueAnim->handle, "view");
+    opaqueAnim->model = glGetUniformLocation(opaqueAnim->handle, "model");
+    opaqueAnim->proj = glGetUniformLocation(opaqueAnim->handle, "projection");
+    opaqueAnim->ambient = glGetUniformLocation(opaqueAnim->handle, "ambient");
+    opaqueAnim->fogStart = glGetUniformLocation(opaqueAnim->handle, "fogStart");
+    opaqueAnim->fogEnd = glGetUniformLocation(opaqueAnim->handle, "fogEnd");
+    opaqueAnim->fogColor = glGetUniformLocation(opaqueAnim->handle, "fogColor");
+    opaqueAnim->animIndex = glGetUniformLocation(opaqueAnim->handle, "animIndex");
 
-    UseShader(fluidArray);
-    SetUniform(fluidArray->fogStart, fogStart);
-    SetUniform(fluidArray->fogEnd, fogEnd);
+    UseShader(opaqueAnim);
+    SetUniform(opaqueAnim->fogStart, fogStart);
+    SetUniform(opaqueAnim->fogEnd, fogEnd);
+
+    Shader* transparent = &db.shaders[SHADER_BLOCK_TRANSPARENT];
+    transparent->view = glGetUniformLocation(transparent->handle, "view");
+    transparent->model = glGetUniformLocation(transparent->handle, "model");
+    transparent->proj = glGetUniformLocation(transparent->handle, "projection");
+    transparent->ambient = glGetUniformLocation(transparent->handle, "ambient");
+    transparent->fogStart = glGetUniformLocation(transparent->handle, "fogStart");
+    transparent->fogEnd = glGetUniformLocation(transparent->handle, "fogEnd");
+    transparent->fogColor = glGetUniformLocation(transparent->handle, "fogColor");
+    transparent->animIndex = glGetUniformLocation(transparent->handle, "animIndex");
+
+    UseShader(transparent);
+    SetUniform(transparent->fogStart, fogStart);
+    SetUniform(transparent->fogEnd, fogEnd);
+
+    Shader* transparentAnim = &db.shaders[SHADER_BLOCK_TRANSPARENT_ANIMATED];
+    transparentAnim->view = glGetUniformLocation(transparentAnim->handle, "view");
+    transparentAnim->model = glGetUniformLocation(transparentAnim->handle, "model");
+    transparentAnim->proj = glGetUniformLocation(transparentAnim->handle, "projection");
+    transparentAnim->ambient = glGetUniformLocation(transparentAnim->handle, "ambient");
+    transparentAnim->fogStart = glGetUniformLocation(transparentAnim->handle, "fogStart");
+    transparentAnim->fogEnd = glGetUniformLocation(transparentAnim->handle, "fogEnd");
+    transparentAnim->fogColor = glGetUniformLocation(transparentAnim->handle, "fogColor");
+    transparentAnim->animIndex = glGetUniformLocation(transparentAnim->handle, "animIndex");
+
+    UseShader(transparentAnim);
+    SetUniform(transparentAnim->fogStart, fogStart);
+    SetUniform(transparentAnim->fogEnd, fogEnd);
 
     Shader* crosshair = &db.shaders[SHADER_CROSSHAIR];
     crosshair->model = glGetUniformLocation(crosshair->handle, "model");
@@ -480,55 +516,82 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 
 	UpdateViewMatrix(cam);
 
+	glBindTexture(GL_TEXTURE_2D_ARRAY, GetBlockTextureArray(state).id);
+
 	// Opaque pass.
-	Shader* shader = GetShader(state, SHADER_DIFFUSE_ARRAY);
+	Shader* shader = GetShader(state, SHADER_BLOCK_OPAQUE);
 
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);
 	SetUniform(shader->proj, rend.perspective);
 	SetUniform(shader->ambient, rend.ambient);
 
-	glBindTexture(GL_TEXTURE_2D_ARRAY, GetBlockTextureArray(state).id);
-	size_t count = rend.meshLists[MESH_TYPE_OPAQUE].size();
+	size_t count = rend.meshLists[MESH_OPAQUE].size();
 
 	for (int i = 0; i < count; i++)
 	{
-		ChunkMesh cM = rend.meshLists[MESH_TYPE_OPAQUE][i];
-		DrawMesh(cM.mesh, shader, cM.pos, MESH_TYPE_OPAQUE);
+		ChunkMesh cM = rend.meshLists[MESH_OPAQUE][i];
+		DrawMesh(cM.mesh, shader, cM.pos, MESH_OPAQUE);
 	}
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	// Opaque animated pass.
+	shader = GetShader(state, SHADER_BLOCK_OPAQUE_ANIMATED);
 
-	// Transparent pass.
-	count = rend.meshLists[MESH_TYPE_TRANSPARENT].size();
-
-	for (int i = 0; i < count; i++)
-	{
-		ChunkMesh cM = rend.meshLists[MESH_TYPE_TRANSPARENT][i];
-		DrawMesh(cM.mesh, shader, cM.pos, MESH_TYPE_TRANSPARENT);
-	}
-
-	// Fluid pass.
-	shader = GetShader(state, SHADER_FLUID_ARRAY);
-
-	rend.animIndex = (int)PingPong(state->time * 2.0f, 7.0f);
+	int animIndex = (int)PingPong(state->time * 2.0f, 4.0f);
 
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);
 	SetUniform(shader->proj, rend.perspective);
-	SetUniform(shader->animIndex, rend.animIndex);
+	SetUniform(shader->ambient, rend.ambient);
+	SetUniform(shader->animIndex, animIndex);
+
+	count = rend.meshLists[MESH_OPAQUE_ANIMATED].size();
+
+	for (int i = 0; i < count; i++)
+	{
+		ChunkMesh cM = rend.meshLists[MESH_OPAQUE_ANIMATED][i];
+		DrawMesh(cM.mesh, shader, cM.pos, MESH_OPAQUE_ANIMATED);
+	}
+
+	// Transparent pass.
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	shader = GetShader(state, SHADER_BLOCK_TRANSPARENT);
+
+	UseShader(shader);
+	SetUniform(shader->view, cam->view);
+	SetUniform(shader->proj, rend.perspective);
+	SetUniform(shader->ambient, rend.ambient);
+
+	count = rend.meshLists[MESH_TRANSPARENT].size();
+
+	for (int i = 0; i < count; i++)
+	{
+		ChunkMesh cM = rend.meshLists[MESH_TRANSPARENT][i];
+		DrawMesh(cM.mesh, shader, cM.pos, MESH_TRANSPARENT);
+	}
+
+	// Transparent animated pass.
+	shader = GetShader(state, SHADER_BLOCK_TRANSPARENT_ANIMATED);
+
+	animIndex = (int)PingPong(state->time * 2.0f, 7.0f);
+
+	UseShader(shader);
+	SetUniform(shader->view, cam->view);
+	SetUniform(shader->proj, rend.perspective);
+	SetUniform(shader->animIndex, animIndex);
 	SetUniform(shader->ambient, rend.ambient);
 
 	if (rend.disableFluidCull) 
 		glDisable(GL_CULL_FACE);
 
-	count = rend.meshLists[MESH_TYPE_FLUID].size();
+	count = rend.meshLists[MESH_TRANSPARENT_ANIMATED].size();
 
 	for (int i = 0; i < count; i++)
 	{
-		ChunkMesh cM = rend.meshLists[MESH_TYPE_FLUID][i];
-		DrawMesh(cM.mesh, shader, cM.pos, MESH_TYPE_FLUID);
+		ChunkMesh cM = rend.meshLists[MESH_TRANSPARENT_ANIMATED][i];
+		DrawMesh(cM.mesh, shader, cM.pos, MESH_TRANSPARENT_ANIMATED);
 	}
 
 	// If we didn't already disable culling, disable it now for particle drawing.

@@ -62,6 +62,13 @@ static inline void SetUVs(MeshData2D* meshData)
     meshData->uvs[3] = u16vec2(1, 1);
 }
 
+static inline void SetAlpha(MeshData* meshData, uint8_t value)
+{
+	int count = meshData->vertCount;
+	u8vec4* val = (u8vec4*)(meshData->alpha + count);
+	*val = u8vec4(value);
+}
+
 static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshData, GLenum type)
 {
 	assert(meshData->vertCount > 0);
@@ -90,6 +97,13 @@ static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshD
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Colori) * meshData->vertCount, meshData->colors, type);
 	glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
 	glEnableVertexAttribArray(2);
+
+	// Alpha buffer.
+	glGenBuffers(1, &mesh.alpha);
+	glBindBuffer(GL_ARRAY_BUFFER, mesh.alpha);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(uint8_t) * meshData->vertCount, meshData->alpha, type);
+	glVertexAttribPointer(3, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
+	glEnableVertexAttribArray(3);
 
 	for (int i = 0; i < MESH_TYPE_COUNT; i++)
 	{

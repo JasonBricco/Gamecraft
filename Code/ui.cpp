@@ -232,6 +232,8 @@ static void CreateBlockUI(World* world, GameState* state)
     BlockButton(world, state, IMAGE_TRAMPOLINE, BLOCK_TRAMPOLINE, &blockName);
     ImGui::Spacing();
     BlockButton(world, state, IMAGE_CACTUS_SIDE, BLOCK_CACTUS, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, state, IMAGE_MAGMA, BLOCK_MAGMA, &blockName);
 
     ImGui::PopStyleColor();
 

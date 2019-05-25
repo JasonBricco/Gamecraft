@@ -7,9 +7,10 @@
 
 enum BlockMeshType
 {
-    MESH_TYPE_OPAQUE,
-    MESH_TYPE_TRANSPARENT,
-    MESH_TYPE_FLUID,
+    MESH_OPAQUE,
+    MESH_OPAQUE_ANIMATED,
+    MESH_TRANSPARENT,
+    MESH_TRANSPARENT_ANIMATED,
     MESH_TYPE_COUNT
 };
 
@@ -22,7 +23,7 @@ struct MeshIndices
 struct Mesh
 {
     GLuint va;
-    GLuint positions, uvs, colors;
+    GLuint positions, uvs, colors, alpha;
     MeshIndices indices[MESH_TYPE_COUNT];
     bool hasData;
 };
@@ -38,6 +39,7 @@ struct MeshData
     u8vec3 positions[MAX_VERTICES];
     u16vec3 uvs[MAX_VERTICES];
     Colori colors[MAX_VERTICES];
+    uint8_t alpha[MAX_VERTICES];
     MeshIndexData indices[MESH_TYPE_COUNT];
 
     int vertCount;
