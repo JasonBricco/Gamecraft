@@ -16,7 +16,7 @@ enum ShaderType
 struct Graphic
 {
     vec3 pos;
-    Mesh mesh;
+    Mesh2D mesh;
     Texture texture;
     Shader* shader;
 };
@@ -74,7 +74,7 @@ struct Renderer
     // Screen fading.
     Color fadeColor;
     Shader* fadeShader;
-    Mesh fadeMesh;
+    Mesh2D fadeMesh;
 
     // Backface culling will be enabled if this is true.
     bool disableFluidCull;
@@ -95,6 +95,7 @@ struct Renderer
     GLuint fboAA;
 
     ObjectPool<MeshData> meshData;
+    ObjectPool<MeshData2D> meshData2D;
 };
 
 static void LoadShader(Shader* shader, int vertLength, char* vertCode, int fragLength, char* fragCode);

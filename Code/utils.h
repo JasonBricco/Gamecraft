@@ -205,7 +205,7 @@ static inline int InRange(int val, int min, int max)
 
 static inline ivec3 BlockPos(vec3 pos)
 {
-    return { RoundToInt(pos.x), RoundToInt(pos.y), RoundToInt(pos.z) };
+    return { FloorToInt(pos.x), FloorToInt(pos.y), FloorToInt(pos.z) };
 }
 
 static inline vec3 GetV3(ivec3 v)

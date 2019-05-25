@@ -23,7 +23,7 @@ struct ParticleEmitter
 	float lifeTime, timer;
 	float radius;
 	ImageID image;
-	Mesh mesh;
+	Mesh2D mesh;
 	GLuint modelBuffer;
 	ParticleFunc update;
 };

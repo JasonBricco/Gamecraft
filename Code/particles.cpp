@@ -7,11 +7,11 @@ static void InitParticleEmitter(Renderer& rend, ParticleEmitter& emitter, int w,
 	emitter.maxParticles = maxParticles;
 	emitter.particles = new Particle[maxParticles];
 
-	MeshData* data = GetMeshData(rend.meshData);
+	MeshData2D* data = GetMeshData(rend.meshData2D);
 	assert(data != nullptr);
 	
     SetIndices(data);
-    SetUVs(data, 0);
+    SetUVs(data);
 
     float halfW = (w / PIXELS_PER_UNIT) * 0.5f;
     float halfH = (h / PIXELS_PER_UNIT) * 0.5f;
@@ -20,9 +20,8 @@ static void InitParticleEmitter(Renderer& rend, ParticleEmitter& emitter, int w,
     data->positions[1] = vec3(-halfW, halfH, halfW);
     data->positions[2] = vec3(halfW, halfH, halfW);
     data->positions[3] = vec3(halfW, -halfH, halfW);
-    data->vertCount = 4;
 
-	FillMeshData(rend.meshData, emitter.mesh, data, GL_STREAM_DRAW, MESH_NO_COLORS);
+	FillMeshData(rend.meshData2D, emitter.mesh, data, GL_STREAM_DRAW, MESH_NO_COLORS);
 
 	glGenBuffers(1, &emitter.modelBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, emitter.modelBuffer);
@@ -165,5 +164,5 @@ static void DrawParticles(GameState* state, ParticleEmitter& emitter, Camera* ca
 	glBindTexture(GL_TEXTURE_2D, GetTexture(state, emitter.image).id);
 
 	glBindVertexArray(emitter.mesh.va);
-	glDrawElementsInstanced(GL_TRIANGLES, emitter.mesh.indexCount, GL_UNSIGNED_SHORT, 0, emitter.count);
+	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0, emitter.count);
 }

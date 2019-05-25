@@ -2,7 +2,7 @@
 // Gamecraft
 //
 
-#define PROFILING 1
+#define PROFILING 0
 
 #if _DEBUG
 static char* g_buildType = "DEBUG";
@@ -378,7 +378,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	LoadGameSettings(state);
 	
 	double lastTime = glfwGetTime();
-
 	float deltaTime = 0.0f;
 
 	while (!glfwWindowShouldClose(window))

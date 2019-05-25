@@ -124,7 +124,7 @@ static void FillChunkMeshes(Renderer& rend, Chunk* chunk)
         // The vertex count would be 0 if the only blocks belonging to the mesh type were culled away. 
         if (data->vertCount > 0)
         {
-            FillMeshData(rend.meshData, chunk->meshes[i], data, GL_DYNAMIC_DRAW, 0);
+            FillMeshData(rend.meshData, chunk->meshes[i], data, GL_DYNAMIC_DRAW);
             chunk->hasMeshes = true;
         }
         else rend.meshData.Return(data);
@@ -393,9 +393,9 @@ static inline Colori VertexLight(World* world, Chunk* chunk, Axis axis, RelP pos
 
 #define LIGHT(a, o1, o2, o3) VertexLight(world, chunk, AXIS_##a, rP, o1, o2, o3)
 
-static inline void SetFaceVertexData(MeshData* data, int index, float x, float y, float z, Colori c)
+static inline void SetFaceVertexData(MeshData* data, int index, uint8_t x, uint8_t y, uint8_t z, Colori c)
 {
-    data->positions[index] = vec3(x, y, z);
+    data->positions[index] = u8vec3(x, y, z);
     data->colors[index] = c;
 }
 
@@ -472,13 +472,14 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     uint16_t* textures = GetTextures(world, block);
 
     ivec3 rP = ivec3(xi, yi, zi);
-    float x = (float)xi, y = (float)yi, z = (float)zi;
 
     CullType cull = GetCullType(world, block);
 
     int vAdded = 0;
     NeighborBlocks adj = GetNeighborBlocks(world, chunk, xi, yi, zi);
 
+    uint8_t x = (uint8_t)xi, y = (uint8_t)yi, z = (uint8_t)zi;
+    
     if (CheckFace(world, cull, block, adj.up, vAdded))
     {
         int count = data->vertCount;
@@ -486,10 +487,10 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         SetIndices(data);
         SetUVs(data, textures[FACE_TOP]);
 
-        SetFaceVertexData(data, count, x + 0.5f, y + 0.5f, z - 0.5f, LIGHT(Y, 1, 1, -1));
-        SetFaceVertexData(data, count + 1, x + 0.5f, y + 0.5f, z + 0.5f, LIGHT(Y, 1, 1, 1));
-        SetFaceVertexData(data, count + 2, x - 0.5f, y + 0.5f, z + 0.5f, LIGHT(Y, -1, 1, 1));
-        SetFaceVertexData(data, count + 3, x - 0.5f, y + 0.5f, z - 0.5f, LIGHT(Y, -1, 1, -1));
+        SetFaceVertexData(data, count, x + 1, y + 1, z, LIGHT(Y, 1, 1, -1));
+        SetFaceVertexData(data, count + 1, x + 1, y + 1, z + 1, LIGHT(Y, 1, 1, 1));
+        SetFaceVertexData(data, count + 2, x, y + 1, z + 1, LIGHT(Y, -1, 1, 1));
+        SetFaceVertexData(data, count + 3, x, y + 1, z, LIGHT(Y, -1, 1, -1));
 
         data->vertCount += 4;
     }
@@ -501,10 +502,10 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         SetIndices(data);
         SetUVs(data, textures[FACE_BOTTOM]);
 
-        SetFaceVertexData(data, count, x - 0.5f, y - 0.5f, z - 0.5f, LIGHT(Y, -1, -1, -1));
-        SetFaceVertexData(data, count + 1, x - 0.5f, y - 0.5f, z + 0.5f, LIGHT(Y, -1, -1, 1));
-        SetFaceVertexData(data, count + 2, x + 0.5f, y - 0.5f, z + 0.5f, LIGHT(Y, 1, -1, 1));
-        SetFaceVertexData(data, count + 3, x + 0.5f, y - 0.5f, z - 0.5f, LIGHT(Y, 1, -1, -1));
+        SetFaceVertexData(data, count, x, y, z, LIGHT(Y, -1, -1, -1));
+        SetFaceVertexData(data, count + 1, x, y, z + 1, LIGHT(Y, -1, -1, 1));
+        SetFaceVertexData(data, count + 2, x + 1, y, z + 1, LIGHT(Y, 1, -1, 1));
+        SetFaceVertexData(data, count + 3, x + 1, y, z, LIGHT(Y, 1, -1, -1));
 
         data->vertCount += 4;
     }
@@ -516,10 +517,10 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         SetIndices(data);
         SetUVs(data, textures[FACE_FRONT]);
 
-        SetFaceVertexData(data, count, x - 0.5f, y - 0.5f, z + 0.5f, LIGHT(Z, -1, -1, 1)); 
-        SetFaceVertexData(data, count + 1, x - 0.5f, y + 0.5f, z + 0.5f, LIGHT(Z, -1, 1, 1));
-        SetFaceVertexData(data, count + 2, x + 0.5f, y + 0.5f, z + 0.5f, LIGHT(Z, 1, 1, 1));
-        SetFaceVertexData(data, count + 3, x + 0.5f, y - 0.5f, z + 0.5f, LIGHT(Z, 1, -1, 1));
+        SetFaceVertexData(data, count, x, y, z + 1, LIGHT(Z, -1, -1, 1)); 
+        SetFaceVertexData(data, count + 1, x, y + 1, z + 1, LIGHT(Z, -1, 1, 1));
+        SetFaceVertexData(data, count + 2, x + 1, y + 1, z + 1, LIGHT(Z, 1, 1, 1));
+        SetFaceVertexData(data, count + 3, x + 1, y, z + 1, LIGHT(Z, 1, -1, 1));
 
         data->vertCount += 4;
     }
@@ -531,10 +532,10 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         SetIndices(data);
         SetUVs(data, textures[FACE_BACK]);
 
-        SetFaceVertexData(data, count, x + 0.5f, y - 0.5f, z - 0.5f, LIGHT(Z, 1, -1, -1));
-        SetFaceVertexData(data, count + 1, x + 0.5f, y + 0.5f, z - 0.5f, LIGHT(Z, 1, 1, -1));
-        SetFaceVertexData(data, count + 2, x - 0.5f, y + 0.5f, z - 0.5f, LIGHT(Z, -1, 1, -1));
-        SetFaceVertexData(data, count + 3, x - 0.5f, y - 0.5f, z - 0.5f, LIGHT(Z, -1, -1, -1));
+        SetFaceVertexData(data, count, x + 1, y, z, LIGHT(Z, 1, -1, -1));
+        SetFaceVertexData(data, count + 1, x + 1, y + 1, z, LIGHT(Z, 1, 1, -1));
+        SetFaceVertexData(data, count + 2, x, y + 1, z, LIGHT(Z, -1, 1, -1));
+        SetFaceVertexData(data, count + 3, x, y, z, LIGHT(Z, -1, -1, -1));
 
         data->vertCount += 4;
     }
@@ -546,10 +547,10 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         SetIndices(data);
         SetUVs(data, textures[FACE_RIGHT]);
 
-        SetFaceVertexData(data, count, x + 0.5f, y - 0.5f, z + 0.5f, LIGHT(X, 1, -1, 1));
-        SetFaceVertexData(data, count + 1, x + 0.5f, y + 0.5f, z + 0.5f, LIGHT(X, 1, 1, 1));
-        SetFaceVertexData(data, count + 2, x + 0.5f, y + 0.5f, z - 0.5f, LIGHT(X, 1, 1, -1));
-        SetFaceVertexData(data, count + 3, x + 0.5f, y - 0.5f, z - 0.5f, LIGHT(X, 1, -1, -1));
+        SetFaceVertexData(data, count, x + 1, y, z + 1, LIGHT(X, 1, -1, 1));
+        SetFaceVertexData(data, count + 1, x + 1, y + 1, z + 1, LIGHT(X, 1, 1, 1));
+        SetFaceVertexData(data, count + 2, x + 1, y + 1, z, LIGHT(X, 1, 1, -1));
+        SetFaceVertexData(data, count + 3, x + 1, y, z, LIGHT(X, 1, -1, -1));
 
         data->vertCount += 4;
     }
@@ -561,10 +562,10 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
         SetIndices(data);
         SetUVs(data, textures[FACE_LEFT]);
 
-        SetFaceVertexData(data, count, x - 0.5f, y - 0.5f, z - 0.5f, LIGHT(X, -1, -1, -1));
-        SetFaceVertexData(data, count + 1, x - 0.5f, y + 0.5f, z - 0.5f, LIGHT(X, -1, 1, -1));
-        SetFaceVertexData(data, count + 2, x - 0.5f, y + 0.5f, z + 0.5f, LIGHT(X, -1, 1, 1));
-        SetFaceVertexData(data, count + 3, x - 0.5f, y - 0.5f, z + 0.5f, LIGHT(X, -1, -1, 1));
+        SetFaceVertexData(data, count, x, y, z, LIGHT(X, -1, -1, -1));
+        SetFaceVertexData(data, count + 1, x, y + 1, z, LIGHT(X, -1, 1, -1));
+        SetFaceVertexData(data, count + 2, x, y + 1, z + 1, LIGHT(X, -1, 1, 1));
+        SetFaceVertexData(data, count + 3, x, y, z + 1, LIGHT(X, -1, -1, 1));
 
         data->vertCount += 4;
     }

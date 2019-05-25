@@ -60,8 +60,8 @@ static float BlockRayIntersection(vec3 blockPos, Ray ray)
 	
 	for (int i = 0; i < 3; i++) 
 	{
-		float min = blockPos[i] - 0.5f;
-		float max = blockPos[i] + 0.5f;
+		float min = blockPos[i];
+		float max = blockPos[i] + 1.0f;
 		
 		float pos = ray.origin[i];
 		float dir = ray.dir[i];
@@ -374,12 +374,12 @@ static void MovePlayer(World* world, Player* player, vec3 accel, float deltaTime
 
 				if (!IsPassable(world, block))
 				{
-					AABB bb = AABBFromCenter(vec3(x, y, z), vec3(1.0f));
+					AABB bb = AABBFromCorner(vec3(x, y, z), vec3(1.0f));
 					player->possibleCollides.push_back(bb);
 				}
 				else if (block != BLOCK_AIR)
 				{
-					AABB bb = AABBFromCenter(vec3(x, y, z), vec3(1.0f));
+					AABB bb = AABBFromCorner(vec3(x, y, z), vec3(1.0f));
 
 					if (OverlapAABB(bb, lower))
 						player->lowerOverlap.push_back(block);

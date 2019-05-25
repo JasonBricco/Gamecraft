@@ -41,19 +41,18 @@ static Graphic* CreateGraphic(Renderer& renderer, Shader* shader, Texture textur
 {
 	Graphic* graphic = new Graphic();
 
-	MeshData* data = GetMeshData(renderer.meshData);
+	MeshData2D* data = GetMeshData(renderer.meshData2D);
 	assert(data != nullptr);
 
 	SetIndices(data);
-	SetUVs(data, 0);
+	SetUVs(data);
 
 	data->positions[0] = vec3(32.0f, 0.0f, 0.0f);
 	data->positions[1] = vec3(32.0f, 32.0f, 0.0f);
 	data->positions[2] = vec3(0.0f, 32.0f, 0.0f);
 	data->positions[3] = vec3(0.0f, 0.0f, 0.0f);
-	data->vertCount = 4;
 	
-	FillMeshData(renderer.meshData, graphic->mesh, data, GL_STATIC_DRAW, MESH_NO_COLORS);
+	FillMeshData(renderer.meshData2D, graphic->mesh, data, GL_STATIC_DRAW, MESH_NO_COLORS);
 
 	graphic->shader = shader;
 	graphic->texture = texture;
@@ -229,7 +228,6 @@ static void RotateCamera(Camera* cam, float yaw, float pitch)
 {
 	cam->yaw += radians(yaw);
 	cam->pitch += radians(pitch);
-
 	cam->pitch = glm::clamp(cam->pitch, -PI / 2.0f + 0.1f, PI / 2.0f - 0.1f);
 }
 
@@ -331,6 +329,7 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 
     Shader* fade = &db.shaders[SHADER_FADE];
     fade->fadeColor = glGetUniformLocation(fade->handle, "inColor");
+    rend.fadeShader = fade;
 
     Shader* particle = &db.shaders[SHADER_PARTICLE];
     particle->view = glGetUniformLocation(particle->handle, "view");
@@ -341,20 +340,18 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 	
 	rend.crosshair = graphic;
 
-	MeshData* data = GetMeshData(rend.meshData);
+	MeshData2D* data = GetMeshData(rend.meshData2D);
 	assert(data != nullptr);
-	
+
 	SetIndices(data);
 
 	data->positions[0] = vec3(-1.0f, 1.0f, 0.0f);
 	data->positions[1] = vec3(1.0f, 1.0f, 0.0f);
 	data->positions[2] = vec3(1.0f, -1.0f, 0.0f);
 	data->positions[3] = vec3(-1.0f, -1.0f, 0.0f);
-	data->vertCount = 4;
 	
-	FillMeshData(rend.meshData, rend.fadeMesh, data, GL_STATIC_DRAW, MESH_NO_UVS | MESH_NO_COLORS);
+	FillMeshData(rend.meshData2D, rend.fadeMesh, data, GL_STATIC_DRAW, MESH_NO_COLORS | MESH_NO_UVS);
 
-	rend.fadeShader = GetShader(state, SHADER_FADE);
 	rend.fadeColor = CLEAR_COLOR;
 }
 
