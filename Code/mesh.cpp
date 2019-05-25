@@ -6,7 +6,10 @@ static MeshData* GetMeshData(ObjectPool<MeshData>& pool)
 {
 	MeshData* meshData = pool.Get();
 	meshData->vertCount = 0;
-	meshData->indexCount = 0;
+
+	for (int i = 0; i < MESH_TYPE_COUNT; i++)
+		meshData->indices[i].count = 0;
+
 	return meshData;
 }
 
@@ -15,20 +18,20 @@ static MeshData2D* GetMeshData(ObjectPool<MeshData2D>& pool)
 	return pool.Get();
 }
 
-static inline void SetIndices(MeshData* meshData)
+static inline void SetIndices(MeshData* meshData, int index)
 {
 	uint16_t offset = (uint16_t)meshData->vertCount;
-	int count = meshData->indexCount;
+	int count = meshData->indices[index].count;
 
-	meshData->indices[count] = offset + 2;
-	meshData->indices[count + 1] = offset + 1;
-	meshData->indices[count + 2] = offset;
+	meshData->indices[index].data[count] = offset + 2;
+	meshData->indices[index].data[count + 1] = offset + 1;
+	meshData->indices[index].data[count + 2] = offset;
 
-	meshData->indices[count + 3] = offset + 3;
-	meshData->indices[count + 4] = offset + 2;
-	meshData->indices[count + 5] = offset;
+	meshData->indices[index].data[count + 3] = offset + 3;
+	meshData->indices[index].data[count + 4] = offset + 2;
+	meshData->indices[index].data[count + 5] = offset;
 
-	meshData->indexCount += 6;
+	meshData->indices[index].count += 6;
 }
 
 static inline void SetIndices(MeshData2D* meshData)
@@ -62,7 +65,6 @@ static inline void SetUVs(MeshData2D* meshData)
 static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshData, GLenum type)
 {
 	assert(meshData->vertCount > 0);
-	assert(mesh.indexCount == 0);
 
 	glGenVertexArrays(1, &mesh.va);
 	glBindVertexArray(mesh.va);
@@ -89,14 +91,26 @@ static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshD
 	glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
 	glEnableVertexAttribArray(2);
 
-	// Index buffer.
-	glGenBuffers(1, &mesh.indices);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indices);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint16_t) * meshData->indexCount, meshData->indices, type);
+	for (int i = 0; i < MESH_TYPE_COUNT; i++)
+	{
+		MeshIndexData& indexData = meshData->indices[i];
 
-	mesh.indexCount = meshData->indexCount;
-	assert(mesh.indexCount > 0);
+		if (indexData.count > 0)
+		{
+			MeshIndices& indices = mesh.indices[i];
+			assert(indices.count == 0);
 
+			// Index buffer.
+			glGenBuffers(1, &indices.handle);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices.handle);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint16_t) * indexData.count, indexData.data, type);
+
+			indices.count = indexData.count;
+			assert(indices.count > 0);
+		}
+	}
+
+	mesh.hasData = true;
 	pool.Return(meshData);
 }
 
@@ -140,18 +154,20 @@ static void FillMeshData(ObjectPool<MeshData2D>& pool, Mesh2D& mesh, MeshData2D*
 	pool.Return(meshData);
 }
 
-static inline void DrawMesh(Mesh mesh)
+static inline void DrawMesh(Mesh mesh, int index)
 {
-	assert(mesh.indexCount > 0);
+	MeshIndices indices = mesh.indices[index];
+	assert(indices.count > 0);
 	glBindVertexArray(mesh.va);
-	glDrawElements(GL_TRIANGLES, mesh.indexCount, GL_UNSIGNED_SHORT, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices.handle);
+	glDrawElements(GL_TRIANGLES, indices.count, GL_UNSIGNED_SHORT, 0);
 }
 
-static inline void DrawMesh(Mesh mesh, Shader* shader, vec3 pos)
+static inline void DrawMesh(Mesh mesh, Shader* shader, vec3 pos, int index)
 {
 	mat4 model = translate(mat4(1.0f), pos);
 	SetUniform(shader->model, model);
-	DrawMesh(mesh);
+	DrawMesh(mesh, index);
 }
 
 static inline void DrawMesh(Mesh2D mesh)
@@ -169,16 +185,26 @@ static inline void DrawMesh(Mesh2D mesh, Shader* shader, vec3 pos)
 
 static void DestroyMesh(Mesh& mesh)
 {
-	if (mesh.indexCount > 0)
-	{
-		glDeleteBuffers(1, &mesh.positions);
-		glDeleteBuffers(1, &mesh.uvs);
-		glDeleteBuffers(1, &mesh.colors);
-		glDeleteBuffers(1, &mesh.indices);
-		glDeleteVertexArrays(1, &mesh.va);
+	if (!mesh.hasData)
+		return;
 
-		mesh.indexCount = 0;
+	for (int i = 0; i < MESH_TYPE_COUNT; i++)
+	{
+		MeshIndices& indices = mesh.indices[i];
+
+		if (indices.count > 0)
+		{
+			glDeleteBuffers(1, &indices.handle);
+			indices.count = 0;
+		}
 	}
+
+	glDeleteBuffers(1, &mesh.positions);
+	glDeleteBuffers(1, &mesh.uvs);
+	glDeleteBuffers(1, &mesh.colors);
+	glDeleteVertexArrays(1, &mesh.va);
+
+	mesh.hasData = false;
 }
 
 static void DestroyMesh(Mesh2D& mesh)

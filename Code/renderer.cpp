@@ -494,7 +494,7 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	for (int i = 0; i < count; i++)
 	{
 		ChunkMesh cM = rend.meshLists[MESH_TYPE_OPAQUE][i];
-		DrawMesh(cM.mesh, shader, cM.pos);
+		DrawMesh(cM.mesh, shader, cM.pos, MESH_TYPE_OPAQUE);
 	}
 
 	glEnable(GL_BLEND);
@@ -506,7 +506,7 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	for (int i = 0; i < count; i++)
 	{
 		ChunkMesh cM = rend.meshLists[MESH_TYPE_TRANSPARENT][i];
-		DrawMesh(cM.mesh, shader, cM.pos);
+		DrawMesh(cM.mesh, shader, cM.pos, MESH_TYPE_TRANSPARENT);
 	}
 
 	// Fluid pass.
@@ -528,7 +528,7 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	for (int i = 0; i < count; i++)
 	{
 		ChunkMesh cM = rend.meshLists[MESH_TYPE_FLUID][i];
-		DrawMesh(cM.mesh, shader, cM.pos);
+		DrawMesh(cM.mesh, shader, cM.pos, MESH_TYPE_FLUID);
 	}
 
 	// If we didn't already disable culling, disable it now for particle drawing.

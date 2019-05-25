@@ -13,12 +13,24 @@ enum BlockMeshType
     MESH_TYPE_COUNT
 };
 
+struct MeshIndices
+{
+    GLuint handle;
+    int count;
+};
+
 struct Mesh
 {
     GLuint va;
     GLuint positions, uvs, colors;
-    GLuint indices;
-    int indexCount;
+    MeshIndices indices[MESH_TYPE_COUNT];
+    bool hasData;
+};
+
+struct MeshIndexData
+{
+    uint16_t data[MAX_INDICES];
+    int count;
 };
 
 struct MeshData
@@ -26,9 +38,9 @@ struct MeshData
     u8vec3 positions[MAX_VERTICES];
     u16vec3 uvs[MAX_VERTICES];
     Colori colors[MAX_VERTICES];
-    uint16_t indices[MAX_INDICES];
+    MeshIndexData indices[MESH_TYPE_COUNT];
 
-    int vertCount, indexCount;
+    int vertCount;
 };
 
 enum MeshFlags

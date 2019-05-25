@@ -17,12 +17,7 @@ static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
                 Block block = GetBlock(chunk, x, y, z);
 
                 if (block != BLOCK_AIR)
-                {
-                    BlockMeshType type = GetMeshType(world, block);
-                    MeshData* data = chunk->meshData[type];
-
-                    BuildFunc(world, block)(world, chunk, data, x, y, z, block);
-                }
+                    BuildFunc(world, block)(world, chunk, chunk->meshData, x, y, z, block);
             }
         }
     }
@@ -61,13 +56,9 @@ static void OnChunksRebuilt(GameState*, World* world, void* chunksPtr)
 static inline void SetChunkMeshData(Renderer& rend, Chunk* chunk)
 {
     assert(chunk->state != CHUNK_BUILDING);
-
-    for (int i = 0; i < MESH_TYPE_COUNT; i++)
-    {
-        assert(chunk->meshData[i] == nullptr);
-        chunk->meshData[i] = GetMeshData(rend.meshData);
-        assert(chunk->meshData[i] != nullptr);
-    }
+    assert(chunk->meshData == nullptr);
+    chunk->meshData = GetMeshData(rend.meshData);
+    assert(chunk->meshData != nullptr);
 }
 
 static void BuildChunk(GameState* state, World* world, Chunk* chunk)
@@ -94,49 +85,37 @@ static void RebuildChunks(GameState* state, World* world)
     QueueAsync(state, RebuildChunksAsync, world, &world->chunksToRebuild, OnChunksRebuilt);
 }
 
-static void ReturnChunkMeshes(Renderer& rend, Chunk* chunk)
+static void ReturnChunkMesh(Renderer& rend, Chunk* chunk)
 {
-    for (int i = 0; i < MESH_TYPE_COUNT; i++)
-    {
-        MeshData* data = chunk->meshData[i];
+    MeshData* data = chunk->meshData;
 
-        if (data != nullptr)
-        {
-            rend.meshData.Return(data);
-            chunk->meshData[i] = nullptr;
-        }
+    if (data != nullptr)
+    {
+        rend.meshData.Return(data);
+        chunk->meshData = nullptr;
     }
 }
 
-static void FillChunkMeshes(Renderer& rend, Chunk* chunk)
+static void FillChunkMesh(Renderer& rend, Chunk* chunk)
 {
     if (chunk->hasMeshes)
     {
-        DestroyChunkMeshes(chunk);
+        DestroyMesh(chunk->mesh);
         chunk->hasMeshes = false;
     }
 
-    for (int i = 0; i < MESH_TYPE_COUNT; i++)
+    MeshData* data = chunk->meshData;
+    assert(data != nullptr);
+
+    // The vertex count would be 0 if the only blocks belonging to the mesh type were culled away. 
+    if (data->vertCount > 0)
     {
-        MeshData* data = chunk->meshData[i];
-        assert(data != nullptr);
-
-        // The vertex count would be 0 if the only blocks belonging to the mesh type were culled away. 
-        if (data->vertCount > 0)
-        {
-            FillMeshData(rend.meshData, chunk->meshes[i], data, GL_DYNAMIC_DRAW);
-            chunk->hasMeshes = true;
-        }
-        else rend.meshData.Return(data);
-
-        chunk->meshData[i] = nullptr;
+        FillMeshData(rend.meshData, chunk->mesh, data, GL_DYNAMIC_DRAW);
+        chunk->hasMeshes = true;
     }
-}
+    else rend.meshData.Return(data);
 
-static void DestroyChunkMeshes(Chunk* chunk)
-{
-    for (int i = 0; i < MESH_TYPE_COUNT; i++)
-        DestroyMesh(chunk->meshes[i]);
+    chunk->meshData = nullptr;
 }
 
 static bool AllowPreprocess(World* world, ChunkGroup* group)
@@ -196,8 +175,8 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
             case CHUNK_NEEDS_FILL:
             {
                 if (chunk->pendingUpdate)
-                    ReturnChunkMeshes(rend, chunk);
-                else FillChunkMeshes(rend, chunk);
+                    ReturnChunkMesh(rend, chunk);
+                else FillChunkMesh(rend, chunk);
 
                 chunk->state = CHUNK_BUILT;
             }
@@ -210,11 +189,13 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
                     chunk->pendingUpdate = false;
                 }
 
+                Mesh mesh = chunk->mesh;
+
                 for (int m = 0; m < MESH_TYPE_COUNT; m++)
                 {
-                    Mesh mesh = chunk->meshes[m];
+                    MeshIndices& indices = mesh.indices[m];
 
-                    if (mesh.indexCount > 0)
+                    if (indices.count > 0)
                     {
                         ChunkMesh cM = { mesh, (vec3)chunk->lwPos };
                         vector<ChunkMesh>& list = rend.meshLists[m];
@@ -474,6 +455,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     ivec3 rP = ivec3(xi, yi, zi);
 
     CullType cull = GetCullType(world, block);
+    int meshIndex = GetMeshType(world, block);
 
     int vAdded = 0;
     NeighborBlocks adj = GetNeighborBlocks(world, chunk, xi, yi, zi);
@@ -484,7 +466,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     {
         int count = data->vertCount;
 
-        SetIndices(data);
+        SetIndices(data, meshIndex);
         SetUVs(data, textures[FACE_TOP]);
 
         SetFaceVertexData(data, count, x + 1, y + 1, z, LIGHT(Y, 1, 1, -1));
@@ -499,7 +481,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     {
         int count = data->vertCount;
 
-        SetIndices(data);
+        SetIndices(data, meshIndex);
         SetUVs(data, textures[FACE_BOTTOM]);
 
         SetFaceVertexData(data, count, x, y, z, LIGHT(Y, -1, -1, -1));
@@ -514,7 +496,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     {
         int count = data->vertCount;
 
-        SetIndices(data);
+        SetIndices(data, meshIndex);
         SetUVs(data, textures[FACE_FRONT]);
 
         SetFaceVertexData(data, count, x, y, z + 1, LIGHT(Z, -1, -1, 1)); 
@@ -529,7 +511,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     {
         int count = data->vertCount;
 
-        SetIndices(data);
+        SetIndices(data, meshIndex);
         SetUVs(data, textures[FACE_BACK]);
 
         SetFaceVertexData(data, count, x + 1, y, z, LIGHT(Z, 1, -1, -1));
@@ -544,7 +526,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     {
         int count = data->vertCount;
 
-        SetIndices(data);
+        SetIndices(data, meshIndex);
         SetUVs(data, textures[FACE_RIGHT]);
 
         SetFaceVertexData(data, count, x + 1, y, z + 1, LIGHT(X, 1, -1, 1));
@@ -559,7 +541,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     {
         int count = data->vertCount;
 
-        SetIndices(data);
+        SetIndices(data, meshIndex);
         SetUVs(data, textures[FACE_LEFT]);
 
         SetFaceVertexData(data, count, x, y, z, LIGHT(X, -1, -1, -1));

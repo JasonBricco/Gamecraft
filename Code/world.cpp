@@ -625,8 +625,8 @@ static void DestroyGroup(GameState* state, World* world, void* groupPtr)
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
         Chunk* chunk = group->chunks + i;
-        DestroyChunkMeshes(chunk);
-        ReturnChunkMeshes(state->renderer, chunk);
+        DestroyMesh(chunk->mesh);
+        ReturnChunkMesh(state->renderer, chunk);
     }
 
     RemoveFromRegion(world, group);

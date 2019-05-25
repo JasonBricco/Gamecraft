@@ -77,8 +77,8 @@ struct Chunk
     uint8_t sunlight[CHUNK_SIZE_3];
     uint8_t blockLight[CHUNK_SIZE_3];
 
-    Mesh meshes[MESH_TYPE_COUNT];
-    MeshData* meshData[MESH_TYPE_COUNT];
+    Mesh mesh;
+    MeshData* meshData;
 
     bool pendingUpdate, hasMeshes, modified;
     ChunkState state;

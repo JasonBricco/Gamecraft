@@ -461,7 +461,7 @@ static void MovePlayer(World* world, Player* player, vec3 accel, float deltaTime
 static bool OverlapsBlock(Player* player, int x, int y, int z)
 {
 	AABB playerBB = GetPlayerAABB(player);
-	AABB block = AABBFromCenter(vec3(x, y, z), vec3(1.0f));
+	AABB block = AABBFromCorner(vec3(x, y, z), vec3(1.0f));
 	return OverlapAABB(playerBB, block);
 }
 
