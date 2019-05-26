@@ -497,7 +497,7 @@ static void CreateProfilerUI()
     ImGui::SetNextWindowSize(ImVec2((float)size.x, (float)size.y));
 
     ImGui::Begin("Profiler", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-    
+
     ImGui::Text("Profiler");
     ImGui::Spacing();
 
@@ -522,7 +522,18 @@ static void CreateProfilerUI()
         char buffer[128];
         sprintf(buffer, "%s (%i) - Avg Cycles: %llu, Avg Calls: %llu\n", c.func, c.line, cycles.avg, calls.avg);
 
+        int yellowThreshold = 500000;
+        int redThreshold = 1000000;
+
+        if (cycles.avg > redThreshold)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+        else if (cycles.avg > yellowThreshold)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.83f, 0.0f, 1.0f));
+
         ImGui::Text(buffer);
+
+        if (cycles.avg > yellowThreshold) 
+            ImGui::PopStyleColor();
 
         vector<float> histValues;
         histValues.reserve(MAX_DEBUG_SNAPSHOTS);
