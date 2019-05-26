@@ -71,6 +71,8 @@ static inline void SetAlpha(MeshData* meshData, uint8_t value)
 
 static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshData, GLenum type)
 {
+	TIMED_BLOCK;
+	
 	assert(meshData->vertCount > 0);
 
 	glGenVertexArrays(1, &mesh.va);

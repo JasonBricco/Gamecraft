@@ -489,6 +489,57 @@ static double GetFPS()
     return fps;
 }
 
+static void CreateProfilerUI()
+{
+    ivec2 size = FramebufferSize();
+
+    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+    ImGui::SetNextWindowSize(ImVec2((float)size.x, (float)size.y));
+
+    ImGui::Begin("Profiler", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+    
+    ImGui::Text("Profiler");
+    ImGui::Spacing();
+
+    DebugState& state = g_debugState;
+
+    if (state.framesUntilUpdate <= 0)
+    {
+        UpdateDebugStats();
+        state.framesUntilUpdate = MAX_DEBUG_SNAPSHOTS;
+    }
+
+    for (int i = 0; i < MAX_DEBUG_RECORDS; i++)
+    {
+        DebugCounters& c = state.counters[i];
+
+        if (c.func == nullptr)
+            continue;
+
+        DebugStat& calls = state.calls[i];
+        DebugStat& cycles = state.cycles[i];
+
+        char buffer[128];
+        sprintf(buffer, "%s (%i) - Avg Cycles: %llu, Avg Calls: %llu\n", c.func, c.line, cycles.avg, calls.avg);
+
+        ImGui::Text(buffer);
+
+        vector<float> histValues;
+        histValues.reserve(MAX_DEBUG_SNAPSHOTS);
+
+        for (int j = 0; j < MAX_DEBUG_SNAPSHOTS; j++)
+            histValues.push_back((float)c.snapshots[j].cycles);
+
+        ImGui::SameLine();
+
+        ImGui::PushID(i);
+        ImGui::PlotHistogram("", histValues.data(), (int)histValues.size(), 0, NULL, (float)cycles.min, (float)cycles.max, ImVec2(256.0f, 20.0f));
+        ImGui::PopID();
+    }
+
+    ImGui::End();
+}
+
 static void CreateDebugHUD(World* world)
 {
     TIMED_BLOCK;
@@ -538,37 +589,6 @@ static void CreateDebugHUD(World* world)
 
         ImGui::Text(blockText);
     }
-
-    #if PROFILING
-
-    MultiSpacing(5);
-    ImGui::Text("Profiler");
-
-    DebugState& state = g_debugState;
-
-    if (state.framesUntilUpdate <= 0)
-    {
-        UpdateDebugStats();
-        state.framesUntilUpdate = 60;
-    }
-
-    for (int i = 0; i < MAX_DEBUG_RECORDS; i++)
-    {
-        DebugStat& calls = state.calls[i];
-
-        if (calls.count == 0)
-            continue;
-
-        DebugStat& cycles = state.cycles[i];
-        DebugCounters& c = state.counters[i];
-
-        char buffer[128];
-        sprintf(buffer, "%s (%i) - Avg Cycles: %llu, Avg Calls: %llu\n", c.func, c.line, cycles.avg, calls.avg);
-
-        ImGui::Text(buffer);
-    }
-
-    #endif
 
     ImGui::End();
 }
@@ -676,8 +696,16 @@ static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldCo
             break;
     }
 
-    if (state->debugHudActive)
-        CreateDebugHUD(world);
+    switch (state->debugDisplay)
+    {
+        case DEBUG_DISPLAY_HUD:
+            CreateDebugHUD(world);
+            break;
+
+        case DEBUG_DISPLAY_PROFILER:
+            CreateProfilerUI();
+            break;
+    }
 }
 
 static void SaveGameSettings(GameState* state)

@@ -2,7 +2,7 @@
 // Gamecraft
 //
 
-#define PROFILING 0
+#define PROFILING 1
 
 #if _DEBUG
 static char* g_buildType = "DEBUG";
@@ -12,7 +12,7 @@ static char* g_buildType = "RELEASE";
 
 #define SWAP_INTERVAL 1
 
-static int g_buildID = 261;
+static int g_buildID = 271;
 
 #pragma warning(push, 0)
 
@@ -282,7 +282,20 @@ static void Update(GameState* state, Player* player, World* world, float deltaTi
 			ToggleFullscreen(glfwGetWin32Window(window));
 
 		if (KeyPressed(input, KEY_F3))
-			state->debugHudActive = !state->debugHudActive;
+		{
+			DebugDisplay& d = state->debugDisplay;
+			d = d == DEBUG_DISPLAY_HUD ? DEBUG_DISPLAY_NONE : DEBUG_DISPLAY_HUD;
+		}
+
+		#if PROFILING
+
+		if (KeyPressed(input, KEY_F4))
+		{
+			DebugDisplay& d = state->debugDisplay;
+			d = d == DEBUG_DISPLAY_PROFILER ? DEBUG_DISPLAY_NONE : DEBUG_DISPLAY_PROFILER;
+		}
+
+		#endif
 	}
 
 	UpdateAudio(&state->audio, deltaTime);

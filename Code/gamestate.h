@@ -12,6 +12,13 @@ enum PauseState
 	LOADING
 };
 
+enum DebugDisplay
+{
+	DEBUG_DISPLAY_NONE,
+	DEBUG_DISPLAY_HUD,
+	DEBUG_DISPLAY_PROFILER
+};
+
 enum LoadingState
 {
 	LOADING_NONE,
@@ -57,7 +64,7 @@ struct GameState
 
 	char* savePath;
 
-	bool debugHudActive;
+	DebugDisplay debugDisplay;
 
 	WorldLocation teleportLoc;
 	WorldConfig* pendingConfig;

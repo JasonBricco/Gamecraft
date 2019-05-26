@@ -84,6 +84,8 @@ static inline bool IsWithinIsland(World* world, WorldP start, int x, int z, floa
 
 static void GenerateForestTerrain(World* world, ChunkGroup* group)
 {
+    TIMED_BLOCK;
+
     WorldP start = ChunkToWorldP(group->pos);
 
     Noise* noise = Noise::NewFastNoiseSIMD();
@@ -223,6 +225,8 @@ static void GenerateForestTerrain(World* world, ChunkGroup* group)
 
 static void GenerateIslandsTerrain(World* world, ChunkGroup* group)
 {
+    TIMED_BLOCK;
+
     WorldP start = ChunkToWorldP(group->pos);
 
     Noise* noise = Noise::NewFastNoiseSIMD();
@@ -360,6 +364,8 @@ static void GenerateIslandsTerrain(World* world, ChunkGroup* group)
 
 static void GenerateGridTerrain(World* world, ChunkGroup* group)
 {
+    TIMED_BLOCK;
+
     WorldP start = ChunkToWorldP(group->pos);
 
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
@@ -399,6 +405,8 @@ static void GenerateGridTerrain(World* world, ChunkGroup* group)
 
 static void GenerateSnowTerrain(World* world, ChunkGroup* group)
 {
+    TIMED_BLOCK;
+
     WorldP start = ChunkToWorldP(group->pos);
 
     Noise* noise = Noise::NewFastNoiseSIMD();
@@ -494,6 +502,8 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
 
 static void GenerateDesertTerrain(World* world, ChunkGroup* group)
 {
+    TIMED_BLOCK;
+
     WorldP start = ChunkToWorldP(group->pos);
 
     Noise* noise = Noise::NewFastNoiseSIMD();
@@ -580,6 +590,8 @@ static void GenerateDesertTerrain(World* world, ChunkGroup* group)
 
 static void GenerateFlatTerrain(World* world, ChunkGroup* group)
 {
+    TIMED_BLOCK;
+
     WorldP start = ChunkToWorldP(group->pos);
 
     int surfaceMap[CHUNK_SIZE_2];
@@ -644,6 +656,8 @@ static void GenerateFlatTerrain(World* world, ChunkGroup* group)
 
 static void GenerateVoidTerrain(World*, ChunkGroup* group)
 {
+    TIMED_BLOCK;
+    
     if (group->pos == ivec3(0))
     {
         Chunk* chunk = group->chunks;

@@ -25,6 +25,8 @@ static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
 
 static void RebuildChunksAsync(GameState* state, World* world, void* chunksPtr)
 {
+    TIMED_BLOCK;
+
     auto& chunks = *(vector<Chunk*>*)chunksPtr;
 
     for (int i = 0; i < chunks.size(); i++)
@@ -138,6 +140,8 @@ static bool AllowPreprocess(World* world, ChunkGroup* group)
 
 static void PreprocessGroup(GameState*, World* world, void* groupPtr)
 {
+    TIMED_BLOCK;
+
     ChunkGroup* group = (ChunkGroup*)groupPtr;
 
     Queue<ivec3> sunNodes(MAX_LIGHT_NODES);
@@ -215,6 +219,8 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
 
 static void WorldRenderUpdate(GameState* state, World* world, Camera* cam)
 {    
+    TIMED_BLOCK;
+    
     world->visibleChunks.clear();
     world->groupsToProcess.clear();
 

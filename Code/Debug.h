@@ -6,7 +6,7 @@
 #pragma message("Profiling enabled.")
 
 #define MAX_DEBUG_RECORDS 128
-#define MAX_DEBUG_SNAPSHOTS 64
+#define MAX_DEBUG_SNAPSHOTS 256
 
 struct DebugStat
 {
