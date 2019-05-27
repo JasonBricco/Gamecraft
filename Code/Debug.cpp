@@ -4,6 +4,33 @@
 
 #if PROFILING
 
+static inline void RecordDebugEvent(DebugEventType type, int id, char* func, int line)
+{
+	assert(g_debugEventIndex + 1 < MAX_DEBUG_EVENTS);
+    DebugEvent* event = g_debugEvents + g_debugEventIndex++;
+    event->cycles = __rdtsc();
+    event->threadIndex = 0;
+    event->coreIndex = 0;
+    event->recordIndex = (uint16_t)id;
+    event->func = func;
+    event->line = (uint16_t)line;
+    event->type = type;
+}
+
+TimedBlock::TimedBlock(int id, char* func, int line)
+{
+	this->id = id;
+	this->func = func;
+	this->line = line;
+
+    RecordDebugEvent(DEBUG_EVENT_BEGIN_BLOCK, id, func, line);
+}
+
+TimedBlock::~TimedBlock()
+{
+    RecordDebugEvent(DEBUG_EVENT_END_BLOCK, id, func, line);
+}
+
 static DebugStat BeginDebugStat()
 {
 	return { 0, LLONG_MAX, LLONG_MIN, 0 };
@@ -58,28 +85,52 @@ static void UpdateDebugStats()
     }
 }
 
-static void UpdateDebugRecords()
+static void UpdateDebugRecords(DebugEvent* events, int count)
 {
 	int snapIndex = g_debugState.snapshotIndex;
 
 	for (int i = 0; i < MAX_DEBUG_RECORDS; i++)
 	{
-		DebugRecord& record = g_debugRecords[i];
 		DebugCounters& dest = g_debugState.counters[i];
+		dest.snapshots[snapIndex].calls = 0;
+		dest.snapshots[snapIndex].cycles = 0;
+	}
 
-		dest.func = record.func;
-		dest.line = record.line;
-		dest.snapshots[snapIndex].calls.store(record.calls);
-		dest.snapshots[snapIndex].cycles.store(record.cycles);
+	for (int i = 0; i < count; i++)
+	{
+		DebugEvent& event = events[i];
+		assert(event.recordIndex >= 0 && event.recordIndex < MAX_DEBUG_RECORDS);
 
-		record.calls = 0;
-		record.cycles = 0;
+		DebugCounters& dest = g_debugState.counters[event.recordIndex];
+		dest.func = event.func;
+		dest.line = event.line;
+
+		if (event.type == DEBUG_EVENT_BEGIN_BLOCK)
+			dest.snapshots[snapIndex].cycles -= event.cycles;
+		else 
+		{
+			dest.snapshots[snapIndex].calls++;
+			dest.snapshots[snapIndex].cycles += event.cycles;
+		}
 	}
 }
 
 static void DebugEndFrame()
-{
-	UpdateDebugRecords();
+{	
+	int eventCount = g_debugEventIndex;
+	g_debugEventIndex = 0;
+
+	// Swap the event buffer being written into by current timers.
+	if (g_debugEvents == g_debugEventStorage[0])
+	{
+		g_debugEvents = g_debugEventStorage[1];
+		UpdateDebugRecords(g_debugEventStorage[0], eventCount);
+	}
+	else 
+	{
+		g_debugEvents = g_debugEventStorage[0];
+		UpdateDebugRecords(g_debugEventStorage[1], eventCount);
+	}
 
 	DebugState& state = g_debugState;
 

@@ -7,6 +7,7 @@
 
 #define MAX_DEBUG_RECORDS 128
 #define MAX_DEBUG_SNAPSHOTS 256
+#define MAX_DEBUG_EVENTS 65536
 
 struct DebugStat
 {
@@ -39,40 +40,34 @@ struct DebugState
 
 static DebugState g_debugState;
 
-struct DebugRecord
+enum DebugEventType : uint8_t
 {
-    char* func;
-    int line;
-    atomic<uint64_t> cycles;
-    atomic<uint64_t> calls;
+    DEBUG_EVENT_BEGIN_BLOCK,
+    DEBUG_EVENT_END_BLOCK
 };
 
-// Debug records for the given frame.
-static DebugRecord g_debugRecords[MAX_DEBUG_RECORDS];
+struct DebugEvent
+{
+    char* func;
+    uint16_t line;
+    uint64_t cycles;
+    uint16_t threadIndex, coreIndex;
+    int recordIndex;
+    DebugEventType type;
+};
+
+static DebugEvent g_debugEventStorage[2][MAX_DEBUG_EVENTS];
+
+static DebugEvent* g_debugEvents = g_debugEventStorage[0];
+static atomic<int> g_debugEventIndex;
 
 struct TimedBlock
 {
-    uint64_t start;
     char* func;
     int id, line;
 
-    TimedBlock(int id, char* func, int line)
-    {
-        assert(id < MAX_DEBUG_RECORDS);
-        start = __rdtsc();
-        this->id = id;
-        this->func = func;
-        this->line = line;
-    }
-
-    ~TimedBlock()
-    {
-        DebugRecord& record = g_debugRecords[id];
-        record.func = func;
-        record.line = line;
-        record.cycles += __rdtsc() - start;
-        record.calls++;
-    }
+    TimedBlock(int id, char* func, int line);
+    ~TimedBlock();
 };
 
 #define _TIMED_BLOCK(ID, func, line) TimedBlock timedBlock##ID(ID, func, line)
