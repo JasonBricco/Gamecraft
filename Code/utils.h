@@ -5,7 +5,7 @@
 #define PI 3.141592653f
 #define EPSILON 0.0001f
 
-#define ArrayLength(array) (sizeof(array) / sizeof((array)[0]))
+#define ArrayCount(array) (sizeof(array) / sizeof((array)[0]))
 
 #define Min(A, B) ((A < B) ? (A) : (B))
 #define Max(A, B) ((A > B) ? (A) : (B))

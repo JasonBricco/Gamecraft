@@ -314,7 +314,7 @@ static void ApplyBlockSurface(Player* player, vec3 accel, float deltaTime)
 
 static void MovePlayer(World* world, Player* player, vec3 accel, float deltaTime, float gravity)
 {
-	TIMED_BLOCK;
+	TIMED_FUNCTION;
 
 	accel *= player->speed;
 	accel += player->velocity * player->friction;
@@ -515,7 +515,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 {
 	if (player->suspended) return;
 
-	TIMED_BLOCK;
+	TIMED_FUNCTION;
 
 	Renderer& rend = state->renderer;
 	Input& input = state->input;

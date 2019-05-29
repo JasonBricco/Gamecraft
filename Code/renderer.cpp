@@ -481,7 +481,7 @@ static inline float SignedDist(Plane plane, vec3 v)
 
 static inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 {
-	TIMED_BLOCK;
+	TIMED_FUNCTION;
 	
 	for (int i = 0; i < 6; i++)
 	{
@@ -505,7 +505,7 @@ static inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 
 static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 {
-	TIMED_BLOCK;
+	TIMED_FUNCTION;
 
 	if (rend.samplesAA > 0)
 		glBindFramebuffer(GL_FRAMEBUFFER, rend.fboAA);

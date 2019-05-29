@@ -418,7 +418,7 @@ static void WorldConfigUI(GameState* state, World* world, WorldConfig& config)
     ImVec2 baseCursor = ImGui::GetCursorPos();
     float biomeGap = 75.0f;
 
-    for (int n = 0; n < ArrayLength(numPerLine); n++)
+    for (int n = 0; n < ArrayCount(numPerLine); n++)
     {
         for (int i = 0; i < numPerLine[n]; i++)
         {
@@ -491,6 +491,7 @@ static double GetFPS()
 
 static void CreateProfilerUI()
 {
+    #if PROFILING
     ivec2 size = FramebufferSize();
 
     ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
@@ -501,59 +502,56 @@ static void CreateProfilerUI()
     ImGui::Text("Profiler");
     ImGui::Spacing();
 
-    DebugState& state = g_debugState;
+    DebugTable& t = g_debugTable;
 
-    if (state.framesUntilUpdate <= 0)
+    float laneWidth = 2.0f;
+    int laneCount = t.chartLaneCount;
+    float barWidth = laneWidth * laneCount;
+    float spacing = barWidth + 1.0f;
+    float chartHeight = 500.0f;
+    float chartMinY = chartHeight + 200.0f;
+    float scale = t.chartScale * chartHeight;
+
+    ImColor colors[] =
     {
-        UpdateDebugStats();
-        state.framesUntilUpdate = MAX_DEBUG_SNAPSHOTS;
-    }
+        ImColor(255, 0, 0, 255),
+        ImColor(0, 255, 0, 255),
+        ImColor(0, 0, 255, 255),
+        ImColor(255, 255, 0, 255),
+        ImColor(0, 255, 255, 255),
+        ImColor(255, 0, 255, 255)
+    };
 
-    for (int i = 0; i < MAX_DEBUG_RECORDS; i++)
+    int colorCount = ArrayCount(colors);
+
+    for (int i = 0; i < t.frames.size(); i++)
     {
-        DebugCounters& c = state.counters[i];
+        DebugFrame& frame = t.frames[i];
 
-        if (c.func == nullptr)
-            continue;
+        float stackX = spacing * i;
+        float stackY = chartMinY;
 
-        DebugStat& calls = state.calls[i];
-        DebugStat& cycles = state.cycles[i];
+        for (int j = 0; j < frame.regions.size(); j++)
+        {
+            FrameRegion& region = frame.regions[j];
+            ImU32 color = ImGui::ColorConvertFloat4ToU32(colors[j % colorCount]);
 
-        char buffer[128];
-        sprintf(buffer, "%s (%i) - Avg Cycles: %llu, Avg Calls: %llu\n", c.func, c.line, cycles.avg, calls.avg);
+            float minY = stackY - scale * region.minT;
+            float maxY = stackY - scale * region.maxT;
 
-        int yellowThreshold = 500000;
-        int redThreshold = 1000000;
-
-        if (cycles.avg > redThreshold)
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-        else if (cycles.avg > yellowThreshold)
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.83f, 0.0f, 1.0f));
-
-        ImGui::Text(buffer);
-
-        if (cycles.avg > yellowThreshold) 
-            ImGui::PopStyleColor();
-
-        vector<float> histValues;
-        histValues.reserve(MAX_DEBUG_SNAPSHOTS);
-
-        for (int j = 0; j < MAX_DEBUG_SNAPSHOTS; j++)
-            histValues.push_back((float)c.snapshots[j].cycles);
-
-        ImGui::SameLine();
-
-        ImGui::PushID(i);
-        ImGui::PlotHistogram("", histValues.data(), (int)histValues.size(), 0, NULL, (float)cycles.min, (float)cycles.max, ImVec2(256.0f, 20.0f));
-        ImGui::PopID();
+            ImVec2 start = ImVec2(stackX + region.laneIndex * laneWidth, minY);
+            ImVec2 end = ImVec2(start.x + laneWidth, maxY);
+            ImGui::GetWindowDrawList()->AddRectFilled(start, end, color);
+        }
     }
 
     ImGui::End();
+    #endif
 }
 
 static void CreateDebugHUD(World* world)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
 
     double fps = GetFPS();
 
@@ -606,7 +604,7 @@ static void CreateDebugHUD(World* world)
 
 static void RenderUI(GameState* state, Renderer& rend, UI& ui)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
 
     ImGui::Render();
 

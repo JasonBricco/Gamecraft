@@ -5,76 +5,111 @@
 #if PROFILING
 #pragma message("Profiling enabled.")
 
-#define MAX_DEBUG_RECORDS 128
-#define MAX_DEBUG_SNAPSHOTS 256
 #define MAX_DEBUG_EVENTS 65536
-
-struct DebugStat
-{
-    int count;
-    int64_t min, max, avg;
-};
-
-struct DebugSnapshot
-{
-    atomic<uint64_t> cycles;
-    atomic<uint64_t> calls;
-};
-
-struct DebugCounters
-{
-    char* func;
-    int line;
-
-    DebugSnapshot snapshots[MAX_DEBUG_SNAPSHOTS];
-};
-
-struct DebugState
-{
-    int framesUntilUpdate, snapshotIndex;
-    DebugCounters counters[MAX_DEBUG_RECORDS];
-
-    DebugStat calls[MAX_DEBUG_RECORDS];
-    DebugStat cycles[MAX_DEBUG_RECORDS];
-};
-
-static DebugState g_debugState;
+#define MAX_DEBUG_EVENT_ARRAYS 8
 
 enum DebugEventType : uint8_t
 {
     DEBUG_EVENT_BEGIN_BLOCK,
-    DEBUG_EVENT_END_BLOCK
+    DEBUG_EVENT_END_BLOCK,
+    DEBUG_EVENT_FRAME_MARKER
 };
 
 struct DebugEvent
 {
-    char* func;
-    uint16_t line;
-    uint64_t cycles;
-    uint16_t threadIndex, coreIndex;
-    int recordIndex;
     DebugEventType type;
-};
-
-static DebugEvent g_debugEventStorage[2][MAX_DEBUG_EVENTS];
-
-static DebugEvent* g_debugEvents = g_debugEventStorage[0];
-static atomic<int> g_debugEventIndex;
-
-struct TimedBlock
-{
     char* func;
-    int id, line;
-
-    TimedBlock(int id, char* func, int line);
-    ~TimedBlock();
+    uint64_t cycles;
+    uint16_t line;
+    uint16_t threadID;
+    uint16_t recordID;
 };
 
-#define _TIMED_BLOCK(ID, func, line) TimedBlock timedBlock##ID(ID, func, line)
-#define TIMED_BLOCK _TIMED_BLOCK(__COUNTER__, __FUNCTION__, __LINE__)
+// Represents a timespan being recorded during the frame.
+struct FrameRegion
+{
+    float minT, maxT;
+    int laneIndex;
+};
+
+struct DebugFrame
+{
+    uint64_t beginCycles, endCycles;
+    vector<FrameRegion> regions;
+};
+
+struct OpeningEvent
+{
+    DebugEvent& event;
+    int frameIndex;
+};
+
+struct DebugThread
+{
+    int ID, laneIndex;
+    stack<OpeningEvent> openEvents;
+};
+
+struct DebugTable
+{
+    // As the code runs, it can report debug events. These events store 
+    // the current "CPU time", the thread they're on, and a given type.
+    // This array is a running log of these events. On each frame we 
+    // start writing into a new array, wrapping which array we write to
+    // around as in a circular buffer.
+    DebugEvent eventStorage[MAX_DEBUG_EVENT_ARRAYS][MAX_DEBUG_EVENTS];
+
+    // Stores the number of events we have in each of the event arrays.
+    int eventCounts[MAX_DEBUG_EVENT_ARRAYS];
+
+    // Tracks which array we're currently writing debug events into. 
+    // The event index is the location in that array we are writing to.
+    DebugEvent* events = eventStorage[0];
+    atomic<int> eventIndex;
+
+    // The index of the current event array we're writing into.
+    int eventArrayIndex;
+
+    int chartLaneCount;
+    float chartScale;
+    
+    vector<DebugFrame> frames;
+    vector<DebugThread*> threads;
+};
+
+static DebugTable g_debugTable;
+
+struct TimedInfo
+{
+    int id;
+    char* func;
+    int line;
+};
+
+struct TimedFunction
+{
+    TimedInfo info;
+
+    TimedFunction(int id, char* func, int line);
+    ~TimedFunction();
+};
+
+#define BEGIN_BLOCK(ID) \
+    TimedInfo info##ID = { __COUNTER__, __FUNCTION__, __LINE__ }; \
+    RecordDebugEvent(DEBUG_EVENT_BEGIN_BLOCK, info##ID.id, info##ID.func, info##ID.line)
+
+#define END_BLOCK(ID) RecordDebugEvent(DEBUG_EVENT_END_BLOCK, info##ID.id, info##ID.func, info##ID.line)
+
+#define FRAME_MARKER() RecordFrameMarker()
+
+#define _TIMED_FUNCTION(ID, func, line) TimedFunction timedFunction##ID(ID, func, line)
+#define TIMED_FUNCTION _TIMED_FUNCTION(__COUNTER__, __FUNCTION__, __LINE__)
 
 #else
 
-#define TIMED_BLOCK
+#define BEGIN_BLOCK(ID)
+#define END_BLOCK(ID)
+#define FRAME_MARKER
+#define TIMED_FUNCTION
 
 #endif

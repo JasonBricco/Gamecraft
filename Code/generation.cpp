@@ -84,7 +84,7 @@ static inline bool IsWithinIsland(World* world, WorldP start, int x, int z, floa
 
 static void GenerateForestTerrain(World* world, ChunkGroup* group)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
 
     WorldP start = ChunkToWorldP(group->pos);
 
@@ -225,7 +225,7 @@ static void GenerateForestTerrain(World* world, ChunkGroup* group)
 
 static void GenerateIslandsTerrain(World* world, ChunkGroup* group)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
 
     WorldP start = ChunkToWorldP(group->pos);
 
@@ -364,7 +364,7 @@ static void GenerateIslandsTerrain(World* world, ChunkGroup* group)
 
 static void GenerateGridTerrain(World* world, ChunkGroup* group)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
 
     WorldP start = ChunkToWorldP(group->pos);
 
@@ -405,7 +405,7 @@ static void GenerateGridTerrain(World* world, ChunkGroup* group)
 
 static void GenerateSnowTerrain(World* world, ChunkGroup* group)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
 
     WorldP start = ChunkToWorldP(group->pos);
 
@@ -502,7 +502,7 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
 
 static void GenerateDesertTerrain(World* world, ChunkGroup* group)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
 
     WorldP start = ChunkToWorldP(group->pos);
 
@@ -590,7 +590,7 @@ static void GenerateDesertTerrain(World* world, ChunkGroup* group)
 
 static void GenerateFlatTerrain(World* world, ChunkGroup* group)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
 
     WorldP start = ChunkToWorldP(group->pos);
 
@@ -656,7 +656,7 @@ static void GenerateFlatTerrain(World* world, ChunkGroup* group)
 
 static void GenerateVoidTerrain(World*, ChunkGroup* group)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
     
     if (group->pos == ivec3(0))
     {

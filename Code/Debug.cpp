@@ -6,138 +6,170 @@
 
 static inline void RecordDebugEvent(DebugEventType type, int id, char* func, int line)
 {
-	assert(g_debugEventIndex + 1 < MAX_DEBUG_EVENTS);
-    DebugEvent* event = g_debugEvents + g_debugEventIndex++;
+	DebugTable& t = g_debugTable;
+	assert(t.eventIndex + 1 < MAX_DEBUG_EVENTS);
+    DebugEvent* event = t.events + t.eventIndex++;
     event->cycles = __rdtsc();
-    event->threadIndex = 0;
-    event->coreIndex = 0;
-    event->recordIndex = (uint16_t)id;
+    event->threadID = (uint16_t)GetCurrentThreadId();
     event->func = func;
     event->line = (uint16_t)line;
+    event->recordID = (uint16_t)id;
     event->type = type;
 }
 
-TimedBlock::TimedBlock(int id, char* func, int line)
+static inline void RecordFrameMarker()
 {
-	this->id = id;
-	this->func = func;
-	this->line = line;
+	DebugTable& t = g_debugTable;
+	assert(t.eventIndex + 1 < MAX_DEBUG_EVENTS);
+    DebugEvent* event = t.events + t.eventIndex++;
+    event->cycles = __rdtsc();
+    event->type = DEBUG_EVENT_FRAME_MARKER;
+}
 
+TimedFunction::TimedFunction(int id, char* func, int line)
+{
+	info = { id, func, line };
     RecordDebugEvent(DEBUG_EVENT_BEGIN_BLOCK, id, func, line);
 }
 
-TimedBlock::~TimedBlock()
+TimedFunction::~TimedFunction()
 {
-    RecordDebugEvent(DEBUG_EVENT_END_BLOCK, id, func, line);
+	RecordDebugEvent(DEBUG_EVENT_END_BLOCK, info.id, info.func, info.line);
 }
 
-static DebugStat BeginDebugStat()
+static inline DebugThread* GetDebugThread(int threadID)
 {
-	return { 0, LLONG_MAX, LLONG_MIN, 0 };
-}
+	DebugTable& t = g_debugTable;
 
-static void EndDebugStat(DebugStat& stat)
-{
-	if (stat.count == 0)
-		stat.min = stat.max = 0;
-	else stat.avg /= stat.count;
-}
-
-static void UpdateStatistic(DebugStat& stat, int64_t value)
-{
-	if (value < stat.min)
-        stat.min = value;
-
-    if (value > stat.max)
-        stat.max = value;
-
-    stat.avg += value;
-    stat.count++;
-}
-
-static void UpdateDebugStats()
-{
-	DebugState& state = g_debugState;
-
-	for (int i = 0; i < MAX_DEBUG_RECORDS; i++)
-    {
-        DebugCounters& c = state.counters[i];
-
-        DebugStat& calls = state.calls[i];
-        DebugStat& cycles = state.cycles[i];
-
-        calls = BeginDebugStat();
-        cycles = BeginDebugStat();
-
-        for (int j = 0; j < MAX_DEBUG_SNAPSHOTS; j++)
-        {
-            DebugSnapshot& s = c.snapshots[j];
-
-            if (s.calls > 0)
-            {
-                UpdateStatistic(calls, s.calls);
-                UpdateStatistic(cycles, s.cycles);
-            }
-        }
-
-        EndDebugStat(calls);
-        EndDebugStat(cycles);
-    }
-}
-
-static void UpdateDebugRecords(DebugEvent* events, int count)
-{
-	int snapIndex = g_debugState.snapshotIndex;
-
-	for (int i = 0; i < MAX_DEBUG_RECORDS; i++)
+	for (int i = 0; i < t.threads.size(); i++)
 	{
-		DebugCounters& dest = g_debugState.counters[i];
-		dest.snapshots[snapIndex].calls = 0;
-		dest.snapshots[snapIndex].cycles = 0;
+		DebugThread* thread = t.threads[i];
+
+		if (thread->ID == threadID)
+			return thread;
 	}
 
-	for (int i = 0; i < count; i++)
+	DebugThread* thread = new DebugThread();
+	thread->ID = threadID;
+	thread->laneIndex = t.chartLaneCount++;
+	t.threads.push_back(thread);
+
+	return thread;
+}
+
+static void CollateDebugRecords(int inUseIndex)
+{
+	DebugTable& t = g_debugTable;
+
+	t.frames.clear();
+	t.chartScale = 0.0f;
+
+	DebugFrame* currentFrame = nullptr;
+	int index = inUseIndex;
+
+	while (true)
 	{
-		DebugEvent& event = events[i];
-		assert(event.recordIndex >= 0 && event.recordIndex < MAX_DEBUG_RECORDS);
+		index = (index + 1) % MAX_DEBUG_EVENT_ARRAYS;
 
-		DebugCounters& dest = g_debugState.counters[event.recordIndex];
-		dest.func = event.func;
-		dest.line = event.line;
+		if (index == inUseIndex)
+			break;
 
-		if (event.type == DEBUG_EVENT_BEGIN_BLOCK)
-			dest.snapshots[snapIndex].cycles -= event.cycles;
-		else 
+		int eventCount = t.eventCounts[index];
+
+		for (int e = 0; e < eventCount; e++)
 		{
-			dest.snapshots[snapIndex].calls++;
-			dest.snapshots[snapIndex].cycles += event.cycles;
+			DebugEvent& event = t.eventStorage[index][e];
+
+			if (event.type == DEBUG_EVENT_FRAME_MARKER)
+			{
+				if (currentFrame != nullptr)
+				{
+					currentFrame->endCycles = event.cycles;
+					float range = (float)(currentFrame->endCycles - currentFrame->beginCycles);
+
+					if (range > 0.0f)
+					{
+						float scale = 1.0f / range;
+
+						if (t.chartScale < scale)
+							t.chartScale = scale;
+					}
+				}
+
+				t.frames.emplace_back();
+				currentFrame = &t.frames.back();
+				currentFrame->beginCycles = event.cycles;
+			}
+			else if (currentFrame != nullptr)
+			{
+				int frameIndex = (int)t.frames.size() - 1;
+
+				DebugThread* thread = GetDebugThread(event.threadID);
+
+				switch (event.type)
+				{
+					case DEBUG_EVENT_BEGIN_BLOCK:
+					{
+						OpeningEvent open = { event, frameIndex };
+						thread->openEvents.push(open);
+					} break;
+
+					case DEBUG_EVENT_END_BLOCK:
+					{
+						if (thread->openEvents.size() > 0)
+						{
+							OpeningEvent matching = thread->openEvents.top();
+
+							if (matching.event.threadID == event.threadID && matching.event.recordID == event.recordID)
+							{
+								if (matching.frameIndex == frameIndex)
+								{
+									// This is a top-level event. No events were opened before it.
+									if (thread->openEvents.size() == 1)
+									{
+										float minT = (float)(matching.event.cycles - currentFrame->beginCycles);
+										float maxT = (float)(event.cycles - currentFrame->beginCycles);
+
+										if (maxT - minT > 0.01f)
+										{
+											FrameRegion region = { minT, maxT, thread->laneIndex };
+											currentFrame->regions.push_back(region);
+										}
+									}
+								}
+								else
+								{
+									// TODO
+								}
+
+								thread->openEvents.pop();
+							}
+							else
+							{
+								// TODO							}
+							}
+						}
+					} break;
+				}
+			}
 		}
 	}
 }
 
 static void DebugEndFrame()
 {	
-	int eventCount = g_debugEventIndex;
-	g_debugEventIndex = 0;
+	DebugTable& t = g_debugTable;
 
-	// Swap the event buffer being written into by current timers.
-	if (g_debugEvents == g_debugEventStorage[0])
-	{
-		g_debugEvents = g_debugEventStorage[1];
-		UpdateDebugRecords(g_debugEventStorage[0], eventCount);
-	}
-	else 
-	{
-		g_debugEvents = g_debugEventStorage[0];
-		UpdateDebugRecords(g_debugEventStorage[1], eventCount);
-	}
+	t.eventCounts[t.eventArrayIndex] = t.eventIndex;
 
-	DebugState& state = g_debugState;
+	// We will begin writing to a new event array here, and then we'll=
+	// process the arrays we're not currently writing to.
+	t.eventArrayIndex = (t.eventArrayIndex + 1) % MAX_DEBUG_EVENT_ARRAYS;
+	t.events = t.eventStorage[t.eventArrayIndex];
 
-	int& index = state.snapshotIndex;
-	index = (index + 1) % MAX_DEBUG_SNAPSHOTS;
+	t.eventIndex = 0;
 
-	state.framesUntilUpdate--;
+	CollateDebugRecords(t.eventArrayIndex);
 }
 
 #else

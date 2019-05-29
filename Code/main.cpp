@@ -38,6 +38,7 @@ static int g_buildID = 271;
 #include <functional>
 #include <algorithm>
 #include <atomic>
+#include <stack>
 
 #define GLM_FORCE_AVX2
 #define GLM_FORCE_INLINE
@@ -395,33 +396,33 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	while (!glfwWindowShouldClose(window))
 	{
+		FRAME_MARKER();
+		BEGIN_BLOCK(GAME_LOOP);
+
+		ResetInput(state->input);
+		glfwPollEvents();
+
+		if (!state->minimized)
 		{
-			TIMED_BLOCK;
+			BeginNewUIFrame(window, state->ui, deltaTime);
 
-			ResetInput(state->input);
-			glfwPollEvents();
+			CreateUI(state, window, world, worldConfig);
 
-			if (!state->minimized)
-			{
-				BeginNewUIFrame(window, state->ui, deltaTime);
-
-				CreateUI(state, window, world, worldConfig);
-
-				RunAsyncCallbacks(state);
-				Update(state, player, world, deltaTime);
-				RenderScene(state, rend, cam);
-			}
+			RunAsyncCallbacks(state);
+			Update(state, player, world, deltaTime);
+			RenderScene(state, rend, cam);
 		}
 
+		END_BLOCK(GAME_LOOP);
+
 		glfwSwapBuffers(window);
+		DebugEndFrame();
 
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
 		state->deltaTime = deltaTime;
 		state->time += deltaTime;
 		lastTime = endTime;
-
-		DebugEndFrame();
 	}
 
 	SaveWorld(state, world);

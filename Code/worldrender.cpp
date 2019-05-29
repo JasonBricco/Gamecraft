@@ -25,7 +25,7 @@ static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
 
 static void RebuildChunksAsync(GameState* state, World* world, void* chunksPtr)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
 
     auto& chunks = *(vector<Chunk*>*)chunksPtr;
 
@@ -140,7 +140,7 @@ static bool AllowPreprocess(World* world, ChunkGroup* group)
 
 static void PreprocessGroup(GameState*, World* world, void* groupPtr)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
 
     ChunkGroup* group = (ChunkGroup*)groupPtr;
 
@@ -158,7 +158,7 @@ static void OnGroupPreprocessed(GameState*, World* world, void*)
 
 static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
     
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
         rend.meshLists[i].clear();
@@ -219,7 +219,7 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
 
 static void WorldRenderUpdate(GameState* state, World* world, Camera* cam)
 {    
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
     
     world->visibleChunks.clear();
     world->groupsToProcess.clear();
