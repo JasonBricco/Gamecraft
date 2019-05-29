@@ -491,26 +491,37 @@ static double GetFPS()
 
 static void CreateProfilerUI()
 {
-    #if PROFILING
     ivec2 size = FramebufferSize();
 
     ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-    ImGui::SetNextWindowSize(ImVec2((float)size.x, (float)size.y));
+
+    ImVec2 windowSize = ImVec2((float)size.x, (float)size.y);
+    ImGui::SetNextWindowSize(windowSize);
 
     ImGui::Begin("Profiler", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
 
-    ImGui::Text("Profiler");
+    double fps = GetFPS();
+
+    char fpsText[16];
+    sprintf(fpsText, "FPS: %.1f", fps);
+
+    ImGui::Text(fpsText);
+
+    #if PROFILING
+
     ImGui::Spacing();
 
     DebugTable& t = g_debugTable;
 
-    float laneWidth = 2.0f;
+    float laneWidth = 4.0f;
     int laneCount = t.chartLaneCount;
     float barWidth = laneWidth * laneCount;
     float spacing = barWidth + 1.0f;
     float chartHeight = 500.0f;
     float chartMinY = chartHeight + 200.0f;
     float scale = t.chartScale * chartHeight;
+
+    ImVec2 mouse = ImGui::GetMousePos();
 
     ImColor colors[] =
     {
@@ -524,36 +535,56 @@ static void CreateProfilerUI()
 
     int colorCount = ArrayCount(colors);
 
+    ImU32 white = ImGui::ColorConvertFloat4ToU32(ImColor(255, 255, 255, 255));
+
+    ImVec2 lowerBarStart = ImVec2(0, chartMinY + 0.5f);
+    ImVec2 lowerBarEnd = ImVec2(t.frames.size() * spacing, chartMinY - 0.5f);
+    ImGui::GetWindowDrawList()->AddRectFilled(lowerBarStart, lowerBarEnd, white);
+
     for (int i = 0; i < t.frames.size(); i++)
     {
         DebugFrame& frame = t.frames[i];
 
         float stackX = spacing * i;
-        float stackY = chartMinY;
 
         for (int j = 0; j < frame.regions.size(); j++)
         {
             FrameRegion& region = frame.regions[j];
             ImU32 color = ImGui::ColorConvertFloat4ToU32(colors[j % colorCount]);
 
-            float minY = stackY - scale * region.minT;
-            float maxY = stackY - scale * region.maxT;
+            float minY = chartMinY - scale * region.minT;
+            float maxY = chartMinY - scale * region.maxT;
 
             ImVec2 start = ImVec2(stackX + region.laneIndex * laneWidth, minY);
             ImVec2 end = ImVec2(start.x + laneWidth, maxY);
             ImGui::GetWindowDrawList()->AddRectFilled(start, end, color);
+
+            if (ImGui::IsMouseHoveringRect(ImVec2(start.x, end.y), ImVec2(end.x, start.y)))
+            {
+                char hoverText[128];
+                sprintf(hoverText, "%s (%d): %.0f\n", region.func, region.line, region.elapsed);
+
+                ImVec2 textSize = ImGui::CalcTextSize(hoverText);
+                float xPos = Min(mouse.x, windowSize.x - textSize.x - 15.0f);
+
+                ImGui::SetCursorPos(ImVec2(xPos, chartMinY + 10.0f));
+                ImGui::Text(hoverText);
+            }
         }
+
+        ImVec2 upperBarStart = ImVec2(0, (chartMinY - chartHeight) + 0.5f);
+        ImVec2 upperBarEnd = ImVec2(t.frames.size() * spacing, (chartMinY - chartHeight) - 0.5f);
+        ImGui::GetWindowDrawList()->AddRectFilled(upperBarStart, upperBarEnd, white);
     }
 
-    ImGui::End();
     #endif
+
+    ImGui::End();
 }
 
 static void CreateDebugHUD(World* world)
 {
     TIMED_FUNCTION;
-
-    double fps = GetFPS();
 
     ivec2 size = FramebufferSize();
 
@@ -561,11 +592,6 @@ static void CreateDebugHUD(World* world)
     ImGui::SetNextWindowSize(ImVec2((float)size.x, (float)size.y));
 
     ImGui::Begin("HUD", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-
-    char fpsText[16];
-    sprintf(fpsText, "FPS: %.1f", fps);
-
-    ImGui::Text(fpsText);
 
     char buildText[32];
     sprintf(buildText, "Build: %i, Mode: %s", g_buildID, g_buildType);

@@ -6,7 +6,7 @@
 #pragma message("Profiling enabled.")
 
 #define MAX_DEBUG_EVENTS 65536
-#define MAX_DEBUG_EVENT_ARRAYS 8
+#define MAX_DEBUG_EVENT_ARRAYS 22
 
 enum DebugEventType : uint8_t
 {
@@ -29,7 +29,9 @@ struct DebugEvent
 struct FrameRegion
 {
     float minT, maxT;
-    int laneIndex;
+    char* func;
+    float elapsed;
+    int line, laneIndex;
 };
 
 struct DebugFrame
@@ -75,6 +77,8 @@ struct DebugTable
     
     vector<DebugFrame> frames;
     vector<DebugThread*> threads;
+
+    bool recording = true;
 };
 
 static DebugTable g_debugTable;
@@ -100,10 +104,13 @@ struct TimedFunction
 
 #define END_BLOCK(ID) RecordDebugEvent(DEBUG_EVENT_END_BLOCK, info##ID.id, info##ID.func, info##ID.line)
 
-#define FRAME_MARKER() RecordFrameMarker()
+#define FRAME_MARKER RecordFrameMarker()
 
 #define _TIMED_FUNCTION(ID, func, line) TimedFunction timedFunction##ID(ID, func, line)
 #define TIMED_FUNCTION _TIMED_FUNCTION(__COUNTER__, __FUNCTION__, __LINE__)
+
+#define START_PROFILING() g_debugTable.recording = true
+#define STOP_PROFILING() g_debugTable.recording = false
 
 #else
 
@@ -111,5 +118,8 @@ struct TimedFunction
 #define END_BLOCK(ID)
 #define FRAME_MARKER
 #define TIMED_FUNCTION
+
+#define START_PROFILING()
+#define STOP_PROFILING()
 
 #endif

@@ -130,9 +130,11 @@ static void CollateDebugRecords(int inUseIndex)
 										float minT = (float)(matching.event.cycles - currentFrame->beginCycles);
 										float maxT = (float)(event.cycles - currentFrame->beginCycles);
 
-										if (maxT - minT > 0.01f)
+										float elapsed = maxT - minT;
+
+										if (elapsed > 0.01f)
 										{
-											FrameRegion region = { minT, maxT, thread->laneIndex };
+											FrameRegion region = { minT, maxT, event.func, elapsed, event.line, thread->laneIndex };
 											currentFrame->regions.push_back(region);
 										}
 									}
@@ -169,7 +171,8 @@ static void DebugEndFrame()
 
 	t.eventIndex = 0;
 
-	CollateDebugRecords(t.eventArrayIndex);
+	if (t.recording)
+		CollateDebugRecords(t.eventArrayIndex);
 }
 
 #else

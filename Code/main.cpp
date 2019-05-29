@@ -253,6 +253,29 @@ static void ProcessLoadingScreen(GameState* state, World* world, float deltaTime
 	}
 }
 
+static void ContextualPause(GameState* state)
+{
+	if (state->debugDisplay == DEBUG_DISPLAY_PROFILER)
+	{
+		if (state->pauseState == VIEWING_PROFILE)
+		{
+			Unpause(state);
+			START_PROFILING();
+		}
+		else
+		{
+			Pause(state, VIEWING_PROFILE);
+			STOP_PROFILING();
+		}
+	}
+	else
+	{
+		if (state->pauseState != PLAYING)
+			Unpause(state);
+		else Pause(state, PAUSED);
+	}
+}
+
 static void Update(GameState* state, Player* player, World* world, float deltaTime)
 {
 	Input& input = state->input;
@@ -262,11 +285,7 @@ static void Update(GameState* state, Player* player, World* world, float deltaTi
 	else
 	{
 		if (KeyPressed(input, KEY_ESCAPE))
-		{
-			if (state->pauseState != PLAYING)
-				Unpause(state);
-			else Pause(state, PAUSED);
-		}
+			ContextualPause(state);
 
 		if (KeyPressed(input, KEY_E))
 		{
@@ -288,15 +307,11 @@ static void Update(GameState* state, Player* player, World* world, float deltaTi
 			d = d == DEBUG_DISPLAY_HUD ? DEBUG_DISPLAY_NONE : DEBUG_DISPLAY_HUD;
 		}
 
-		#if PROFILING
-
 		if (KeyPressed(input, KEY_F4))
 		{
 			DebugDisplay& d = state->debugDisplay;
 			d = d == DEBUG_DISPLAY_PROFILER ? DEBUG_DISPLAY_NONE : DEBUG_DISPLAY_PROFILER;
 		}
-
-		#endif
 	}
 
 	UpdateAudio(&state->audio, deltaTime);
@@ -396,7 +411,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	while (!glfwWindowShouldClose(window))
 	{
-		FRAME_MARKER();
+		FRAME_MARKER;
 		BEGIN_BLOCK(GAME_LOOP);
 
 		ResetInput(state->input);
