@@ -588,6 +588,127 @@ static void GenerateDesertTerrain(World* world, ChunkGroup* group)
     delete noise;
 }
 
+static void GenerateVolcanicTerrain(World* world, ChunkGroup* group)
+{
+    TIMED_FUNCTION;
+
+    WorldP start = ChunkToWorldP(group->pos);
+
+    Noise* noise = Noise::NewFastNoiseSIMD();
+    noise->SetSeed(world->properties.seed);
+
+    noise->SetFrequency(0.015f);
+    noise->SetFractalOctaves(4);
+    noise->SetFractalType(Noise::RigidMulti);
+    float* ridged = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.5f);
+
+    noise->SetFrequency(0.025f);
+    noise->SetFractalType(Noise::Billow);
+    float* base = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.5f);
+
+    noise->SetFrequency(0.01f);
+    float* biome = GetNoise2D(noise, Noise::Simplex, start.x, 0, start.z);
+
+    int surfaceMap[CHUNK_SIZE_2];
+    int maxY = 0;
+
+    int seaLevel = 12;
+
+    for (int x = 0; x < CHUNK_SIZE_H; x++)
+    {
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
+        {
+            float p;
+
+            if (IsWithinIsland(world, start, x, z, p))
+            {
+                float terrainVal;
+                float biomeVal = GetRawNoiseValue2D(biome, x, z);
+
+                float flat = GetNoiseValue2D(base, x, z);
+                flat = ((flat * 0.2f) * 30.0f) + 10.0f;
+
+                float mountain = GetNoiseValue2D(ridged, x, z);
+                mountain = (pow(mountain, 3.5f) * 60.0f) + 20.0f;
+
+                float lower = 0.0f;
+                float upper = 0.6f;
+
+                if (biomeVal < lower)
+                    terrainVal = flat;
+                else if (biomeVal > upper)
+                    terrainVal = mountain;
+                else
+                {
+                    float a = SCurve3((biomeVal - lower) / (upper - lower));
+                    terrainVal = Lerp(flat, mountain, a);
+                }
+
+                int height = (int)(terrainVal * p);
+                surfaceMap[z * CHUNK_SIZE_H + x] = height;
+
+                maxY = Max(maxY, Max(height, seaLevel));
+            }
+            else 
+            {
+                surfaceMap[z * CHUNK_SIZE_H + x] = 0;
+                maxY = Max(maxY, seaLevel);
+            }
+        }
+    }
+
+    noise->SetFractalOctaves(2);
+    noise->SetFrequency(0.015f);
+    noise->SetFractalType(Noise::FBM);
+    float* comp = GetNoise3D(noise, Noise::SimplexFractal, start.x, start.z, maxY + 1, 0.2f);
+
+    for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
+    {
+        Chunk* chunk = group->chunks + i;
+        LWorldP lwP = chunk->lwPos;
+
+        if (lwP.y > maxY || chunk->state == CHUNK_LOADED_DATA)
+            continue;
+
+        int limY = Min(lwP.y + CHUNK_V_MASK, maxY);
+
+        for (int z = 0; z < CHUNK_SIZE_H; z++)
+        {
+            for (int wY = lwP.y; wY <= limY; wY++)
+            {
+                int y = wY & CHUNK_V_MASK;
+
+                for (int x = 0; x < CHUNK_SIZE_H; x++)
+                {
+                    int height = surfaceMap[z * CHUNK_SIZE_H + x];
+                    float compVal = GetNoiseValue3D(comp, x, wY, z, maxY);
+
+                    if (wY <= height - 4)
+                    {
+                        if (compVal <= 0.2f)
+                        {
+                            SetBlock(chunk, x, y, z, BLOCK_STONE);
+                            continue;
+                        }
+                    }
+
+                    if (wY <= height)
+                        SetBlock(chunk, x, y, z, BLOCK_OBSIDIAN);
+                    else if (wY > height && wY <= seaLevel)
+                        SetBlock(chunk, x, y, z, BLOCK_MAGMA);
+                }
+            }
+        }
+    }
+
+    Noise::FreeNoiseSet(comp);
+    Noise::FreeNoiseSet(ridged);
+    Noise::FreeNoiseSet(base);
+    Noise::FreeNoiseSet(biome);
+
+    delete noise;
+}
+
 static void GenerateFlatTerrain(World* world, ChunkGroup* group)
 {
     TIMED_FUNCTION;

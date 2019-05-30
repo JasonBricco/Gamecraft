@@ -97,6 +97,13 @@ static void CreateBiomes(GameState* state, World* world)
     desert.skyColor = vec3(0.53f, 0.80f, 0.92f);
     desert.weather.emitter = &state->rain;
 
+    Biome& volcanic = world->biomes[BIOME_VOLCANIC];
+    volcanic.name = "Volcanic";
+    volcanic.type = BIOME_VOLCANIC;
+    volcanic.func = GenerateVolcanicTerrain;
+    volcanic.skyColor = vec3(0.48f, 0.2f, 0.2f);
+    volcanic.weather.emitter = &state->rain;
+
     Biome& grid = world->biomes[BIOME_GRID];
     grid.name = "Grid";
     grid.type = BIOME_GRID;

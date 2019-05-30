@@ -537,7 +537,7 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	// Opaque animated pass.
 	shader = GetShader(state, SHADER_BLOCK_OPAQUE_ANIMATED);
 
-	int animIndex = (int)PingPong(state->time * 2.0f, 4.0f);
+	int animIndex = (int)PingPong(state->time * 2.0f, 5.0f);
 
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);
@@ -575,7 +575,7 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	// Transparent animated pass.
 	shader = GetShader(state, SHADER_BLOCK_TRANSPARENT_ANIMATED);
 
-	animIndex = (int)PingPong(state->time * 2.0f, 7.0f);
+	animIndex = (int)PingPong(state->time * 2.0f, 8.0f);
 
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);

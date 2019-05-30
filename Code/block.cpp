@@ -228,4 +228,18 @@ static void CreateBlockData(GameState* state, BlockData* data)
     magma.lightStep = 1;
     magma.lightEmitted = 10;
     magma.name = "Magma";
+
+    BlockData& cooledMagma = data[BLOCK_COOLED_MAGMA];
+    SetBlockTextures(cooledMagma, IMAGE_COOLED_MAGMA);
+    cooledMagma.buildFunc = BuildBlock;
+    cooledMagma.onSetSound = GetSound(state, SOUND_STONE);
+    cooledMagma.lightStep = 1;
+    cooledMagma.name = "Cooled Magma";
+
+    BlockData& obsidian = data[BLOCK_OBSIDIAN];
+    SetBlockTextures(obsidian, IMAGE_OBSIDIAN);
+    obsidian.buildFunc = BuildBlock;
+    obsidian.onSetSound = GetSound(state, SOUND_STONE);
+    obsidian.lightStep = 1;
+    obsidian.name = "Obsidian";
 }

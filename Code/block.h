@@ -27,6 +27,8 @@ enum BlockType : Block
     BLOCK_TRAMPOLINE,
     BLOCK_CACTUS,
     BLOCK_MAGMA,
+    BLOCK_COOLED_MAGMA,
+    BLOCK_OBSIDIAN,
     BLOCK_COUNT
 };
 

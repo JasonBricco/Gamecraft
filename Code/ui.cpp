@@ -194,7 +194,7 @@ static ImVec2 CenteredUIWindow(float width, float height, float offsetX = 0.0f, 
 
 static void CreateBlockUI(World* world, GameState* state)
 {
-    ImVec2 size = CenteredUIWindow(248.0f, 200.0f);
+    ImVec2 size = CenteredUIWindow(248.0f, 210.0f);
 
     char* blockName = NULL;
 
@@ -234,6 +234,10 @@ static void CreateBlockUI(World* world, GameState* state)
     BlockButton(world, state, IMAGE_CACTUS_SIDE, BLOCK_CACTUS, &blockName);
     ImGui::SameLine();
     BlockButton(world, state, IMAGE_MAGMA, BLOCK_MAGMA, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, state, IMAGE_COOLED_MAGMA, BLOCK_COOLED_MAGMA, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, state, IMAGE_OBSIDIAN, BLOCK_OBSIDIAN, &blockName);
 
     ImGui::PopStyleColor();
 
@@ -412,11 +416,11 @@ static void WorldConfigUI(GameState* state, World* world, WorldConfig& config)
     ImVec2 btSize = ImGui::CalcTextSize("Biome ");
     ImGui::SameLine();
 
-    int numPerLine[] = { 3, 3, 1 };
+    int numPerLine[] = { 3, 3, 2 };
     int curBiome = 0;
 
     ImVec2 baseCursor = ImGui::GetCursorPos();
-    float biomeGap = 75.0f;
+    float biomeGap = 85.0f;
 
     for (int n = 0; n < ArrayCount(numPerLine); n++)
     {
