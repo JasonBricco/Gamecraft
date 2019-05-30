@@ -299,7 +299,7 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 	#endif
 
 	AssetDatabase& db = state->assets;
-	float fogStart = 100.0f, fogEnd = 208.0f;
+	float fogStart = 175.0f, fogEnd = 192.0f;
 
     Shader* opaque = &db.shaders[SHADER_BLOCK_OPAQUE];
     opaque->view = glGetUniformLocation(opaque->handle, "view");

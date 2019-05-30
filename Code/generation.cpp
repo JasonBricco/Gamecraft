@@ -606,7 +606,7 @@ static void GenerateVolcanicTerrain(World* world, ChunkGroup* group)
     noise->SetFractalType(Noise::Billow);
     float* base = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.5f);
 
-    noise->SetFrequency(0.01f);
+    noise->SetFrequency(0.005f);
     float* biome = GetNoise2D(noise, Noise::Simplex, start.x, 0, start.z);
 
     int surfaceMap[CHUNK_SIZE_2];

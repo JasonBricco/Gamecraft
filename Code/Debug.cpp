@@ -61,11 +61,8 @@ static void CollateDebugRecords(int inUseIndex)
 {
 	DebugTable& t = g_debugTable;
 
-	t.frames.clear();
-	t.chartScale = 0.0f;
-
 	DebugFrame* currentFrame = nullptr;
-	int index = inUseIndex;
+	int& index = t.collationIndex;
 
 	while (true)
 	{
@@ -158,6 +155,17 @@ static void CollateDebugRecords(int inUseIndex)
 	}
 }
 
+static void RestartCollation(int inUseIndex)
+{
+	DebugTable& t = g_debugTable;
+
+	t.frames.clear();
+	t.chartScale = 0.0f;
+	t.chartLaneCount = 0;
+
+	t.collationIndex = inUseIndex;
+}
+
 static void DebugEndFrame()
 {	
 	DebugTable& t = g_debugTable;
@@ -172,7 +180,10 @@ static void DebugEndFrame()
 	t.eventIndex = 0;
 
 	if (t.recording)
+	{
+		RestartCollation(t.eventArrayIndex);
 		CollateDebugRecords(t.eventArrayIndex);
+	}
 }
 
 #else

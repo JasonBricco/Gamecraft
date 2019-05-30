@@ -12,7 +12,7 @@ static char* g_buildType = "RELEASE";
 
 #define SWAP_INTERVAL 1
 
-static int g_buildID = 277;
+static int g_buildID = 278;
 
 #pragma warning(push, 0)
 
@@ -412,23 +412,33 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	while (!glfwWindowShouldClose(window))
 	{
 		FRAME_MARKER;
-		BEGIN_BLOCK(GAME_LOOP);
+		BEGIN_BLOCK(HANDLE_INPUT);
 
 		ResetInput(state->input);
 		glfwPollEvents();
 
+		END_BLOCK(HANDLE_INPUT);
+
 		if (!state->minimized)
 		{
-			BeginNewUIFrame(window, state->ui, deltaTime);
+			BEGIN_BLOCK(BEGIN_UI);
 
+			BeginNewUIFrame(window, state->ui, deltaTime);
 			CreateUI(state, window, world, worldConfig);
+
+			END_BLOCK(BEGIN_UI);
+			BEGIN_BLOCK(GAME_UPDATE);
 
 			RunAsyncCallbacks(state);
 			Update(state, player, world, deltaTime);
-			RenderScene(state, rend, cam);
-		}
 
-		END_BLOCK(GAME_LOOP);
+			END_BLOCK(GAME_UPDATE);
+			BEGIN_BLOCK(GAME_RENDER);
+
+			RenderScene(state, rend, cam);
+
+			END_BLOCK(GAME_RENDER);
+		}
 
 		glfwSwapBuffers(window);
 		DebugEndFrame();

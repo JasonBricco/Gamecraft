@@ -6,7 +6,7 @@
 #pragma message("Profiling enabled.")
 
 #define MAX_DEBUG_EVENTS 65536
-#define MAX_DEBUG_EVENT_ARRAYS 22
+#define MAX_DEBUG_EVENT_ARRAYS 32
 
 enum DebugEventType : uint8_t
 {
@@ -78,6 +78,7 @@ struct DebugTable
     vector<DebugFrame> frames;
     vector<DebugThread*> threads;
 
+    int collationIndex;
     bool recording = true;
 };
 
@@ -99,7 +100,7 @@ struct TimedFunction
 };
 
 #define BEGIN_BLOCK(ID) \
-    TimedInfo info##ID = { __COUNTER__, __FUNCTION__, __LINE__ }; \
+    TimedInfo info##ID = { __COUNTER__, #ID, __LINE__ }; \
     RecordDebugEvent(DEBUG_EVENT_BEGIN_BLOCK, info##ID.id, info##ID.func, info##ID.line)
 
 #define END_BLOCK(ID) RecordDebugEvent(DEBUG_EVENT_END_BLOCK, info##ID.id, info##ID.func, info##ID.line)

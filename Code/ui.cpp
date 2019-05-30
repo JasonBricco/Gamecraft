@@ -517,13 +517,13 @@ static void CreateProfilerUI()
 
     DebugTable& t = g_debugTable;
 
-    float laneWidth = 4.0f;
+    float laneHeight = 5.0f;
     int laneCount = t.chartLaneCount;
-    float barWidth = laneWidth * laneCount;
-    float spacing = barWidth + 1.0f;
-    float chartHeight = 500.0f;
-    float chartMinY = chartHeight + 200.0f;
-    float scale = t.chartScale * chartHeight;
+    float barHeight = laneHeight * laneCount;
+    float spacing = barHeight + 30.0f;
+    float chartWidth = 800.0f;
+    float chartMinX = 100.0f;
+    float scale = t.chartScale * chartWidth;
 
     ImVec2 mouse = ImGui::GetMousePos();
 
@@ -531,7 +531,7 @@ static void CreateProfilerUI()
     {
         ImColor(255, 0, 0, 255),
         ImColor(0, 255, 0, 255),
-        ImColor(0, 0, 255, 255),
+        ImColor(128, 180, 255, 255),
         ImColor(255, 255, 0, 255),
         ImColor(0, 255, 255, 255),
         ImColor(255, 0, 255, 255)
@@ -541,44 +541,53 @@ static void CreateProfilerUI()
 
     ImU32 white = ImGui::ColorConvertFloat4ToU32(ImColor(255, 255, 255, 255));
 
-    ImVec2 lowerBarStart = ImVec2(0, chartMinY + 0.5f);
-    ImVec2 lowerBarEnd = ImVec2(t.frames.size() * spacing, chartMinY - 0.5f);
-    ImGui::GetWindowDrawList()->AddRectFilled(lowerBarStart, lowerBarEnd, white);
+    char hoverText[128];
+    bool hasHoverText = false;
+    ImVec2 hoverStart, hoverEnd;
+
+    ImVec2 leftBarStart = ImVec2(chartMinX - 0.5f, 0);
+    ImVec2 leftBarEnd = ImVec2(chartMinX + 0.5f, windowSize.y - 1.0f);
+    ImGui::GetWindowDrawList()->AddRectFilled(leftBarStart, leftBarEnd, white);
 
     for (int i = 0; i < t.frames.size(); i++)
     {
         DebugFrame& frame = t.frames[i];
 
-        float stackX = spacing * i;
+        float stackY = spacing * i;
 
         for (int j = 0; j < frame.regions.size(); j++)
         {
             FrameRegion& region = frame.regions[j];
             ImU32 color = ImGui::ColorConvertFloat4ToU32(colors[j % colorCount]);
 
-            float minY = chartMinY - scale * region.minT;
-            float maxY = chartMinY - scale * region.maxT;
+            float minX = chartMinX + scale * region.minT;
+            float maxX = chartMinX + scale * region.maxT;
 
-            ImVec2 start = ImVec2(stackX + region.laneIndex * laneWidth, minY);
-            ImVec2 end = ImVec2(start.x + laneWidth, maxY);
+            ImVec2 start = ImVec2(minX, stackY + region.laneIndex * laneHeight);
+            ImVec2 end = ImVec2(maxX, start.y - laneHeight);
             ImGui::GetWindowDrawList()->AddRectFilled(start, end, color);
 
             if (ImGui::IsMouseHoveringRect(ImVec2(start.x, end.y), ImVec2(end.x, start.y)))
             {
-                char hoverText[128];
                 sprintf(hoverText, "%s (%d): %.0f\n", region.func, region.line, region.elapsed);
-
-                ImVec2 textSize = ImGui::CalcTextSize(hoverText);
-                float xPos = Min(mouse.x, windowSize.x - textSize.x - 15.0f);
-
-                ImGui::SetCursorPos(ImVec2(xPos, chartMinY + 10.0f));
-                ImGui::Text(hoverText);
+                hoverStart = start;
+                hoverEnd = end;
+                hasHoverText = true;
             }
         }
+    }
 
-        ImVec2 upperBarStart = ImVec2(0, (chartMinY - chartHeight) + 0.5f);
-        ImVec2 upperBarEnd = ImVec2(t.frames.size() * spacing, (chartMinY - chartHeight) - 0.5f);
-        ImGui::GetWindowDrawList()->AddRectFilled(upperBarStart, upperBarEnd, white);
+    ImVec2 rightBarStart = ImVec2((chartMinX + chartWidth) - 0.5f, 0);
+    ImVec2 rightBarEnd = ImVec2((chartMinX + chartWidth) + 0.5f, windowSize.y - 1.0f);
+    ImGui::GetWindowDrawList()->AddRectFilled(rightBarStart, rightBarEnd, white);
+
+    if (hasHoverText)
+    {
+        ImVec2 textSize = ImGui::CalcTextSize(hoverText);
+        float xPos = Min(mouse.x + 15.0f, windowSize.x - textSize.x - 15.0f);
+
+        ImGui::SetCursorPos(ImVec2(xPos, hoverStart.y + 5.0f));
+        ImGui::Text(hoverText);
     }
 
     #endif
