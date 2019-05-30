@@ -233,13 +233,13 @@ static void CreateBlockData(GameState* state, BlockData* data)
     SetBlockTextures(cooledMagma, IMAGE_COOLED_MAGMA);
     cooledMagma.buildFunc = BuildBlock;
     cooledMagma.onSetSound = GetSound(state, SOUND_STONE);
-    cooledMagma.lightStep = 1;
+    cooledMagma.lightStep = INT_MAX;
     cooledMagma.name = "Cooled Magma";
 
     BlockData& obsidian = data[BLOCK_OBSIDIAN];
     SetBlockTextures(obsidian, IMAGE_OBSIDIAN);
     obsidian.buildFunc = BuildBlock;
     obsidian.onSetSound = GetSound(state, SOUND_STONE);
-    obsidian.lightStep = 1;
+    obsidian.lightStep = INT_MAX;
     obsidian.name = "Obsidian";
 }

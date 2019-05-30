@@ -2,7 +2,7 @@
 // Gamecraft
 //
 
-#define PROFILING 0
+#define PROFILING 1
 
 #if _DEBUG
 static char* g_buildType = "DEBUG";
@@ -12,7 +12,7 @@ static char* g_buildType = "RELEASE";
 
 #define SWAP_INTERVAL 1
 
-static int g_buildID = 271;
+static int g_buildID = 277;
 
 #pragma warning(push, 0)
 
