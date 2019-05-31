@@ -22,7 +22,7 @@ void main()
     vertColor = inColor;
     uv = inUv;
     alpha = inAlpha;
-
+    
     float dist = length(gl_Position.xyz);
 	fogFactor = clamp((fogEnd - dist) / (fogEnd - fogStart), 0.0, 1.0);
 }

@@ -380,12 +380,6 @@ static inline Colori VertexLight(World* world, Chunk* chunk, Axis axis, RelP pos
 
 #define LIGHT(a, o1, o2, o3) VertexLight(world, chunk, AXIS_##a, rP, o1, o2, o3)
 
-static inline void SetFaceVertexData(MeshData* data, int index, uint8_t x, uint8_t y, uint8_t z, Colori c)
-{
-    data->positions[index] = u8vec3(x, y, z);
-    data->colors[index] = c;
-}
-
 // Returns true if the current block should draw its face when placed
 // next to the adjacent block.
 static inline bool CanDrawFace(World* world, CullType cur, Block block, Block adjBlock)
@@ -473,15 +467,14 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     if (CheckFace(world, cull, block, adj.up, vAdded))
     {
         int count = data->vertCount;
+        uint16_t w = textures[FACE_TOP];
 
         SetIndices(data, meshIndex);
-        SetUVs(data, textures[FACE_TOP]);
-        SetAlpha(data, alpha);
 
-        SetFaceVertexData(data, count, x + 1, y + 1, z, LIGHT(Y, 1, 1, -1));
-        SetFaceVertexData(data, count + 1, x + 1, y + 1, z + 1, LIGHT(Y, 1, 1, 1));
-        SetFaceVertexData(data, count + 2, x, y + 1, z + 1, LIGHT(Y, -1, 1, 1));
-        SetFaceVertexData(data, count + 3, x, y + 1, z, LIGHT(Y, -1, 1, -1));
+        data->vertices[count + 0] = { u8vec3(x + 1, y + 1, z), u16vec3(0, 1, w), LIGHT(Y, 1, 1, -1), alpha };
+        data->vertices[count + 1] = { u8vec3(x + 1, y + 1, z + 1), u16vec3(0, 0, w), LIGHT(Y, 1, 1, 1), alpha };
+        data->vertices[count + 2] = { u8vec3(x, y + 1, z + 1), u16vec3(1, 0, w), LIGHT(Y, -1, 1, 1), alpha };
+        data->vertices[count + 3] = { u8vec3(x, y + 1, z), u16vec3(1, 1, w), LIGHT(Y, -1, 1, -1), alpha };
 
         data->vertCount += 4;
     }
@@ -489,15 +482,14 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     if (CheckFace(world, cull, block, adj.down, vAdded))
     {
         int count = data->vertCount;
+        uint16_t w = textures[FACE_BOTTOM];
 
         SetIndices(data, meshIndex);
-        SetUVs(data, textures[FACE_BOTTOM]);
-        SetAlpha(data, alpha);
 
-        SetFaceVertexData(data, count, x, y, z, LIGHT(Y, -1, -1, -1));
-        SetFaceVertexData(data, count + 1, x, y, z + 1, LIGHT(Y, -1, -1, 1));
-        SetFaceVertexData(data, count + 2, x + 1, y, z + 1, LIGHT(Y, 1, -1, 1));
-        SetFaceVertexData(data, count + 3, x + 1, y, z, LIGHT(Y, 1, -1, -1));
+        data->vertices[count + 0] = { u8vec3(x, y, z), u16vec3(0, 1, w), LIGHT(Y, -1, -1, -1), alpha };
+        data->vertices[count + 1] = { u8vec3(x, y, z + 1), u16vec3(0, 0, w), LIGHT(Y, -1, -1, 1), alpha };
+        data->vertices[count + 2] = { u8vec3(x + 1, y, z + 1), u16vec3(1, 0, w), LIGHT(Y, 1, -1, 1), alpha };
+        data->vertices[count + 3] = { u8vec3(x + 1, y, z), u16vec3(1, 1, w), LIGHT(Y, 1, -1, -1), alpha };
 
         data->vertCount += 4;
     }
@@ -505,15 +497,14 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     if (CheckFace(world, cull, block, adj.front, vAdded))
     {
         int count = data->vertCount;
+        uint16_t w = textures[FACE_FRONT];
 
         SetIndices(data, meshIndex);
-        SetUVs(data, textures[FACE_FRONT]);
-        SetAlpha(data, alpha);
 
-        SetFaceVertexData(data, count, x, y, z + 1, LIGHT(Z, -1, -1, 1)); 
-        SetFaceVertexData(data, count + 1, x, y + 1, z + 1, LIGHT(Z, -1, 1, 1));
-        SetFaceVertexData(data, count + 2, x + 1, y + 1, z + 1, LIGHT(Z, 1, 1, 1));
-        SetFaceVertexData(data, count + 3, x + 1, y, z + 1, LIGHT(Z, 1, -1, 1));
+        data->vertices[count + 0] = { u8vec3(x, y, z + 1), u16vec3(0, 1, w), LIGHT(Z, -1, -1, 1), alpha };
+        data->vertices[count + 1] = { u8vec3(x, y + 1, z + 1), u16vec3(0, 0, w), LIGHT(Z, -1, 1, 1), alpha };
+        data->vertices[count + 2] = { u8vec3(x + 1, y + 1, z + 1), u16vec3(1, 0, w), LIGHT(Z, 1, 1, 1), alpha };
+        data->vertices[count + 3] = { u8vec3(x + 1, y, z + 1), u16vec3(1, 1, w), LIGHT(Z, 1, -1, 1), alpha };
 
         data->vertCount += 4;
     }
@@ -521,15 +512,14 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     if (CheckFace(world, cull, block, adj.back, vAdded))
     {
         int count = data->vertCount;
+        uint16_t w = textures[FACE_BACK];
 
         SetIndices(data, meshIndex);
-        SetUVs(data, textures[FACE_BACK]);
-        SetAlpha(data, alpha);
 
-        SetFaceVertexData(data, count, x + 1, y, z, LIGHT(Z, 1, -1, -1));
-        SetFaceVertexData(data, count + 1, x + 1, y + 1, z, LIGHT(Z, 1, 1, -1));
-        SetFaceVertexData(data, count + 2, x, y + 1, z, LIGHT(Z, -1, 1, -1));
-        SetFaceVertexData(data, count + 3, x, y, z, LIGHT(Z, -1, -1, -1));
+        data->vertices[count + 0] = { u8vec3(x + 1, y, z), u16vec3(0, 1, w), LIGHT(Z, 1, -1, -1), alpha };
+        data->vertices[count + 1] = { u8vec3(x + 1, y + 1, z), u16vec3(0, 0, w), LIGHT(Z, 1, 1, -1), alpha };
+        data->vertices[count + 2] = { u8vec3(x, y + 1, z), u16vec3(1, 0, w), LIGHT(Z, -1, 1, -1), alpha };
+        data->vertices[count + 3] = { u8vec3(x, y, z), u16vec3(1, 1, w), LIGHT(Z, -1, -1, -1), alpha };
 
         data->vertCount += 4;
     }
@@ -537,15 +527,14 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     if (CheckFace(world, cull, block, adj.right, vAdded))
     {
         int count = data->vertCount;
+        uint16_t w = textures[FACE_RIGHT];
 
         SetIndices(data, meshIndex);
-        SetUVs(data, textures[FACE_RIGHT]);
-        SetAlpha(data, alpha);
 
-        SetFaceVertexData(data, count, x + 1, y, z + 1, LIGHT(X, 1, -1, 1));
-        SetFaceVertexData(data, count + 1, x + 1, y + 1, z + 1, LIGHT(X, 1, 1, 1));
-        SetFaceVertexData(data, count + 2, x + 1, y + 1, z, LIGHT(X, 1, 1, -1));
-        SetFaceVertexData(data, count + 3, x + 1, y, z, LIGHT(X, 1, -1, -1));
+        data->vertices[count + 0] = { u8vec3(x + 1, y, z + 1), u16vec3(0, 1, w), LIGHT(X, 1, -1, 1), alpha };
+        data->vertices[count + 1] = { u8vec3(x + 1, y + 1, z + 1), u16vec3(0, 0, w), LIGHT(X, 1, 1, 1), alpha };
+        data->vertices[count + 2] = { u8vec3(x + 1, y + 1, z), u16vec3(1, 0, w), LIGHT(X, 1, 1, -1), alpha };
+        data->vertices[count + 3] = { u8vec3(x + 1, y, z), u16vec3(1, 1, w), LIGHT(X, 1, -1, -1), alpha };
 
         data->vertCount += 4;
     }
@@ -553,15 +542,14 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     if (CheckFace(world, cull, block, adj.left, vAdded))
     {
         int count = data->vertCount;
+        uint16_t w = textures[FACE_LEFT];
 
         SetIndices(data, meshIndex);
-        SetUVs(data, textures[FACE_LEFT]);
-        SetAlpha(data, alpha);
 
-        SetFaceVertexData(data, count, x, y, z, LIGHT(X, -1, -1, -1));
-        SetFaceVertexData(data, count + 1, x, y + 1, z, LIGHT(X, -1, 1, -1));
-        SetFaceVertexData(data, count + 2, x, y + 1, z + 1, LIGHT(X, -1, 1, 1));
-        SetFaceVertexData(data, count + 3, x, y, z + 1, LIGHT(X, -1, -1, 1));
+        data->vertices[count + 0] = { u8vec3(x, y, z), u16vec3(0, 1, w), LIGHT(X, -1, -1, -1), alpha };
+        data->vertices[count + 1] = { u8vec3(x, y + 1, z), u16vec3(0, 0, w), LIGHT(X, -1, 1, -1), alpha };
+        data->vertices[count + 2] = { u8vec3(x, y + 1, z + 1), u16vec3(1, 0, w), LIGHT(X, -1, 1, 1), alpha };
+        data->vertices[count + 3] = { u8vec3(x, y, z + 1), u16vec3(1, 1, w), LIGHT(X, -1, -1, 1), alpha };
 
         data->vertCount += 4;
     }

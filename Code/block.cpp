@@ -124,7 +124,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
 
     BlockData& water = data[BLOCK_WATER];
     SetBlockTextures(water, IMAGE_WATER);
-    water.meshType = MESH_TRANSPARENT_ANIMATED;
+    water.meshType = MESH_TRANSPARENT;
     water.buildFunc = BuildBlock;
     water.cull = CULL_TRANSPARENT;
     water.passable = true;
@@ -222,7 +222,6 @@ static void CreateBlockData(GameState* state, BlockData* data)
 
     BlockData& magma = data[BLOCK_MAGMA];
     SetBlockTextures(magma, IMAGE_MAGMA);
-    magma.meshType = MESH_OPAQUE_ANIMATED;
     magma.buildFunc = BuildBlock;
     magma.onSetSound = GetSound(state, SOUND_STONE);
     magma.lightStep = 1;

@@ -8,12 +8,13 @@ in float fogFactor;
 out vec4 outColor;
 
 uniform sampler2DArray tex;
+uniform int animIndex;
 uniform float ambient;
 uniform vec3 fogColor;
 
 void main()
 {
-	outColor = texture(tex, vec3(uv.x, uv.y, uv.z));
+	outColor = texture(tex, vec3(uv.x, uv.y, uv.z + animIndex));
 
     vec3 light = vertColor.rgb;
 	float sun = vertColor.a;

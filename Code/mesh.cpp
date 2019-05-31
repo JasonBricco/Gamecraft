@@ -45,28 +45,12 @@ static inline void SetIndices(MeshData2D* meshData)
 	meshData->indices[5] = 0;
 }
 
-static inline void SetUVs(MeshData* meshData, uint16_t w)
-{
-	int count = meshData->vertCount;
-	meshData->uvs[count] = u16vec3(0, 1, w);
-    meshData->uvs[count + 1] = u16vec3(0, 0, w);
-    meshData->uvs[count + 2] = u16vec3(1, 0, w);
-    meshData->uvs[count + 3] = u16vec3(1, 1, w);
-}
-
 static inline void SetUVs(MeshData2D* meshData)
 {
 	meshData->uvs[0] = u16vec2(0, 1);
     meshData->uvs[1] = u16vec2(0, 0);
     meshData->uvs[2] = u16vec2(1, 0);
     meshData->uvs[3] = u16vec2(1, 1);
-}
-
-static inline void SetAlpha(MeshData* meshData, uint8_t value)
-{
-	int count = meshData->vertCount;
-	u8vec4* val = (u8vec4*)(meshData->alpha + count);
-	*val = u8vec4(value);
 }
 
 static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshData, GLenum type)
@@ -78,33 +62,30 @@ static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshD
 	glGenVertexArrays(1, &mesh.va);
 	glBindVertexArray(mesh.va);
 
-	// Vertex position buffer.
-	glGenBuffers(1, &mesh.positions);
-	glBindBuffer(GL_ARRAY_BUFFER, mesh.positions);
+	glGenBuffers(1, &mesh.vertices);
+	glBindBuffer(GL_ARRAY_BUFFER, mesh.vertices);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(VertexInfo) * meshData->vertCount, meshData->vertices, type);
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(u8vec3) * meshData->vertCount, meshData->positions, type);
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_BYTE, GL_FALSE, 0, NULL);
+	// Vertex positions.
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(VertexInfo), NULL);
 	glEnableVertexAttribArray(0);
 
-	// Vertex texture coordinates buffer.
-	glGenBuffers(1, &mesh.uvs);
-	glBindBuffer(GL_ARRAY_BUFFER, mesh.uvs);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(u16vec3) * meshData->vertCount, meshData->uvs, type);
-	glVertexAttribPointer(1, 3, GL_UNSIGNED_SHORT, GL_FALSE, 0, NULL); 
+	size_t size = sizeof(u8vec3);
+
+	// Vertex texture coordinates.
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(VertexInfo), (GLvoid*)size); 
 	glEnableVertexAttribArray(1);
 
-	// Colors buffer.
-	glGenBuffers(1, &mesh.colors);
-	glBindBuffer(GL_ARRAY_BUFFER, mesh.colors);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Colori) * meshData->vertCount, meshData->colors, type);
-	glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
+	size += sizeof(u8vec3);
+
+	// Vertex colors.
+	glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(VertexInfo), (GLvoid*)size);
 	glEnableVertexAttribArray(2);
 
-	// Alpha buffer.
-	glGenBuffers(1, &mesh.alpha);
-	glBindBuffer(GL_ARRAY_BUFFER, mesh.alpha);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(uint8_t) * meshData->vertCount, meshData->alpha, type);
-	glVertexAttribPointer(3, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
+	size += sizeof(Colori);
+
+	// Vertex alpha.
+	glVertexAttribPointer(3, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(VertexInfo), (GLvoid*)size);
 	glEnableVertexAttribArray(3);
 
 	for (int i = 0; i < MESH_TYPE_COUNT; i++)
@@ -215,9 +196,7 @@ static void DestroyMesh(Mesh& mesh)
 		}
 	}
 
-	glDeleteBuffers(1, &mesh.positions);
-	glDeleteBuffers(1, &mesh.uvs);
-	glDeleteBuffers(1, &mesh.colors);
+	glDeleteBuffers(1, &mesh.vertices);
 	glDeleteVertexArrays(1, &mesh.va);
 
 	mesh.hasData = false;
