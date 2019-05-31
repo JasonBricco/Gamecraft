@@ -569,10 +569,17 @@ static void CreateProfilerUI()
 
             if (ImGui::IsMouseHoveringRect(ImVec2(start.x, end.y), ImVec2(end.x, start.y)))
             {
-                sprintf(hoverText, "%s (%d): %.0f\n", region.func, region.line, region.elapsed);
+                DebugRecord& record = region.record;
+                sprintf(hoverText, "%s (%d): %.0f\n", record.func, record.line, region.elapsed);
                 hoverStart = start;
                 hoverEnd = end;
                 hasHoverText = true;
+
+                if (ImGui::IsMouseClicked(0))
+                {
+                    t.scopeToRecord = &record;
+                    t.profilerState = PROFILER_RECORD_ONCE;
+                }
             }
         }
     }
@@ -588,6 +595,12 @@ static void CreateProfilerUI()
 
         ImGui::SetCursorPos(ImVec2(xPos, hoverStart.y + 5.0f));
         ImGui::Text(hoverText);
+    }
+
+    if (ImGui::IsMouseClicked(1))
+    {
+        t.scopeToRecord = nullptr;
+        t.profilerState = PROFILER_RECORD_ONCE;
     }
 
     #endif

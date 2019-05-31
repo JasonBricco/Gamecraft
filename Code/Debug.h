@@ -7,6 +7,7 @@
 
 #define MAX_DEBUG_EVENTS 65536
 #define MAX_DEBUG_EVENT_ARRAYS 32
+#define MAX_DEBUG_RECORDS 256
 
 enum DebugEventType : uint8_t
 {
@@ -15,12 +16,16 @@ enum DebugEventType : uint8_t
     DEBUG_EVENT_FRAME_MARKER
 };
 
+struct DebugRecord
+{
+    char* func;
+    int line;
+};
+
 struct DebugEvent
 {
     DebugEventType type;
-    char* func;
     uint64_t cycles;
-    uint16_t line;
     uint16_t threadID;
     uint16_t recordID;
 };
@@ -29,9 +34,9 @@ struct DebugEvent
 struct FrameRegion
 {
     float minT, maxT;
-    char* func;
     float elapsed;
-    int line, laneIndex;
+    int laneIndex;
+    DebugRecord& record;
 };
 
 struct DebugFrame
@@ -44,12 +49,20 @@ struct OpeningEvent
 {
     DebugEvent& event;
     int frameIndex;
+    DebugRecord* parent;
 };
 
 struct DebugThread
 {
     int ID, laneIndex;
     stack<OpeningEvent> openEvents;
+};
+
+enum ProfilerState
+{
+    PROFILER_STOPPED,
+    PROFILER_RECORDING,
+    PROFILER_RECORD_ONCE
 };
 
 struct DebugTable
@@ -78,8 +91,10 @@ struct DebugTable
     vector<DebugFrame> frames;
     vector<DebugThread*> threads;
 
-    int collationIndex;
-    bool recording = true;
+    DebugRecord* scopeToRecord;
+    DebugRecord records[MAX_DEBUG_RECORDS];
+
+    ProfilerState profilerState = PROFILER_RECORDING;
 };
 
 static DebugTable g_debugTable;
@@ -110,8 +125,8 @@ struct TimedFunction
 #define _TIMED_FUNCTION(ID, func, line) TimedFunction timedFunction##ID(ID, func, line)
 #define TIMED_FUNCTION _TIMED_FUNCTION(__COUNTER__, __FUNCTION__, __LINE__)
 
-#define START_PROFILING() g_debugTable.recording = true
-#define STOP_PROFILING() g_debugTable.recording = false
+#define START_PROFILING() g_debugTable.profilerState = PROFILER_RECORDING
+#define STOP_PROFILING() g_debugTable.profilerState = PROFILER_STOPPED
 
 #else
 

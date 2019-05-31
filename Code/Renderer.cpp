@@ -446,8 +446,6 @@ static inline float SignedDist(Plane plane, vec3 v)
 
 static inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 {
-	TIMED_FUNCTION;
-	
 	for (int i = 0; i < 6; i++)
 	{
 		Plane plane = cam->planes[i];

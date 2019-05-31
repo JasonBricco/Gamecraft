@@ -11,10 +11,12 @@ static inline void RecordDebugEvent(DebugEventType type, int id, char* func, int
     DebugEvent* event = t.events + t.eventIndex++;
     event->cycles = __rdtsc();
     event->threadID = (uint16_t)GetCurrentThreadId();
-    event->func = func;
-    event->line = (uint16_t)line;
     event->recordID = (uint16_t)id;
     event->type = type;
+
+    DebugRecord& record = t.records[id];
+    record.func = func;
+    record.line = line;
 }
 
 static inline void RecordFrameMarker()
@@ -57,12 +59,21 @@ static inline DebugThread* GetDebugThread(int threadID)
 	return thread;
 }
 
+static inline DebugRecord* GetRecordFrom(OpeningEvent opening)
+{
+	return &g_debugTable.records[opening.event.recordID];
+}
+
 static void CollateDebugRecords(int inUseIndex)
 {
 	DebugTable& t = g_debugTable;
 
+	t.frames.clear();
+	t.chartScale = 0.0f;
+	t.chartLaneCount = 0;
+
 	DebugFrame* currentFrame = nullptr;
-	int& index = t.collationIndex;
+	int index = inUseIndex;
 
 	while (true)
 	{
@@ -108,6 +119,10 @@ static void CollateDebugRecords(int inUseIndex)
 					case DEBUG_EVENT_BEGIN_BLOCK:
 					{
 						OpeningEvent open = { event, frameIndex };
+
+						if (thread->openEvents.size() > 0)
+							open.parent = GetRecordFrom(thread->openEvents.top());
+
 						thread->openEvents.push(open);
 					} break;
 
@@ -121,8 +136,7 @@ static void CollateDebugRecords(int inUseIndex)
 							{
 								if (matching.frameIndex == frameIndex)
 								{
-									// This is a top-level event. No events were opened before it.
-									if (thread->openEvents.size() == 1)
+									if (matching.parent == t.scopeToRecord)
 									{
 										float minT = (float)(matching.event.cycles - currentFrame->beginCycles);
 										float maxT = (float)(event.cycles - currentFrame->beginCycles);
@@ -131,7 +145,7 @@ static void CollateDebugRecords(int inUseIndex)
 
 										if (elapsed > 0.01f)
 										{
-											FrameRegion region = { minT, maxT, event.func, elapsed, event.line, thread->laneIndex };
+											FrameRegion region = { minT, maxT, elapsed, thread->laneIndex, t.records[event.recordID] };
 											currentFrame->regions.push_back(region);
 										}
 									}
@@ -155,17 +169,6 @@ static void CollateDebugRecords(int inUseIndex)
 	}
 }
 
-static void RestartCollation(int inUseIndex)
-{
-	DebugTable& t = g_debugTable;
-
-	t.frames.clear();
-	t.chartScale = 0.0f;
-	t.chartLaneCount = 0;
-
-	t.collationIndex = inUseIndex;
-}
-
 static void DebugEndFrame()
 {	
 	DebugTable& t = g_debugTable;
@@ -179,10 +182,12 @@ static void DebugEndFrame()
 
 	t.eventIndex = 0;
 
-	if (t.recording)
+	if (t.profilerState >= PROFILER_RECORDING)
 	{
-		RestartCollation(t.eventArrayIndex);
 		CollateDebugRecords(t.eventArrayIndex);
+
+		if (t.profilerState == PROFILER_RECORD_ONCE)
+			t.profilerState = PROFILER_STOPPED;
 	}
 }
 
