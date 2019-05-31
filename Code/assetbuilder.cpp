@@ -15,6 +15,7 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <string>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -61,14 +62,29 @@ static void* ReadFileData(const char* path, uint32_t* sizePtr)
     return nullptr;
 }
 
-static void PrintData(char* title, char* pre, vector<string>& files)
+static void PrintData(char* title, char* pre, vector<string>& files, bool assignIDs)
 {
 	printf("\n--- %s ---\n", title);
 
 	for (int i = 0; i < files.size(); i++)
 	{
-		string fStr = string(pre) + files[i];
-		fStr = fStr.substr(0, fStr.find_last_of(".")) + ",";
+		string cur = files[i];
+		size_t p = cur.find('-');
+
+		if (p != string::npos)
+		{
+			if (cur[p + 1] == '0')
+				cur.erase(p, 2);
+			else continue;
+		}
+
+		string fStr = string(pre) + cur;
+		fStr = fStr.substr(0, fStr.find_last_of("."));
+
+		if (assignIDs)
+			fStr.append(" = " + to_string(i));
+
+		fStr.append(",");
 
 		transform(fStr.begin(), fStr.end(), fStr.begin(), [](char c) { return (char)(::toupper(c)); });
 		printf("%s\n", fStr.c_str());
@@ -178,7 +194,7 @@ int main()
 		header.blockImageCount = (uint32_t)blockImages.size();
 		fwrite(blockImages.data(), sizeof(ImageData), header.blockImageCount, file);
 
-		PrintData("Block Images", "IMAGE_", blockImageNames);
+		PrintData("Block Images", "IMAGE_", blockImageNames, true);
 
 		// Write out image data.
 		vector<string> imageNames;
@@ -193,7 +209,7 @@ int main()
 		header.imageCount = (uint32_t)images.size();
 		fwrite(images.data(), sizeof(ImageData), header.imageCount, file);
 
-		PrintData("Images", "IMAGE_", imageNames);
+		PrintData("Images", "IMAGE_", imageNames, false);
 
 		// Write out sound data.
 		vector<string> soundNames;
@@ -208,7 +224,7 @@ int main()
 		header.soundCount = (uint32_t)sounds.size();
 		fwrite(sounds.data(), sizeof(SoundData), header.soundCount, file);
 
-		PrintData("Sounds", "SOUND_", soundNames);
+		PrintData("Sounds", "SOUND_", soundNames, false);
 
 		// Write out shader data.
 		vector<string> vertFiles;
@@ -243,7 +259,7 @@ int main()
 		header.shaderCount = (uint32_t)shaders.size();
 		fwrite(shaders.data(), sizeof(ShaderData), header.shaderCount, file);
 
-		PrintData("Shaders", "SHADER_", vertFiles);
+		PrintData("Shaders", "SHADER_", vertFiles, false);
 
 		fseek(file, 0, SEEK_SET);
 		fwrite(&header, sizeof(header), 1, file);
