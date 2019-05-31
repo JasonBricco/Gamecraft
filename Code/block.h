@@ -64,6 +64,13 @@ enum BlockCollider
 
 using BuildBlockFunc = void(*)(World*, Chunk*, MeshData*, int, int, int, Block);
 
+struct BlockAnimation
+{
+    vector<int> frames;
+    float framesPerSec, timeLeft;
+    int index;
+};
+
 struct BlockData
 {
     uint16_t textures[6];
@@ -78,3 +85,5 @@ struct BlockData
     BlockCollider collider;
     char* name;
 };
+
+static int ComputeAnimationFrame(BlockAnimation& anim, float deltaTime);

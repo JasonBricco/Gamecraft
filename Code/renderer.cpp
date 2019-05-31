@@ -468,6 +468,17 @@ static inline FrustumVisibility TestFrustum(Camera* cam, vec3 min, vec3 max)
 	return FRUSTUM_VISIBLE;
 }
 
+static void DrawMeshesOfType(Renderer& rend, Shader* shader, BlockMeshType type)
+{
+	size_t count = rend.meshLists[type].size();
+
+	for (int i = 0; i < count; i++)
+	{
+		ChunkMesh cM = rend.meshLists[type][i];
+		DrawMesh(cM.mesh, shader, cM.pos, type);
+	}
+}
+
 static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 {
 	TIMED_FUNCTION;
@@ -486,27 +497,18 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	// Opaque pass.
 	Shader* shader = GetShader(state, SHADER_BLOCK_OPAQUE);
 
-	// TODO: Figure this out.
-	int animIndex = 0;
-
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);
 	SetUniform(shader->proj, rend.perspective);
 	SetUniform(shader->ambient, rend.ambient);
+	SetUniform(shader->animIndex, 0);
+
+	DrawMeshesOfType(rend, shader, MESH_OPAQUE);
+
+	int animIndex = ComputeAnimationFrame(rend.blockAnimation[MESH_MAGMA], state->deltaTime);
 	SetUniform(shader->animIndex, animIndex);
 
-	size_t count = rend.meshLists[MESH_OPAQUE].size();
-
-	for (int i = 0; i < count; i++)
-	{
-		ChunkMesh cM = rend.meshLists[MESH_OPAQUE][i];
-		DrawMesh(cM.mesh, shader, cM.pos, MESH_OPAQUE);
-	}
-
-	UseShader(shader);
-	SetUniform(shader->view, cam->view);
-	SetUniform(shader->proj, rend.perspective);
-	SetUniform(shader->ambient, rend.ambient);
+	DrawMeshesOfType(rend, shader, MESH_MAGMA);
 
 	// Transparent pass.
 	glEnable(GL_BLEND);
@@ -514,25 +516,21 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 
 	shader = GetShader(state, SHADER_BLOCK_TRANSPARENT);
 
-	// TODO: Figure this out.
-	animIndex = 0;
-
 	UseShader(shader);
 	SetUniform(shader->view, cam->view);
 	SetUniform(shader->proj, rend.perspective);
 	SetUniform(shader->ambient, rend.ambient);
+	SetUniform(shader->animIndex, 0);
+
+	DrawMeshesOfType(rend, shader, MESH_TRANSPARENT);
+
+	animIndex = ComputeAnimationFrame(rend.blockAnimation[MESH_FLUID], state->deltaTime);
 	SetUniform(shader->animIndex, animIndex);
 
 	if (rend.disableFluidCull) 
 		glDisable(GL_CULL_FACE);
 
-	count = rend.meshLists[MESH_TRANSPARENT].size();
-
-	for (int i = 0; i < count; i++)
-	{
-		ChunkMesh cM = rend.meshLists[MESH_TRANSPARENT][i];
-		DrawMesh(cM.mesh, shader, cM.pos, MESH_TRANSPARENT);
-	}
+	DrawMeshesOfType(rend, shader, MESH_FLUID);
 
 	// If we didn't already disable culling, disable it now for particle drawing.
 	if (!rend.disableFluidCull)

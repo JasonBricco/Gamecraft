@@ -9,6 +9,8 @@ enum BlockMeshType
 {
     MESH_OPAQUE,
     MESH_TRANSPARENT,
+    MESH_FLUID,
+    MESH_MAGMA,
     MESH_TYPE_COUNT
 };
 

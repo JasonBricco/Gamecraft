@@ -2,7 +2,7 @@
 // Gamecraft
 //
 
-#define PROFILING 1
+#define PROFILING 0
 
 #if _DEBUG
 static char* g_buildType = "DEBUG";

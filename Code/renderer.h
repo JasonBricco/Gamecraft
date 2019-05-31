@@ -69,6 +69,8 @@ struct Renderer
     vector<ChunkMesh> meshLists[MESH_TYPE_COUNT];
     vector<ParticleEmitter*> emitters;
 
+    BlockAnimation blockAnimation[MESH_TYPE_COUNT];
+
     Graphic* crosshair;
 
     // Screen fading.

@@ -167,7 +167,6 @@ struct World
     WorldProperties properties;
 
     BlockData blockData[BLOCK_COUNT];
-
     BlockType blockToSet;
 
     Biome biomes[BIOME_COUNT];

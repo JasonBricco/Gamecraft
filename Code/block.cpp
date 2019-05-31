@@ -92,6 +92,19 @@ static inline void SetBlockTextures(BlockData& data, uint16_t top, uint16_t bott
     SetBlockTextures(data, top, bottom, sides, sides, sides, sides);
 }
 
+static int ComputeAnimationFrame(BlockAnimation& anim, float deltaTime)
+{
+    anim.timeLeft -= deltaTime;
+
+    if (anim.timeLeft <= 0.0f)
+    {
+        anim.index = (anim.index + 1) % anim.frames.size();
+        anim.timeLeft = 1.0f / anim.framesPerSec;
+    }
+
+    return anim.frames[anim.index];
+}
+
 static void CreateBlockData(GameState* state, BlockData* data)
 {
     BlockData& air = data[BLOCK_AIR];
@@ -124,7 +137,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
 
     BlockData& water = data[BLOCK_WATER];
     SetBlockTextures(water, IMAGE_WATER);
-    water.meshType = MESH_TRANSPARENT;
+    water.meshType = MESH_FLUID;
     water.buildFunc = BuildBlock;
     water.cull = CULL_TRANSPARENT;
     water.passable = true;
@@ -223,6 +236,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
     BlockData& magma = data[BLOCK_MAGMA];
     SetBlockTextures(magma, IMAGE_MAGMA);
     magma.buildFunc = BuildBlock;
+    magma.meshType = MESH_MAGMA;
     magma.onSetSound = GetSound(state, SOUND_STONE);
     magma.lightStep = 1;
     magma.lightEmitted = 10;
@@ -241,4 +255,27 @@ static void CreateBlockData(GameState* state, BlockData* data)
     obsidian.onSetSound = GetSound(state, SOUND_STONE);
     obsidian.lightStep = INT_MAX;
     obsidian.name = "Obsidian";
+
+    Renderer& rend = state->renderer;
+
+    BlockAnimation& opaqueAnim = rend.blockAnimation[MESH_OPAQUE];
+    opaqueAnim.frames = { 0 };
+
+    BlockAnimation& transparentAnim = rend.blockAnimation[MESH_TRANSPARENT];
+    transparentAnim.frames = { 0 };
+
+    BlockAnimation& fluidAnim = rend.blockAnimation[MESH_FLUID];
+    fluidAnim.framesPerSec = 2.0f;
+    fluidAnim.frames = { 0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1 };
+
+    BlockAnimation& magmaAnim = rend.blockAnimation[MESH_MAGMA];
+    magmaAnim.framesPerSec = 4.0f;
+    magmaAnim.frames = 
+    { 
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+        18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1
+    };
+
+    for (int i = 0; i < MESH_TYPE_COUNT; i++)
+        rend.blockAnimation[i].timeLeft = 1.0f / rend.blockAnimation[i].framesPerSec;
 }

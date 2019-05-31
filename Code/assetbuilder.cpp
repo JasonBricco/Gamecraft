@@ -73,7 +73,7 @@ static void PrintData(char* title, char* pre, vector<string>& files, bool assign
 
 		if (p != string::npos)
 		{
-			if (cur[p + 1] == '0')
+			if (cur[p + 1] == 'A')
 				cur.erase(p, 2);
 			else continue;
 		}
