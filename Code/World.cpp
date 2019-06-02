@@ -768,7 +768,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
             ivec3 bP = BlockPos(player->pos);
 
             // Ensure there are no blocks the player will be inside upon being unsuspended.
-            for (int i = -1; i < 2; i++)
+            for (int i = 0; i < 2; i++)
                 SetBlock(world, bP.x, bP.y + i, bP.z, BLOCK_AIR);
 
             player->suspended = false;

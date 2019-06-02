@@ -2,7 +2,7 @@
 // Gamecraft
 //
 
-#define PROFILING 1
+#define PROFILING 0
 
 #if _DEBUG
 static char* g_buildType = "DEBUG";
@@ -12,7 +12,7 @@ static char* g_buildType = "RELEASE";
 
 #define SWAP_INTERVAL 1
 
-static int g_buildID = 282;
+static int g_buildID = 288;
 
 #pragma warning(push, 0)
 
@@ -257,7 +257,7 @@ static void ContextualPause(GameState* state)
 {
 	if (state->pauseState == PLAYER_DEAD)
 		return;
-	
+
 	if (state->debugDisplay == DEBUG_DISPLAY_PROFILER)
 	{
 		if (state->pauseState == VIEWING_PROFILE)
