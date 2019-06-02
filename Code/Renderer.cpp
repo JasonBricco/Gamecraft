@@ -358,8 +358,12 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 
 static inline void FadeScreenForTime(Renderer& rend, Color color, float time)
 {
-	rend.prevFadeColor = rend.fadeColor;
-	rend.fadeColor = color;
+	if (rend.fadeColor != color)
+	{
+		rend.prevFadeColor = rend.fadeColor;
+		rend.fadeColor = color;
+	}
+	
 	rend.fadeTimeLeft = time;
 }
 

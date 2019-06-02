@@ -200,24 +200,13 @@ static void ApplyDamage(GameState* state, Player* player, int amount)
 	}
 }
 
-static inline bool InApproxRange(float& value, float min, float max)
-{
-	if (value > (min - EPSILON) && value < (max + EPSILON))
-	{
-		value = Clamp(value, min, max);
-		return true;
-	}
-
-	return false;
-}
-
 static inline bool TestWall(vec3 delta, vec3 p, float wallP, vec3 wMin, vec3 wMax, int axis0, int axis1, int axis2, float& tMin)
 {
 	if (delta[axis0] != 0.0f)
 	{
 		float tResult = (wallP - p[axis0]) / delta[axis0];
 
-		if (InApproxRange(tResult, 0.0f, tMin))
+		if (tResult >= 0.0f && tResult < tMin)
 		{
 			float o1 = p[axis1] + tResult * delta[axis1];
 			float o2 = p[axis2] + tResult * delta[axis2];
@@ -408,8 +397,8 @@ static void MovePlayer(GameState* state, World* world, vec3 accel, float deltaTi
 
 	sort(player->possibleCollides.begin(), player->possibleCollides.end(), [player](auto a, auto b) 
     { 
-        float distA = distance2(vec3(a.pos.x, a.pos.y, a.pos.z), player->pos);
-        float distB = distance2(vec3(b.pos.x, b.pos.y, b.pos.z), player->pos);
+        float distA = distance2(a.pos, player->pos);
+        float distB = distance2(b.pos, player->pos);
 		return distA < distB;
     });
 
