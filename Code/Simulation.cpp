@@ -187,6 +187,19 @@ static void TeleportPlayer(GameState* state, Player* player, WorldLocation p)
 	BeginLoadingScreen(state, 0.5f, TeleportPlayerCallback);
 }
 
+static void ApplyDamage(GameState* state, Player* player, int amount)
+{
+	player->health -= amount;
+	FadeScreenForTime(state->renderer, player->damageFade, 0.1f);
+
+	if (player->health <= 0)
+	{
+		player->health = 0;
+		state->renderer.fadeTimeLeft = FLT_MAX;
+		Pause(state, PLAYER_DEAD);
+	}
+}
+
 static inline bool InApproxRange(float& value, float min, float max)
 {
 	if (value > (min - EPSILON) && value < (max + EPSILON))
@@ -220,7 +233,7 @@ static inline bool TestWall(vec3 delta, vec3 p, float wallP, vec3 wMin, vec3 wMa
 	return false;
 }
 
-static inline void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 delta, float& tMin, vec3& normal, BlockCollider& collider)
+static inline void TestCollision(World* world, Player* player, AABB a, AABB b, vec3 delta, float& tMin, vec3& normal, Block& collideBlock)
 {
 	ExpandAABB(b, a.radius);
 	ShrinkAABB(a, a.radius);
@@ -244,8 +257,8 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 		{
 			player->colFlags |= HIT_DOWN;
 			Block block = GetBlock(world, bPos);
-			player->surface = GetBlockSurface(world, block);
-			collider = GetBlockCollider(world, block);
+			player->surface = GetSurface(world, block);
+			collideBlock = block;
 		}
 	}
 
@@ -254,7 +267,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	{
 		normal = vec3(0.0f, -1.0f, 0.0f);
 		player->colFlags |= HIT_UP;
-		collider = GetBlockCollider(world, GetBlock(world, bPos));
+		collideBlock = GetBlock(world, bPos);
 	}
 
 	// Left wall.
@@ -262,7 +275,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	{
 		normal = vec3(-1.0f, 0.0f, 0.0f);
 		player->colFlags |= HIT_SIDES;
-		collider = GetBlockCollider(world, GetBlock(world, bPos));
+		collideBlock = GetBlock(world, bPos);
 	}
 
 	// Right wall.
@@ -270,7 +283,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	{
 		normal = vec3(1.0f, 0.0f, 0.0f);
 		player->colFlags |= HIT_SIDES;
-		collider = GetBlockCollider(world, GetBlock(world, bPos));
+		collideBlock = GetBlock(world, bPos);
 	}
 
 	// Front wall.
@@ -278,7 +291,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	{
 		normal = vec3(0.0f, 0.0f, 1.0f);
 		player->colFlags |= HIT_SIDES;
-		collider = GetBlockCollider(world, GetBlock(world, bPos));
+		collideBlock = GetBlock(world, bPos);
 	}
 
 	// Back wall.
@@ -286,7 +299,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	{
 		normal = vec3(0.0f, 0.0f, -1.0f);
 		player->colFlags |= HIT_SIDES;
-		collider = GetBlockCollider(world, GetBlock(world, bPos));
+		collideBlock = GetBlock(world, bPos);
 	}
 }
 
@@ -312,9 +325,11 @@ static void ApplyBlockSurface(Player* player, vec3 accel, float deltaTime)
 	player->velocity.y = Max(player->velocity.y, -100.0f);
 }
 
-static void MovePlayer(World* world, Player* player, vec3 accel, float deltaTime, float gravity)
+static void MovePlayer(GameState* state, World* world, vec3 accel, float deltaTime, float gravity)
 {
 	TIMED_FUNCTION;
+
+	Player* player = world->player;
 
 	accel *= player->speed;
 	accel += player->velocity * player->friction;
@@ -405,12 +420,12 @@ static void MovePlayer(World* world, Player* player, vec3 accel, float deltaTime
 		float tMin = 1.0f;
 		vec3 normal = vec3(0.0f);
 
-		BlockCollider collider = COLLIDER_NORMAL;
+		Block collideBlock = BLOCK_AIR;
 
 		for (int i = 0; i < player->possibleCollides.size(); i++)
 		{
 			AABB bb = player->possibleCollides[i];
-			TestCollision(world, player, playerBB, bb, delta, tMin, normal, collider);
+			TestCollision(world, player, playerBB, bb, delta, tMin, normal, collideBlock);
 	 	}
 
 	 	player->pos += delta * tMin;
@@ -429,24 +444,7 @@ static void MovePlayer(World* world, Player* player, vec3 accel, float deltaTime
 
 	 	playerBB = GetPlayerAABB(player);
 
-	 	switch (collider)
-	 	{
-	 		case COLLIDER_BOUNCE:
-	 		{
-			 	player->velocity -= 2 * dot(player->velocity, normal) * normal * 0.9f;
-			 	delta -= 2 * dot(delta, normal) * normal * 0.9f;
-	 		} break;
-
-	 		default:
-	 		{
-	 			// Subtract away the component of the velocity that collides with the wall and leave the
-			 	// remaining velocity intact.
-			 	player->velocity -= dot(player->velocity, normal) * normal;
-
-			 	delta -= dot(delta, normal) * normal;
-	 		}
-
-	 	}
+	 	GetCollideFunc(world, collideBlock)(state, world, delta, normal, collideBlock);
 
 	 	delta -= (delta * tMin);
 	 	tRemaining -= (tMin * tRemaining);
@@ -456,6 +454,58 @@ static void MovePlayer(World* world, Player* player, vec3 accel, float deltaTime
 		player->surface = SURFACE_NORMAL;
 
     player->possibleCollides.clear();
+}
+
+static void IgnoreCollideFunc(GameState*, World*, vec3&, vec3, Block) {}
+
+static void BounceCollideFunc(GameState*, World* world, vec3& delta, vec3 normal, Block)
+{
+	Player* player = world->player;
+	player->velocity -= 2 * dot(player->velocity, normal) * normal * 0.9f;
+	delta -= 2 * dot(delta, normal) * normal * 0.9f;
+}
+
+static void DefaultCollideFunc(GameState*, World* world, vec3& delta, vec3 normal, Block)
+{
+	Player* player = world->player;
+
+	// Subtract away the component of the velocity that collides with the wall and leave the
+ 	// remaining velocity intact.
+ 	player->velocity -= dot(player->velocity, normal) * normal;
+
+ 	delta -= dot(delta, normal) * normal;
+}
+
+static void OverTimeDamageCollideFunc(GameState* state, World* world, vec3& delta, vec3 normal, Block block)
+{
+	DefaultCollideFunc(state, world, delta, normal, block);
+
+	bool doApply = true;
+	Player* player = world->player;
+
+	for (OverTimeDamage& ot : player->overTimeDamage)
+	{
+		if (ot.type == block)
+		{
+			ot.active = true;
+			doApply = false;
+			break;
+		}
+	}
+
+	if (doApply)
+	{
+		OverTimeDamage ot = GetOverTimeDamage(world, block);
+		ot.active = true;
+		player->overTimeDamage.push_back(ot);
+	}
+}
+
+static void KillCollideFunc(GameState* state, World* world, vec3&, vec3, Block)
+{
+	Player* player = world->player;
+	player->velocity = vec3(0.0f);
+	ApplyDamage(state, player, INT_MAX);
 }
 
 static bool OverlapsBlock(Player* player, int x, int y, int z)
@@ -511,39 +561,40 @@ static inline bool ListContainsBlock(vector<Block>& list, Block block)
 	return false;
 }
 
-static void Simulate(GameState* state, World* world, Player* player, float deltaTime)
+static void ApplyOverTimeDamage(GameState* state, Player* player, float deltaTime)
 {
-	if (player->suspended) return;
+	auto& otList = player->overTimeDamage;
 
-	TIMED_FUNCTION;
-
-	Renderer& rend = state->renderer;
-	Input& input = state->input;
-	Camera* cam = state->camera;
-
-	vec3 accel = vec3(0.0f);
-
-	if (KeyHeld(input, KEY_UP)) accel += cam->forward;
-	if (KeyHeld(input, KEY_DOWN)) accel += -cam->forward;
-	if (KeyHeld(input, KEY_LEFT)) accel += -cam->right;
-	if (KeyHeld(input, KEY_RIGHT)) accel += cam->right;
-
-	if (accel != vec3(0.0f))
-		accel = normalize(accel);
-
-	if (KeyPressed(input, KEY_TAB))
+	// Apply over time damage effects.
+	for (auto it = otList.begin(); it != otList.end();)
 	{
-		if (player->moveState == MOVE_FLYING)
-			player->moveState = MOVE_NORMAL;
-		else player->moveState = MOVE_FLYING;
-	}
+		it->timeLeft -= deltaTime;
 
-	float gravity = -30.0f;
+		if (it->timeLeft <= 0.0f)
+		{
+			if (!it->active)
+			{
+				it = otList.erase(it);
+				continue;
+			}
+	
+			ApplyDamage(state, player, it->damage);
+			it->timeLeft = it->interval;
+		}
+
+		it++;
+	}
+}
+
+static void SetMoveParams(Player* player, Input& input, vec3& accel, float& gravity)
+{
+	gravity = -30.0f;
 
 	switch (player->moveState)
 	{
 		case MOVE_NORMAL:
 		{
+			accel.y = 0.0f;
 			player->speed = 50.0f;
 			player->friction = -8.0f;
 
@@ -595,8 +646,45 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 		} break;
 	}
 
-	MovePlayer(world, player, accel, deltaTime, gravity);
+	if (accel != vec3(0.0f))
+		accel = normalize(accel);
+}
 
+static void Simulate(GameState* state, World* world, Player* player, float deltaTime)
+{
+	if (player->suspended) return;
+
+	TIMED_FUNCTION;
+
+	Renderer& rend = state->renderer;
+	Input& input = state->input;
+	Camera* cam = state->camera;
+
+	for (OverTimeDamage& ot : player->overTimeDamage)
+		ot.active = false;
+
+	vec3 accel = vec3(0.0f);
+
+	if (KeyHeld(input, KEY_UP)) accel += cam->forward;
+	if (KeyHeld(input, KEY_DOWN)) accel += -cam->forward;
+	if (KeyHeld(input, KEY_LEFT)) accel += -cam->right;
+	if (KeyHeld(input, KEY_RIGHT)) accel += cam->right;
+
+	if (KeyPressed(input, KEY_TAB))
+	{
+		if (player->moveState == MOVE_FLYING)
+			player->moveState = MOVE_NORMAL;
+		else player->moveState = MOVE_FLYING;
+	}
+
+	float gravity;
+	
+	SetMoveParams(player, input, accel, gravity);
+	MovePlayer(state, world, accel, deltaTime, gravity);
+
+	ApplyOverTimeDamage(state, player, deltaTime);
+
+	// Clamp the player within the loaded world region.
 	float min = 0.0f, max = (float)(world->size * CHUNK_SIZE_H - 1);
 	player->pos.x = Clamp(player->pos.x, min, max);
 	player->pos.z = Clamp(player->pos.z, min, max);
@@ -609,33 +697,32 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 	vec3 eyePos = vec3(cam->pos.x, cam->pos.y - 0.1f, cam->pos.z);
 	Block eyeBlock = GetBlock(world, BlockPos(eyePos));
 
+	Color waterFade = Color(0.17f, 0.45f, 0.69f, 0.75f);
+
 	if (eyeBlock == BLOCK_WATER)
 	{
-		rend.fadeColor = vec4(0.17f, 0.45f, 0.69f, 0.75f);
-		rend.disableFluidCull = true;
+		if (rend.fadeColor.a == 0.0f)
+		{
+			rend.fadeColor = waterFade;
+			rend.disableFluidCull = true;
+		}
 	}
 	else
 	{
-		rend.fadeColor = CLEAR_COLOR;
-		rend.disableFluidCull = false;
+		if (rend.fadeColor == waterFade)
+		{
+			rend.fadeColor = CLEAR_COLOR;
+			rend.disableFluidCull = false;
+		}
 	}
 
 	HandleEditInput(state, input, world, deltaTime);
 
 	if (KeyPressed(input, KEY_F1))
-	{
-		LWorldP lW = BlockPos(player->pos);
-		lW.y++;
-		world->properties.homePos = { LWorldToWorldP(world, player->pos), lW };
-	}
+		SetHomePos(world, player);
 
 	if (KeyPressed(input, KEY_F2))
-	{
-		WorldLocation home = world->properties.homePos;
-
-		if (home.lP != ivec3(0))
-			TeleportPlayer(state, player, world->properties.homePos);
-	}
+		TeleportHome(state, world, player);
 }
 
 // Creates and spawns the player. The player is spawned within the center local space chunk.
@@ -647,6 +734,9 @@ static Player* NewPlayer()
 	player->colFlags = HIT_NONE;
 	player->spawned = false;
 	player->moveState = MOVE_NORMAL;
+	player->maxHealth = 10;
+	player->health = player->maxHealth;
+	player->damageFade = Color(1.0f, 0.0f, 0.0f, 0.5f);
 	
 	return player;
 }
@@ -712,5 +802,6 @@ static void SpawnPlayer(GameState* state, World* world, Player* player, Rectf sp
 	MoveCamera(state->camera, player->pos);
 	UpdateCameraVectors(state->camera);
 
+	SetHomePos(world, player);
 	player->spawned = true;
 }

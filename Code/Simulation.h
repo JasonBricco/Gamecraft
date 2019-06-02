@@ -60,7 +60,21 @@ struct Player
     vector<Block> lowerOverlap;
 
     vector<AABB> possibleCollides;
+
+    int health, maxHealth;
+
+    Color damageFade;
+    vector<OverTimeDamage> overTimeDamage;
 };
 
 static void SpawnPlayer(GameState* state, World* world, Player* player, Rectf spawnBound);
+static void TeleportPlayer(GameState* state, Player* player, WorldLocation p);
+
 static bool OverlapsBlock(Player* player, int bX, int bY, int bZ);
+
+// Collision handling functions.
+static void IgnoreCollideFunc(GameState* state, World* world, vec3& delta, vec3 normal, Block block);
+static void BounceCollideFunc(GameState* state, World* world, vec3& delta, vec3 normal, Block block);
+static void DefaultCollideFunc(GameState* state, World* world, vec3& delta, vec3 normal, Block block);
+static void OverTimeDamageCollideFunc(GameState* state, World* world, vec3& delta, vec3 normal, Block block);
+static void KillCollideFunc(GameState* state, World* world, vec3&, vec3, Block);

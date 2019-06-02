@@ -17,7 +17,10 @@ static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
                 Block block = GetBlock(chunk, x, y, z);
 
                 if (block != BLOCK_AIR)
-                    BuildFunc(world, block)(world, chunk, chunk->meshData, x, y, z, block);
+                {
+                    if (IsVisible(world, block))
+                        BuildFunc(world, block)(world, chunk, chunk->meshData, x, y, z, block);
+                }
             }
         }
     }
@@ -462,7 +465,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
 
     uint8_t x = (uint8_t)xi, y = (uint8_t)yi, z = (uint8_t)zi;
 
-    uint8_t alpha = GetBlockAlpha(world, block);
+    uint8_t alpha = GetAlpha(world, block);
     
     if (CheckFace(world, cull, block, adj.up, vAdded))
     {

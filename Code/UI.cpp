@@ -171,7 +171,7 @@ static inline void BlockButton(World* world, GameState* state, ImageID image, Bl
     }
 
     if (ImGui::IsItemHovered())
-        *name = GetBlockName(world, type);
+        *name = GetName(world, type);
 }
 
 static ImVec2 UIWindow(float width, float height, ImVec2 pos)
@@ -332,6 +332,34 @@ static void CreatePauseUI(GameState* state, World* world, GLFWwindow* window)
 
     cursorPos.y += 35.0f;
     ImGui::SetCursorPos(cursorPos);
+
+    if (ImGui::Button("Quit", btnSize))
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+
+    ImGui::End();
+}
+
+static void CreateDeathUI(GameState* state, World* world, GLFWwindow* window)
+{
+    ImVec2 size = CenteredUIWindow(300.0f, 255.0f);
+
+    ImGui::Begin("Death", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoNav);
+    WindowHeader("You died!", size.x);
+
+    ImVec2 btnSize = ImVec2(110.0f, 30.0f);
+
+    ImVec2 cursorPos = GetButtonLoc(btnSize, size.x, 35.0f);
+    ImGui::SetCursorPos(ImVec2(cursorPos.x - (btnSize.x / 2) - 2, cursorPos.y));
+
+    if (ImGui::Button("Respawn", btnSize))
+    {
+        Player* player = world->player;
+        player->health = player->maxHealth;
+        Unpause(state);
+        TeleportHome(state, world, player);
+    }
+
+    ImGui::SetCursorPos(ImVec2(cursorPos.x + (btnSize.x / 2) + 2, cursorPos.y));
 
     if (ImGui::Button("Quit", btnSize))
         glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -509,6 +537,7 @@ static void CreateProfilerUI()
     char fpsText[16];
     sprintf(fpsText, "FPS: %.1f", fps);
 
+    MultiSpacing(4);
     ImGui::Text(fpsText);
 
     #if PROFILING
@@ -600,7 +629,9 @@ static void CreateProfilerUI()
     if (ImGui::IsMouseClicked(1))
     {
         t.scopeToRecord = nullptr;
-        t.profilerState = PROFILER_RECORD_ONCE;
+
+        if (t.profilerState == PROFILER_STOPPED)
+            t.profilerState = PROFILER_RECORD_ONCE;
     }
 
     #endif
@@ -608,7 +639,7 @@ static void CreateProfilerUI()
     ImGui::End();
 }
 
-static void CreateDebugHUD(World* world)
+static void CreateHUD(GameState* state, World* world)
 {
     TIMED_FUNCTION;
 
@@ -619,36 +650,46 @@ static void CreateDebugHUD(World* world)
 
     ImGui::Begin("HUD", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
 
-    char buildText[32];
-    sprintf(buildText, "Build: %i, Mode: %s", g_buildID, g_buildType);
+    Player* player = world->player;
 
-    ImGui::Text(buildText);
+    char healthText[12];
+    sprintf(healthText, "Health: %d", player->health);
 
-    Biome& biome = GetCurrentBiome(world);
+    ImGui::Text(healthText);
 
-    char biomeText[32];
-    sprintf(biomeText, "Biome: %s", biome.name);
-    ImGui::Text(biomeText);
-
-    WorldP playerBlock = LWorldToWorldP(world, BlockPos(world->player->pos));
-
-    char playerP[64];
-    sprintf(playerP, "Player Position: %i, %i, %i", playerBlock.x, playerBlock.y, playerBlock.z);
-
-    ImGui::Text(playerP);
-    
-    if (world->cursorOnBlock)
+    if (state->debugDisplay == DEBUG_DISPLAY_HUD)
     {
-        Block block = GetBlock(world, world->cursorBlockPos);
-        char* name = GetBlockName(world, block);
+        char buildText[32];
+        sprintf(buildText, "Build: %i, Mode: %s", g_buildID, g_buildType);
 
-        ivec3 lwP = world->cursorBlockPos;
-        WorldP p = LWorldToWorldP(world, lwP);
+        ImGui::Text(buildText);
 
-        char blockText[128];
-        sprintf_s(blockText, 64, "Block: %s, Position: %i, %i, %i (%i, %i, %i)", name, lwP.x, lwP.y, lwP.z, p.x, p.y, p.z);
+        Biome& biome = GetCurrentBiome(world);
 
-        ImGui::Text(blockText);
+        char biomeText[32];
+        sprintf(biomeText, "Biome: %s", biome.name);
+        ImGui::Text(biomeText);
+
+        WorldP playerBlock = LWorldToWorldP(world, BlockPos(world->player->pos));
+
+        char playerP[64];
+        sprintf(playerP, "Player Position: %i, %i, %i", playerBlock.x, playerBlock.y, playerBlock.z);
+
+        ImGui::Text(playerP);
+        
+        if (world->cursorOnBlock)
+        {
+            Block block = GetBlock(world, world->cursorBlockPos);
+            char* name = GetName(world, block);
+
+            ivec3 lwP = world->cursorBlockPos;
+            WorldP p = LWorldToWorldP(world, lwP);
+
+            char blockText[128];
+            sprintf_s(blockText, 64, "Block: %s, Position: %i, %i, %i (%i, %i, %i)", name, lwP.x, lwP.y, lwP.z, p.x, p.y, p.z);
+
+            ImGui::Text(blockText);
+        }
     }
 
     ImGui::End();
@@ -755,14 +796,16 @@ static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldCo
         case WORLD_CONFIG:
             WorldConfigUI(state, world, config);
             break;
+
+        case PLAYER_DEAD:
+            CreateDeathUI(state, world, window);
+            break;
     }
+
+    CreateHUD(state, world);
 
     switch (state->debugDisplay)
     {
-        case DEBUG_DISPLAY_HUD:
-            CreateDebugHUD(world);
-            break;
-
         case DEBUG_DISPLAY_PROFILER:
             CreateProfilerUI();
             break;

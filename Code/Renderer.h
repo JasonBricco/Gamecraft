@@ -74,9 +74,10 @@ struct Renderer
     Graphic* crosshair;
 
     // Screen fading.
-    Color fadeColor;
+    Color prevFadeColor, fadeColor;
     Shader* fadeShader;
     Mesh2D fadeMesh;
+    float fadeTimeLeft;
 
     // Backface culling will be enabled if this is true.
     bool disableFluidCull;

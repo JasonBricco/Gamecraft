@@ -440,7 +440,7 @@ static Chunk* GetRelative(World* world, int lwX, int lwY, int lwZ, RelP& rel)
 
 static Block GetBlock(World* world, int lwX, int lwY, int lwZ)
 {
-    if (lwY < 0) return BLOCK_STONE;
+    if (lwY < 0) return BLOCK_KILL_ZONE;
 
     if (lwY >= WORLD_BLOCK_HEIGHT || !BlockInsideWorldH(world, lwX, lwZ))
         return BLOCK_AIR;
@@ -541,7 +541,7 @@ static inline void SetBlock(World* world, LWorldP wPos, Block block)
             chunk->blocks[index] = BLOCK_AIR;
         else
         {
-            PlaySound(GetBlockSetSound(world, block));
+            PlaySound(GetSetSound(world, block));
             RecomputeLight(world, chunk, rP.x, rP.y, rP.z);
             FlagChunkForUpdate(world, chunk, lP, rP);
         }
@@ -804,6 +804,19 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
         group->pendingDestroy = true;
         QueueAsync(state, SaveGroup, world, group, DestroyGroup);
     }
+}
+
+static void TeleportHome(GameState* state, World* world, Player* player)
+{
+    WorldLocation home = world->properties.homePos;
+    TeleportPlayer(state, player, world->properties.homePos);
+}
+
+static void SetHomePos(World* world, Player* player)
+{
+    LWorldP lW = BlockPos(player->pos);
+    lW.y++;
+    world->properties.homePos = { LWorldToWorldP(world, player->pos), lW };
 }
 
 static inline void UpdateWorldRef(World* world, ChunkP p)

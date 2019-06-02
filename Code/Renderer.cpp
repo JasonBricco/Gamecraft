@@ -356,6 +356,13 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 	rend.fadeColor = CLEAR_COLOR;
 }
 
+static inline void FadeScreenForTime(Renderer& rend, Color color, float time)
+{
+	rend.prevFadeColor = rend.fadeColor;
+	rend.fadeColor = color;
+	rend.fadeTimeLeft = time;
+}
+
 static Ray ScreenCenterToRay(GameState* state, Camera* cam)
 {
 	Renderer& rend = state->renderer;
@@ -540,6 +547,15 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	rend.emitters.clear();
 
 	glDisable(GL_DEPTH_TEST);
+
+	// Screen fading.
+	if (rend.fadeTimeLeft > 0.0f)
+	{
+		rend.fadeTimeLeft -= state->deltaTime;
+
+		if (rend.fadeTimeLeft <= 0.0f)
+			rend.fadeColor = rend.prevFadeColor;
+	}
 
 	if (rend.fadeColor != CLEAR_COLOR)
 	{

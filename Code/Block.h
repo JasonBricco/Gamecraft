@@ -6,6 +6,7 @@ typedef uint16_t Block;
 
 struct World;
 struct Chunk;
+struct Player;
 
 enum BlockType : Block
 {
@@ -29,6 +30,7 @@ enum BlockType : Block
     BLOCK_MAGMA,
     BLOCK_COOLED_MAGMA,
     BLOCK_OBSIDIAN,
+    BLOCK_KILL_ZONE,
     BLOCK_COUNT
 };
 
@@ -56,13 +58,17 @@ enum BlockSurface
     SURFACE_WATER
 };
 
-enum BlockCollider
+struct OverTimeDamage
 {
-    COLLIDER_NORMAL,
-    COLLIDER_BOUNCE
+    BlockType type;
+    float interval;
+    int damage;
+    bool active;
+    float timeLeft;
 };
 
 using BuildBlockFunc = void(*)(World*, Chunk*, MeshData*, int, int, int, Block);
+using BlockCollideFunc = void(*)(GameState* state, World* world, vec3& delta, vec3 normal, Block block);
 
 struct BlockAnimation
 {
@@ -74,15 +80,16 @@ struct BlockAnimation
 struct BlockData
 {
     uint16_t textures[6];
-    bool passable;
+    bool invisible, passable;
     BlockMeshType meshType;
     CullType cull;
     BuildBlockFunc buildFunc;
+    BlockCollideFunc collideFunc;
     uint8_t alpha;
     int lightEmitted, lightStep;
     Sound onSetSound;
     BlockSurface surface;
-    BlockCollider collider;
+    OverTimeDamage overTimeDamage;
     char* name;
 };
 

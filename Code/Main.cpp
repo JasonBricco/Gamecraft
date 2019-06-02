@@ -255,6 +255,9 @@ static void ProcessLoadingScreen(GameState* state, World* world, float deltaTime
 
 static void ContextualPause(GameState* state)
 {
+	if (state->pauseState == PLAYER_DEAD)
+		return;
+	
 	if (state->debugDisplay == DEBUG_DISPLAY_PROFILER)
 	{
 		if (state->pauseState == VIEWING_PROFILE)
