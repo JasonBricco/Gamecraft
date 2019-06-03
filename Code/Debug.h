@@ -127,6 +127,7 @@ struct TimedFunction
 
 #define START_PROFILING() g_debugTable.profilerState = PROFILER_RECORDING
 #define STOP_PROFILING() g_debugTable.profilerState = PROFILER_STOPPED
+#define IS_PROFILING() (g_debugTable.profilerState == PROFILER_RECORDING)
 
 #else
 
@@ -137,5 +138,6 @@ struct TimedFunction
 
 #define START_PROFILING()
 #define STOP_PROFILING()
+#define IS_PROFILING() false
 
 #endif

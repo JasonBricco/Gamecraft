@@ -294,3 +294,48 @@ struct ivec3Key
     }
 };
 
+static inline void ToLower(string& s)
+{
+    auto func = [](char c) 
+    { 
+        return (char)(::tolower(c)); 
+    };
+
+    transform(s.begin(), s.end(), s.begin(), func);
+}
+
+static inline void ToUpper(string& s)
+{
+    auto func = [](char c) 
+    { 
+        return (char)(::toupper(c));
+    };
+
+    transform(s.begin(), s.end(), s.begin(), func);
+}
+
+static inline string Trim(string& str)
+{
+    size_t first = str.find_first_not_of(' ');
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, (last - first + 1));
+}
+
+static vector<char*> Split(string& str, char delim)
+{
+    char delims[2] = {};
+    delims[0] = delim;
+
+    char* part;
+
+    vector<char*> parts;
+    part = strtok((char*)str.c_str(), delims);
+
+    while (part != nullptr)
+    {
+        parts.push_back(part);
+        part = strtok(nullptr, delims);
+    }
+
+    return parts;
+}

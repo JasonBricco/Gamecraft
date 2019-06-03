@@ -501,6 +501,62 @@ static void WorldConfigUI(GameState* state, World* world, WorldConfig& config)
     ImGui::End();
 }
 
+static void CreateCommandUI(GameState* state)
+{
+    CommandProcessor& processor = state->cmdProcessor;
+
+    if (processor.errorTime > 0.0f)
+    {   
+        processor.errorTime -= state->deltaTime;
+        ImVec2 textSize = ImGui::CalcTextSize(processor.error);
+        CenteredUIWindow(textSize.x + 15.0f, textSize.y, 0.0f, 115.0f);
+        ImGui::Begin("CommandError", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+        ImGui::Text(processor.error);
+        ImGui::PopStyleColor();
+        ImGui::End();
+    }
+
+    float width = 300.0f;
+    ImVec2 size = CenteredUIWindow(width, 100.0f, 0.0f, 200.0f);
+
+    ImGui::Begin("EnterCommand", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
+    WindowHeader("Enter a Command", size.x);
+
+    MultiSpacing(2);
+
+    if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
+        ImGui::SetKeyboardFocusHere(0);
+
+    ImGui::PushItemWidth(width);
+    ImGui::InputText("##hidelabel", processor.inputText, sizeof(processor.inputText));
+    ImGui::PopItemWidth();
+
+    ImVec2 btnSize = ImVec2(85.0f, 25.0f);
+    ImVec2 loc = GetButtonLoc(btnSize, size.x, size.y - 35.0f);
+    ImGui::SetCursorPos(ImVec2(loc.x - (btnSize.x * 0.5f) - 3.0f, loc.y));
+
+    if (ImGui::Button("Submit", btnSize) || KeyPressed(state->input, KEY_ENTER))
+    {
+        char* error = ProcessCommand(processor);
+
+        if (error == nullptr)
+            Unpause(state);
+        else
+        {
+            processor.error = error;
+            processor.errorTime = 3.0f;
+        }
+    }
+
+    ImGui::SetCursorPos(ImVec2(loc.x + (btnSize.x * 0.5f) + 3.0f, loc.y));
+
+    if (ImGui::Button("Cancel", btnSize))
+        Unpause(state);
+
+    ImGui::End();
+}
+
 static double GetFPS()
 {
     static double prevSec = 0.0;
@@ -795,6 +851,10 @@ static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldCo
 
         case WORLD_CONFIG:
             WorldConfigUI(state, world, config);
+            break;
+
+        case ENTERING_COMMAND:
+            CreateCommandUI(state);
             break;
 
         case PLAYER_DEAD:

@@ -2,7 +2,7 @@
 // Gamecraft
 //
 
-#define PROFILING 0
+#define PROFILING 1
 
 #if _DEBUG
 static char* g_buildType = "DEBUG";
@@ -113,6 +113,7 @@ using namespace std;
 #include "WorldRender.h"
 #include "Simulation.h"
 #include "Async.h"
+#include "Commands.h"
 #include "Gamestate.h"
 
 #if TESTING
@@ -142,6 +143,7 @@ static inline ivec2 FramebufferSize();
 #include "WorldIO.cpp"
 #include "Simulation.cpp"
 #include "UI.cpp"
+#include "Commands.cpp"
 
 static GLFWwindow* window;
 
@@ -253,68 +255,83 @@ static void ProcessLoadingScreen(GameState* state, World* world, float deltaTime
 	}
 }
 
-static void ContextualPause(GameState* state)
+static void OnGamePlaying(GameState* state)
 {
-	if (state->pauseState == PLAYER_DEAD)
-		return;
+	if (KeyPressed(state->input, KEY_ESCAPE))
+		Pause(state, PAUSED);
 
-	if (state->debugDisplay == DEBUG_DISPLAY_PROFILER)
-	{
-		if (state->pauseState == VIEWING_PROFILE)
-		{
-			Unpause(state);
-			START_PROFILING();
-		}
-		else
-		{
-			Pause(state, VIEWING_PROFILE);
-			STOP_PROFILING();
-		}
-	}
-	else
-	{
-		if (state->pauseState != PLAYING)
-			Unpause(state);
-		else Pause(state, PAUSED);
-	}
+	if (KeyPressed(state->input, KEY_SLASH) && state->pauseState != ENTERING_COMMAND)
+		Pause(state, ENTERING_COMMAND);
+
+	if (KeyPressed(state->input, KEY_E))
+		Pause(state, SELECTING_BLOCK);
+
+	if (KeyPressed(state->input, KEY_T))
+		ToggleFullscreen(glfwGetWin32Window(window));
+}
+
+static void OnGamePaused(GameState* state)
+{
+	if (KeyPressed(state->input, KEY_ESCAPE))
+		Unpause(state);
+}
+
+static void OnSelectingBlock(GameState* state)
+{
+	if (KeyPressed(state->input, KEY_ESCAPE) || KeyPressed(state->input, KEY_E))
+		Unpause(state);
 }
 
 static void Update(GameState* state, Player* player, World* world, float deltaTime)
 {
 	Input& input = state->input;
 
-	if (state->pauseState == LOADING)
-		ProcessLoadingScreen(state, world, deltaTime);
-	else
+	if (state->debugDisplay == DEBUG_DISPLAY_PROFILER && KeyPressed(input, KEY_BACKSLASH))
 	{
-		if (KeyPressed(input, KEY_ESCAPE))
-			ContextualPause(state);
-
-		if (KeyPressed(input, KEY_E))
+		if (IS_PROFILING())
 		{
-			if (state->pauseState == SELECTING_BLOCK)
-				Unpause(state);
-			else 
-			{
-				if (state->pauseState == PLAYING)
-					Pause(state, SELECTING_BLOCK);
-			}
+			state->savedInputMode = glfwGetInputMode(window, GLFW_CURSOR);
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			STOP_PROFILING();
 		}
-
-		if (KeyPressed(input, KEY_T))
-			ToggleFullscreen(glfwGetWin32Window(window));
-
-		if (KeyPressed(input, KEY_F3))
+		else
 		{
-			DebugDisplay& d = state->debugDisplay;
-			d = d == DEBUG_DISPLAY_HUD ? DEBUG_DISPLAY_NONE : DEBUG_DISPLAY_HUD;
+			glfwSetInputMode(window, GLFW_CURSOR, state->savedInputMode);
+			CenterCursor();
+			START_PROFILING();
 		}
+	}
 
-		if (KeyPressed(input, KEY_F4))
-		{
-			DebugDisplay& d = state->debugDisplay;
-			d = d == DEBUG_DISPLAY_PROFILER ? DEBUG_DISPLAY_NONE : DEBUG_DISPLAY_PROFILER;
-		}
+	switch (state->pauseState)
+	{
+		case LOADING:
+			ProcessLoadingScreen(state, world, deltaTime);
+			break;
+
+		case PLAYING:
+			OnGamePlaying(state);
+			break;
+
+		case PAUSED:
+		case ENTERING_COMMAND:
+			OnGamePaused(state);
+			break;
+
+		case SELECTING_BLOCK:
+			OnSelectingBlock(state);
+			break;
+	}
+
+	if (KeyPressed(input, KEY_F3))
+	{
+		DebugDisplay& d = state->debugDisplay;
+		d = d == DEBUG_DISPLAY_HUD ? DEBUG_DISPLAY_NONE : DEBUG_DISPLAY_HUD;
+	}
+
+	if (KeyPressed(input, KEY_F4))
+	{
+		DebugDisplay& d = state->debugDisplay;
+		d = d == DEBUG_DISPLAY_PROFILER ? DEBUG_DISPLAY_NONE : DEBUG_DISPLAY_PROFILER;
 	}
 
 	UpdateAudio(&state->audio, deltaTime);
@@ -324,18 +341,22 @@ static void Update(GameState* state, Player* player, World* world, float deltaTi
 	if (state->pauseState != PLAYING || !player->spawned) 
 		return;
 
-	double mouseX, mouseY;
-	glfwGetCursorPos(window, &mouseX, &mouseY);
+	if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
+	{
+		double mouseX, mouseY;
+		glfwGetCursorPos(window, &mouseX, &mouseY);
 
-	ivec2 size = FramebufferSize();
-	double cX = size.x * 0.5f, cY = size.y * 0.5f;
-	glfwSetCursorPos(window, cX, cY);
-	
-	Camera* cam = state->camera;
+		ivec2 size = FramebufferSize();
+		double cX = size.x * 0.5f, cY = size.y * 0.5f;
 
-	float rotX = (float)(cX - mouseX) * cam->sensitivity;
-	float rotY = (float)(cY - mouseY) * cam->sensitivity;
-	RotateCamera(cam, rotX, rotY);
+		glfwSetCursorPos(window, cX, cY);
+
+		Camera* cam = state->camera;
+
+		float rotX = (float)(cX - mouseX) * cam->sensitivity;
+		float rotY = (float)(cY - mouseY) * cam->sensitivity;
+		RotateCamera(cam, rotX, rotY);
+	}
 
 	Simulate(state, world, player, deltaTime);
 }
@@ -400,7 +421,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	World* world = NewWorld(state, 8, worldConfig);
 
-	Player* player = NewPlayer();
+	Player* player = NewPlayer(state);
 	world->player = player;
 
 	int fW, fH;

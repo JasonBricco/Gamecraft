@@ -46,8 +46,9 @@ struct Player
 {
     vec3 pos;
     vec3 velocity;
-    float speed;
+    float walkSpeed, flySpeed, speed;
     float friction;
+    float jumpVelocity;
     uint8_t colFlags;
     bool spawned, suspended;
 

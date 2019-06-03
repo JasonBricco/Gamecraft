@@ -9,7 +9,7 @@ enum PauseState
 	SELECTING_BLOCK,
 	GAME_SETTINGS,
 	WORLD_CONFIG,
-	VIEWING_PROFILE,
+	ENTERING_COMMAND,
 	PLAYER_DEAD,
 	LOADING
 };
@@ -56,6 +56,8 @@ struct GameState
 	AudioEngine audio;
 	UI ui;
 
+	CommandProcessor cmdProcessor;
+
 	float time, deltaTime;
 
 	ParticleEmitter rain;
@@ -70,4 +72,6 @@ struct GameState
 
 	WorldLocation teleportLoc;
 	WorldConfig* pendingConfig;
+
+	int savedInputMode;
 };

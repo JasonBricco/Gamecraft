@@ -187,17 +187,19 @@ static void TeleportPlayer(GameState* state, Player* player, WorldLocation p)
 	BeginLoadingScreen(state, 0.5f, TeleportPlayerCallback);
 }
 
+static void KillPlayer(GameState* state, Player* player)
+{
+	state->renderer.fadeColor = player->damageFade;
+	state->renderer.fadeTimeLeft = FLT_MAX;
+	Pause(state, PLAYER_DEAD);
+}
+
 static void ApplyDamage(GameState* state, Player* player, int amount)
 {
-	player->health -= amount;
+	player->health = Max(player->health - amount, 0);
 	FadeScreenForTime(state->renderer, player->damageFade, 0.1f);
 
-	if (player->health <= 0)
-	{
-		player->health = 0;
-		state->renderer.fadeTimeLeft = FLT_MAX;
-		Pause(state, PLAYER_DEAD);
-	}
+	if (player->health <= 0) KillPlayer(state, player);
 }
 
 static inline bool TestWall(vec3 delta, vec3 p, float wallP, vec3 wMin, vec3 wMax, int axis0, int axis1, int axis2, float& tMin)
@@ -584,11 +586,11 @@ static void SetMoveParams(Player* player, Input& input, vec3& accel, float& grav
 		case MOVE_NORMAL:
 		{
 			accel.y = 0.0f;
-			player->speed = 50.0f;
+			player->speed = player->walkSpeed;
 			player->friction = -8.0f;
 
 			if ((player->colFlags & HIT_DOWN) && KeyHeld(input, KEY_SPACE))
-				player->velocity.y = 10.0f;
+				player->velocity.y = player->jumpVelocity;
 
 			if (ListContainsBlock(player->lowerOverlap, BLOCK_WATER) || ListContainsBlock(player->upperOverlap, BLOCK_WATER))
 				player->moveState = MOVE_SWIMMING;
@@ -596,7 +598,7 @@ static void SetMoveParams(Player* player, Input& input, vec3& accel, float& grav
 
 		case MOVE_FLYING:
 		{ 
-			player->speed = 200.0f;
+			player->speed = player->flySpeed;
 			player->friction = -8.0f;
 			gravity = 0.0f;
 			accel.y = 0.0f;
@@ -612,7 +614,7 @@ static void SetMoveParams(Player* player, Input& input, vec3& accel, float& grav
 
 		case MOVE_SWIMMING:
 		{
-			player->speed = 50.0f;
+			player->speed = player->walkSpeed;
 			player->friction = -10.0f;
 			gravity = 0.0f;
 
@@ -644,6 +646,12 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 	if (player->suspended) return;
 
 	TIMED_FUNCTION;
+
+	if (player->health <= 0)
+	{
+		KillPlayer(state, player);
+		return;
+	}
 
 	Renderer& rend = state->renderer;
 	Input& input = state->input;
@@ -715,7 +723,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 }
 
 // Creates and spawns the player. The player is spawned within the center local space chunk.
-static Player* NewPlayer()
+static Player* NewPlayer(GameState* state)
 {
 	Player* player = new Player();
 	
@@ -726,7 +734,16 @@ static Player* NewPlayer()
 	player->maxHealth = 10;
 	player->health = player->maxHealth;
 	player->damageFade = Color(1.0f, 0.0f, 0.0f, 0.5f);
-	
+	player->walkSpeed = 50.0f;
+	player->flySpeed = 200.0f;
+	player->jumpVelocity = 10.0f;
+
+	RegisterCommand(state, "speed", PlayerSpeedCommand, player);
+	RegisterCommand(state, "flyspeed", PlayerFlySpeedCommand, player);
+	RegisterCommand(state, "health", PlayerHealthCommand, player);
+	RegisterCommand(state, "kill", PlayerKillCommand, player);
+	RegisterCommand(state, "jump", PlayerJumpCommand, player);
+
 	return player;
 }
 
