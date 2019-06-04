@@ -23,3 +23,4 @@ Current supported platforms: Windows 10, OpenGL 4.4 or higher with AVX support.
 - Object pooling
 - Custom profiler
 - Asset packer
+- Command system

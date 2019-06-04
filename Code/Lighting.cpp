@@ -133,13 +133,11 @@ static inline void ScatterSunlight(World* world, Queue<ivec3>& sunNodes, bool up
             Chunk* next = GetRelative(world, nextP.x, nextP.y, nextP.z, rel);
             Block adjBlock = GetBlock(next, rel);
 
-            if (!IsOpaque(world, adjBlock) && SetMaxSunlight(next, light, nextP.y, rel))
-            {
-                sunNodes.Enqueue(ivec3(nextP.x, nextP.y, nextP.z));
+            if (updateChunks && next->state >= CHUNK_BUILDING)
+                next->pendingUpdate = true;
 
-                if (updateChunks && next->state >= CHUNK_BUILDING)
-                    next->pendingUpdate = true;
-            }
+            if (!IsOpaque(world, adjBlock) && SetMaxSunlight(next, light, nextP.y, rel))
+                sunNodes.Enqueue(ivec3(nextP.x, nextP.y, nextP.z));
         }
     }
 }
@@ -182,14 +180,12 @@ static inline void RemoveSunlightNodes(World* world, Queue<ivec3>& sunNodes)
             if (!IsOpaque(world, adjBlock))
             {
             	if (GetSunlight(next, rel.x, nextP.y, rel.z, BlockIndex(rel.x, rel.y, rel.z)) <= light)
-            	{
             		sunNodes.Enqueue(ivec3(nextP.x, nextP.y, nextP.z));
-
-            		if (next->state >= CHUNK_BUILDING)
-            			next->pendingUpdate = true;
-            	}
             	else newNodes.Enqueue(ivec3(nextP.x, nextP.y, nextP.z));
             }
+
+            if (next->state >= CHUNK_BUILDING)
+                next->pendingUpdate = true;
         }
     }
 
@@ -223,13 +219,11 @@ static inline void ScatterBlockLight(World* world, Queue<ivec3>& lightNodes, boo
             Chunk* next = GetRelative(world, nextP.x, nextP.y, nextP.z, rel);
             Block adjBlock = GetBlock(next, rel);
 
-            if (!IsOpaque(world, adjBlock) && SetMaxBlockLight(next, light, rel))
-            {
-                lightNodes.Enqueue(ivec3(nextP.x, nextP.y, nextP.z));
+            if (updateChunks && next->state >= CHUNK_BUILDING)
+                next->pendingUpdate = true;
 
-                if (updateChunks && next->state >= CHUNK_BUILDING)
-                    next->pendingUpdate = true;
-            }
+            if (!IsOpaque(world, adjBlock) && SetMaxBlockLight(next, light, rel))
+                lightNodes.Enqueue(ivec3(nextP.x, nextP.y, nextP.z));
         }
     }
 }
