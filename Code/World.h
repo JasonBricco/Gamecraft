@@ -100,7 +100,7 @@ struct ChunkGroup
 struct WorldLocation
 {
     WorldP wP;
-    LWorldP lP;
+    RelP rP;
 };
 
 struct Player;

@@ -36,8 +36,8 @@ static inline void GetLowerUpperAABB(Player* player, AABB& lower, AABB& upper)
 
 static inline MinMaxAABB GetMinMaxAABB(AABB bb)
 {
-	vec3 min = bb.pos - bb.radius;
-	vec3 max = bb.pos + bb.radius;
+	vec3 min = bb.center - bb.radius;
+	vec3 max = bb.center + bb.radius;
 	return { min, max };
 }
 
@@ -171,8 +171,11 @@ static void TeleportPlayerCallback(GameState* state, World* world)
 	ChunkP cP = WorldToChunkP(p.wP);
 	UpdateWorldRef(world, cP);
 
+	LWorldP lwP = ChunkToLWorldP(world, cP, p.rP);
+
 	Player* player = world->player;
-	player->pos = vec3(p.lP.x, p.lP.y, p.lP.z);
+	player->suspended = true;
+	player->pos = vec3(lwP.x + 0.5f, lwP.y + 1.0f, lwP.z + 0.5f);
 
 	MoveCamera(state->camera, player->pos);
 	UpdateCameraVectors(state->camera);
@@ -180,9 +183,8 @@ static void TeleportPlayerCallback(GameState* state, World* world)
 	ShiftWorld(state, world);
 }
 
-static void TeleportPlayer(GameState* state, Player* player, WorldLocation p)
+static void TeleportPlayer(GameState* state, WorldLocation p)
 {
-	player->suspended = true;
 	state->teleportLoc = p;
 	BeginLoadingScreen(state, 0.5f, TeleportPlayerCallback);
 }
@@ -229,8 +231,8 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	ExpandAABB(b, a.radius);
 	ShrinkAABB(a, a.radius);
 
-	ivec3 bPos = BlockPos(b.pos);
-	vec3 wMin = b.pos - b.radius, wMax = b.pos + b.radius;
+	ivec3 bPos = BlockPos(b.center);
+	vec3 wMin = b.center - b.radius, wMax = b.center + b.radius;
 
 	Block up = GetBlock(world, bPos.x, bPos.y + 1, bPos.z);
 	Block down = GetBlock(world, bPos.x, bPos.y - 1, bPos.z);
@@ -240,7 +242,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	Block back = GetBlock(world, bPos.x, bPos.y, bPos.z - 1);
 
 	// Top surface.
-	if (IsPassable(world, up) && TestWall(delta, a.pos, wMax.y, wMin, wMax, 1, 0, 2, tMin))
+	if (IsPassable(world, up) && TestWall(delta, a.center, wMax.y, wMin, wMax, 1, 0, 2, tMin))
 	{
 		normal = vec3(0.0f, 1.0f, 0.0f);
 		
@@ -254,7 +256,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	}
 
 	// Bottom surface.
-	if (IsPassable(world, down) && TestWall(delta, a.pos, wMin.y, wMin, wMax, 1, 0, 2, tMin))
+	if (IsPassable(world, down) && TestWall(delta, a.center, wMin.y, wMin, wMax, 1, 0, 2, tMin))
 	{
 		normal = vec3(0.0f, -1.0f, 0.0f);
 		player->colFlags |= HIT_UP;
@@ -262,7 +264,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	}
 
 	// Left wall.
-	if (IsPassable(world, left) && TestWall(delta, a.pos, wMin.x, wMin, wMax, 0, 1, 2, tMin))
+	if (IsPassable(world, left) && TestWall(delta, a.center, wMin.x, wMin, wMax, 0, 1, 2, tMin))
 	{
 		normal = vec3(-1.0f, 0.0f, 0.0f);
 		player->colFlags |= HIT_SIDES;
@@ -270,7 +272,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	}
 
 	// Right wall.
-	if (IsPassable(world, right) && TestWall(delta, a.pos, wMax.x, wMin, wMax, 0, 1, 2, tMin))
+	if (IsPassable(world, right) && TestWall(delta, a.center, wMax.x, wMin, wMax, 0, 1, 2, tMin))
 	{
 		normal = vec3(1.0f, 0.0f, 0.0f);
 		player->colFlags |= HIT_SIDES;
@@ -278,7 +280,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	}
 
 	// Front wall.
-	if (IsPassable(world, front) && TestWall(delta, a.pos, wMax.z, wMin, wMax, 2, 0, 1, tMin))
+	if (IsPassable(world, front) && TestWall(delta, a.center, wMax.z, wMin, wMax, 2, 0, 1, tMin))
 	{
 		normal = vec3(0.0f, 0.0f, 1.0f);
 		player->colFlags |= HIT_SIDES;
@@ -286,7 +288,7 @@ static inline void TestCollision(World* world, Player* player, AABB a, AABB b, v
 	}
 
 	// Back wall.
-	if (IsPassable(world, back) && TestWall(delta, a.pos, wMin.z, wMin, wMax, 2, 0, 1, tMin))
+	if (IsPassable(world, back) && TestWall(delta, a.center, wMin.z, wMin, wMax, 2, 0, 1, tMin))
 	{
 		normal = vec3(0.0f, 0.0f, -1.0f);
 		player->colFlags |= HIT_SIDES;
@@ -399,8 +401,8 @@ static void MovePlayer(GameState* state, World* world, vec3 accel, float deltaTi
 
 	sort(player->possibleCollides.begin(), player->possibleCollides.end(), [player](auto a, auto b) 
     { 
-        float distA = distance2(a.pos, player->pos);
-        float distB = distance2(b.pos, player->pos);
+        float distA = distance2(a.center, player->pos);
+        float distB = distance2(b.center, player->pos);
 		return distA < distB;
     });
 
@@ -679,6 +681,17 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 	SetMoveParams(player, input, accel, gravity);
 	MovePlayer(state, world, accel, deltaTime, gravity);
 
+	// Delete impassible blocks the player has entered.
+	vec3& p = player->pos;
+	ivec3 lowerMid = BlockPos(vec3(p.x, p.y - 0.45f, p.z));
+	ivec3 upperMid = ivec3(lowerMid.x, lowerMid.y + 1, lowerMid.z);
+
+	if (!IsPassable(world, GetBlock(world, lowerMid)))
+		SetBlock(world, lowerMid, BLOCK_AIR);
+
+	if (!IsPassable(world, GetBlock(world, upperMid)))
+		SetBlock(world, upperMid, BLOCK_AIR);
+
 	ApplyOverTimeDamage(state, player, deltaTime);
 
 	// Clamp the player within the loaded world region.
@@ -714,12 +727,6 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 	}
 
 	HandleEditInput(state, input, world, deltaTime);
-
-	if (KeyPressed(input, KEY_F1))
-		SetHomePos(world, player);
-
-	if (KeyPressed(input, KEY_F2))
-		TeleportHome(state, world, player);
 }
 
 // Creates and spawns the player. The player is spawned within the center local space chunk.

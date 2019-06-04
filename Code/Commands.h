@@ -4,7 +4,13 @@
 
 #define MAX_COMMAND_LENGTH 100
 
-using CommandFunc = char*(*)(void* data, vector<char*>& args);
+struct CommandResult
+{
+	char* error;
+	int newState;
+};
+	
+using CommandFunc = CommandResult(*)(GameState* state, void* data, vector<char*>& args);
 
 struct Command
 {
@@ -22,11 +28,13 @@ struct CommandProcessor
 };
 
 static void RegisterCommand(GameState* state, char* text, CommandFunc func, void* data);
-static char* ProcessCommand(CommandProcessor& processor);
+static CommandResult ProcessCommand(GameState* state, CommandProcessor& processor);
 
 // Command functions.
-static char* PlayerSpeedCommand(void* data, vector<char*>& args);
-static char* PlayerHealthCommand(void* data, vector<char*>& args);
-static char* PlayerFlySpeedCommand(void* data, vector<char*>& args);
-static char* PlayerKillCommand(void* data, vector<char*>& args);
-static char* PlayerJumpCommand(void* data, vector<char*>&);
+static CommandResult PlayerSpeedCommand(GameState* state, void* playerPtr, vector<char*>& args);
+static CommandResult PlayerHealthCommand(GameState* state, void* playerPtr, vector<char*>& args);
+static CommandResult PlayerFlySpeedCommand(GameState* state, void* playerPtr, vector<char*>& args);
+static CommandResult PlayerKillCommand(GameState* state, void* playerPtr, vector<char*>& args);
+static CommandResult PlayerJumpCommand(GameState* state, void* playerPtr, vector<char*>&);
+static CommandResult PlayerTeleportCommand(GameState* state, void* worldPtr, vector<char*>&);
+static CommandResult SetHomeCommand(GameState* state, void* worldPtr, vector<char*>& args);

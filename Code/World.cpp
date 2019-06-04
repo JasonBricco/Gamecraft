@@ -69,6 +69,11 @@ static inline RelP LWorldToRelP(LWorldP wPos)
 	return LWorldToRelP(wPos.x, wPos.y, wPos.z);
 }
 
+static inline RelP WorldToRelP(WorldP p)
+{
+    return ivec3(Mod(p.x, CHUNK_SIZE_H), Mod(p.y, CHUNK_SIZE_V), Mod(p.z, CHUNK_SIZE_H));
+}
+
 static inline LChunkP LWorldToLChunkP(int lwX, int lwY, int lwZ)
 {
 	return ivec3(lwX >> CHUNK_H_BITS, lwY >> CHUNK_V_BITS, lwZ >> CHUNK_H_BITS);
@@ -82,6 +87,12 @@ static inline LChunkP LWorldToLChunkP(LWorldP pos)
 static inline LChunkP LWorldToLChunkP(vec3 wPos)
 {
 	return LWorldToLChunkP((int)wPos.x, (int)wPos.y, (int)wPos.z);
+}
+
+static inline ChunkP WorldToChunkP(WorldP p)
+{
+    vec3 tmp = vec3(p.x / (float)CHUNK_SIZE_H, p.y / (float)CHUNK_SIZE_V, p.z / (float)CHUNK_SIZE_H);
+    return FloorToInt(tmp);
 }
 
 static inline LChunkP ChunkToLChunkP(ChunkP pos, ChunkP ref)
@@ -102,11 +113,6 @@ static inline LWorldP LChunkToLWorldP(LChunkP p)
 static inline WorldP ChunkToWorldP(ChunkP p)
 {
     return LChunkToLWorldP(p);
-}
-
-static inline ChunkP WorldToChunkP(WorldP p)
-{
-    return LWorldToLChunkP(p);
 }
 
 static inline RegionP ChunkToRegionP(ChunkP pos)
@@ -130,6 +136,12 @@ static inline WorldP LWorldToWorldP(World* world, LWorldP p)
     WorldP wP = ChunkToWorldP(cP);
     RelP rel = LWorldToRelP(p);
     return ivec3(wP.x + rel.x, p.y, wP.z + rel.z);
+}
+
+static inline LWorldP ChunkToLWorldP(World* world, ChunkP cP, RelP p)
+{
+    LChunkP lcP = ChunkToLChunkP(cP, world->ref);
+    return LChunkToLWorldP(lcP) + p;
 }
 
 static inline Biome& GetCurrentBiome(World* world)
@@ -764,15 +776,7 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
         LChunkP cP = LWorldToLChunkP(player->pos);
 
         if (!ChunkInsideGroup(cP.y) || GetGroup(world, cP.x, cP.y)->state != GROUP_DEFAULT)
-        {
-            ivec3 bP = BlockPos(player->pos);
-
-            // Ensure there are no blocks the player will be inside upon being unsuspended.
-            for (int i = 0; i < 2; i++)
-                SetBlock(world, bP.x, bP.y + i, bP.z, BLOCK_AIR);
-
             player->suspended = false;
-        }
     }
 
     if (!player->spawned)
@@ -806,23 +810,24 @@ static void UpdateWorld(GameState* state, World* world, Camera* cam, Player* pla
     }
 }
 
-static void TeleportHome(GameState* state, World* world, Player* player)
+static void TeleportHome(GameState* state, World* world)
 {
     WorldLocation home = world->properties.homePos;
-    TeleportPlayer(state, player, world->properties.homePos);
+    TeleportPlayer(state, world->properties.homePos);
 }
 
 static void SetHomePos(World* world, Player* player)
 {
-    LWorldP lW = BlockPos(player->pos);
-    lW.y++;
-    world->properties.homePos = { LWorldToWorldP(world, player->pos), lW };
+    ivec3 playerP = BlockPos(player->pos);
+    RelP rP = LWorldToRelP(playerP);
+    world->properties.homePos = { LWorldToWorldP(world, player->pos), rP };
 }
 
 static inline void UpdateWorldRef(World* world, ChunkP p)
 {
     ivec3 ref;
     ref.x = p.x - world->loadRange;
+    ref.y = 0;
     ref.z = p.z - world->loadRange;
     world->ref = ref;
 }
@@ -887,6 +892,9 @@ static World* NewWorld(GameState* state, int loadRange, WorldConfig& config, Wor
     world->spawnGroup = ivec3(0, 0, 0);
     UpdateWorldRef(world, world->spawnGroup);
     ShiftWorld(state, world);
+
+    RegisterCommand(state, "sethome", SetHomeCommand, world);
+    RegisterCommand(state, "teleport", PlayerTeleportCommand, world);
 
     return world;
 }

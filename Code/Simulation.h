@@ -23,9 +23,7 @@ struct HitInfo
 
 struct AABB
 {
-    // Position is the center of the AABB.
-    // Radius is the distance from the center to an edge.
-    vec3 pos;
+    vec3 center;
     vec3 radius;
 };
 
@@ -69,7 +67,7 @@ struct Player
 };
 
 static void SpawnPlayer(GameState* state, World* world, Player* player, Rectf spawnBound);
-static void TeleportPlayer(GameState* state, Player* player, WorldLocation p);
+static void TeleportPlayer(GameState* state, WorldLocation p);
 
 static bool OverlapsBlock(Player* player, int bX, int bY, int bZ);
 

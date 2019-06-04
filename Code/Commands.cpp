@@ -23,12 +23,15 @@ static void RegisterCommand(GameState* state, char* text, CommandFunc func, void
 	processor.commands.insert(make_pair(FNVHash(text), cmd));
 }
 
-static char* ProcessCommand(CommandProcessor& processor)
+static CommandResult ProcessCommand(GameState* state, CommandProcessor& processor)
 {
 	string str(processor.inputText);
 
 	ToLower(str);
 	str = Trim(str);
+
+	if (str.size() == 0)
+		return { nullptr, PLAYING };
 
 	vector<char*> parts = Split(str, ' ');
 
@@ -36,14 +39,14 @@ static char* ProcessCommand(CommandProcessor& processor)
 	auto it = processor.commands.find(hash);
 
 	if (it == processor.commands.end())
-		return "Unknown command entered.";
+		return { "Unknown command entered." };
 
 	Command cmd = it->second;
-	char* msg = cmd.func(cmd.data, parts);
+	CommandResult result = cmd.func(state, cmd.data, parts);
 
 	memset(processor.inputText, 0, sizeof(processor.inputText));
 
-	return msg;
+	return result;
 }
 
 static inline bool IsFloat(char* arg, float& value)
@@ -58,77 +61,118 @@ static inline bool IsFloat(char* arg, float& value)
 
 static inline bool IsInt(char* arg, int& value)
 {
-	value = strtol(arg, nullptr, 10);
+	char* endPtr;
+	value = strtol(arg, &endPtr, 10);
 
-	if (value == 0 || value == LONG_MAX || value == LONG_MIN)
+	if ((value == 0 && endPtr == arg) || value == LONG_MAX || value == LONG_MIN)
 		return false;
 
 	return true;
 }
 
-static char* PlayerSpeedCommand(void* data, vector<char*>& args)
+static CommandResult PlayerSpeedCommand(GameState*, void* playerPtr, vector<char*>& args)
 {
-	if (args.size() != 2) return "Usage: speed <value>";
+	if (args.size() != 2) return { "Usage: speed <value>" };
 
 	float speed;
 
 	if (!IsFloat(args[1], speed))
-		return "Invalid argument given to the speed command.";
+		return { "Invalid argument given to the speed command." };
 
-	Player* player = (Player*)data;
+	Player* player = (Player*)playerPtr;
 	player->walkSpeed = Clamp(speed, 5.0f, 1000.0f);
 
-	return nullptr;
+	return { nullptr, PLAYING };
 }
 
-static char* PlayerFlySpeedCommand(void* data, vector<char*>& args)
+static CommandResult PlayerFlySpeedCommand(GameState*, void* playerPtr, vector<char*>& args)
 {
-	if (args.size() != 2) return "Usage: flyspeed <value>";
+	if (args.size() != 2) return { "Usage: flyspeed <value>" };
 
 	float speed;
 
 	if (!IsFloat(args[1], speed))
-		return "Invalid argument given to the flyspeed command.";
+		return { "Invalid argument given to the flyspeed command." };
 
-	Player* player = (Player*)data;
+	Player* player = (Player*)playerPtr;
 	player->flySpeed = Clamp(speed, 5.0f, 1000.0f);
 
-	return nullptr;
+	return { nullptr, PLAYING };
 }
 
-static char* PlayerHealthCommand(void* data, vector<char*>& args)
+static CommandResult PlayerHealthCommand(GameState*, void* playerPtr, vector<char*>& args)
 {
-	if (args.size() != 2) return "Usage: health <value>";
+	if (args.size() != 2) return { "Usage: health <value>" };
 
 	int health;
 
 	if (!IsInt(args[1], health))
-		return "Invalid argument given to the health command.";
+		return { "Invalid argument given to the health command." };
 
-	Player* player = (Player*)data;
-	player->health = Clamp(health, 1, player->maxHealth);
+	Player* player = (Player*)playerPtr;
+	player->health = Clamp(health, 0, player->maxHealth);
 
-	return nullptr;
+	return { nullptr, PLAYING };
 }
 
-static char* PlayerKillCommand(void* data, vector<char*>&)
+static CommandResult PlayerKillCommand(GameState*, void* playerPtr, vector<char*>&)
 {
-	Player* player = (Player*)data;
+	Player* player = (Player*)playerPtr;
 	player->health = 0;
-	return nullptr;
+	return { nullptr, PLAYING };
 }
 
-static char* PlayerJumpCommand(void* data, vector<char*>& args)
+static CommandResult PlayerJumpCommand(GameState*, void* playerPtr, vector<char*>& args)
 {
-	if (args.size() != 2) return "Usage: jump <value>";
+	if (args.size() != 2) return { "Usage: jump <value>" };
 
 	float vel;
 
 	if (!IsFloat(args[1], vel))
-		return "Invalid argument given to the jump command.";
+		return { "Invalid argument given to the jump command." };
 
-	Player* player = (Player*)data;
+	Player* player = (Player*)playerPtr;
 	player->jumpVelocity = Clamp(vel, 3.0f, 80.0f);
 
-	return nullptr;
+	return { nullptr, PLAYING };
+}
+
+static CommandResult PlayerTeleportCommand(GameState* state, void* worldPtr, vector<char*>& args)
+{
+	if (args.size() == 2)
+	{
+		if (strcmp(args[1], "home") == 0)
+		{
+			World* world = (World*)worldPtr;
+			TeleportHome(state, world);
+
+			return { nullptr, LOADING };
+		}
+		else return { "Invalid argument given to the teleport command." };
+	}
+	else if (args.size() == 4)
+	{
+		WorldP worldP;
+
+		for (int i = 1; i < 4; i++)
+		{
+			if (!IsInt(args[i], worldP[i - 1]))
+				return { "Invalid argument given to the teleport command." };
+		}
+
+		worldP.y = Clamp(worldP.y, 1, 512);
+
+		WorldLocation loc = { worldP, WorldToRelP(worldP) };
+		TeleportPlayer(state, loc);
+
+		return { nullptr, LOADING };
+	}
+	else return { "Usage: teleport <x> <y> <z> or teleport home" };
+}
+
+static CommandResult SetHomeCommand(GameState*, void* worldPtr, vector<char*>&)
+{
+	World* world = (World*)worldPtr;
+	SetHomePos(world, world->player);
+	return { nullptr, PLAYING };
 }

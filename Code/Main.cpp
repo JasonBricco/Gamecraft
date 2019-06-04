@@ -2,7 +2,7 @@
 // Gamecraft
 //
 
-#define PROFILING 1
+#define PROFILING 0
 
 #if _DEBUG
 static char* g_buildType = "DEBUG";
@@ -12,7 +12,7 @@ static char* g_buildType = "RELEASE";
 
 #define SWAP_INTERVAL 1
 
-static int g_buildID = 289;
+static int g_buildID = 291;
 
 #pragma warning(push, 0)
 
@@ -116,11 +116,6 @@ using namespace std;
 #include "Commands.h"
 #include "Gamestate.h"
 
-#if TESTING
-#include <string>
-#include "test.h"
-#endif
-
 static void Pause(GameState* state, PauseState pauseState);
 static void Unpause(GameState* state);
 static void BeginLoadingScreen(GameState* state, float fadeTime, function<void(GameState*, World*)> callback);
@@ -207,6 +202,9 @@ static void Unpause(GameState* state)
 
 static void BeginLoadingScreen(GameState* state, float fadeTime, function<void(GameState*, World*)> callback)
 {
+	if (state->pauseState != PLAYING)
+		Unpause(state);
+
 	LoadingInfo& info = state->loadInfo;
 	info.state = LOADING_FADE_IN;
 	info.initialFade = state->renderer.fadeColor;
@@ -322,13 +320,13 @@ static void Update(GameState* state, Player* player, World* world, float deltaTi
 			break;
 	}
 
-	if (KeyPressed(input, KEY_F3))
+	if (KeyPressed(input, KEY_F1))
 	{
 		DebugDisplay& d = state->debugDisplay;
 		d = d == DEBUG_DISPLAY_HUD ? DEBUG_DISPLAY_NONE : DEBUG_DISPLAY_HUD;
 	}
 
-	if (KeyPressed(input, KEY_F4))
+	if (KeyPressed(input, KEY_F2))
 	{
 		DebugDisplay& d = state->debugDisplay;
 		d = d == DEBUG_DISPLAY_PROFILER ? DEBUG_DISPLAY_NONE : DEBUG_DISPLAY_PROFILER;

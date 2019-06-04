@@ -356,7 +356,7 @@ static void CreateDeathUI(GameState* state, World* world, GLFWwindow* window)
         Player* player = world->player;
         player->health = player->maxHealth;
         Unpause(state);
-        TeleportHome(state, world, player);
+        TeleportHome(state, world);
     }
 
     ImGui::SetCursorPos(ImVec2(cursorPos.x + (btnSize.x / 2) + 2, cursorPos.y));
@@ -488,7 +488,6 @@ static void WorldConfigUI(GameState* state, World* world, WorldConfig& config)
         {
             config.radius = radius;
             state->pendingConfig = &config;
-            Unpause(state);
             BeginLoadingScreen(state, 0.5f, RegenerateWorldCallback);
         }
     }
@@ -538,13 +537,17 @@ static void CreateCommandUI(GameState* state)
 
     if (ImGui::Button("Submit", btnSize) || KeyPressed(state->input, KEY_ENTER))
     {
-        char* error = ProcessCommand(processor);
+        CommandResult result = ProcessCommand(state, processor);
 
-        if (error == nullptr)
-            Unpause(state);
+        if (result.error == nullptr)
+        {
+            if (result.newState != PLAYING)
+                state->pauseState = (PauseState)result.newState;
+            else Unpause(state);
+        }
         else
         {
-            processor.error = error;
+            processor.error = result.error;
             processor.errorTime = 3.0f;
         }
     }

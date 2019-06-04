@@ -110,6 +110,11 @@ static const ivec3 DIRS_3[6] =
     DIR_LEFT, DIR_RIGHT
 };
 
+static inline int Mod(int k, int n) 
+{
+    return ((k %= n) < 0) ? k + n : k;
+}
+
 static inline bool IsPowerOf2(int x)
 {
     return (x & (x - 1)) == 0;
@@ -181,6 +186,11 @@ static inline ivec3 RoundToInt(vec3 v)
 static inline int FloorToInt(float value)
 {
     return (int)floorf(value);
+}
+
+static inline ivec3 FloorToInt(vec3 v)
+{
+    return ivec3(FloorToInt(v.x), FloorToInt(v.y), FloorToInt(v.z));
 }
 
 static inline bool Approx(float a, float b)
@@ -294,6 +304,7 @@ struct ivec3Key
     }
 };
 
+// String utilities.
 static inline void ToLower(string& s)
 {
     auto func = [](char c) 
@@ -317,8 +328,14 @@ static inline void ToUpper(string& s)
 static inline string Trim(string& str)
 {
     size_t first = str.find_first_not_of(' ');
-    size_t last = str.find_last_not_of(' ');
-    return str.substr(first, (last - first + 1));
+
+    if (first != string::npos)
+    {
+        size_t last = str.find_last_not_of(' ');
+        return str.substr(first, (last - first + 1));
+    }
+
+    return string();
 }
 
 static vector<char*> Split(string& str, char delim)
