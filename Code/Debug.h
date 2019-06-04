@@ -3,7 +3,6 @@
 // 
 
 #if PROFILING
-#pragma message("Profiling enabled.")
 
 #define MAX_DEBUG_EVENTS 65536
 #define MAX_DEBUG_EVENT_ARRAYS 32

@@ -169,7 +169,7 @@ static void CollateDebugRecords(int inUseIndex)
 	}
 }
 
-static void DebugEndFrame()
+static void DebugEndFrame(GameState* state)
 {	
 	DebugTable& t = g_debugTable;
 
@@ -182,7 +182,7 @@ static void DebugEndFrame()
 
 	t.eventIndex = 0;
 
-	if (t.profilerState >= PROFILER_RECORDING)
+	if (state->debugDisplay == DEBUG_DISPLAY_PROFILER && t.profilerState >= PROFILER_RECORDING)
 	{
 		CollateDebugRecords(t.eventArrayIndex);
 

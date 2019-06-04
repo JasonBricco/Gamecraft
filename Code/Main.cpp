@@ -2,8 +2,6 @@
 // Gamecraft
 //
 
-#define PROFILING 0
-
 #if _DEBUG
 static char* g_buildType = "DEBUG";
 #else
@@ -12,7 +10,7 @@ static char* g_buildType = "RELEASE";
 
 #define SWAP_INTERVAL 1
 
-static int g_buildID = 291;
+static int g_buildID = 293;
 
 #pragma warning(push, 0)
 
@@ -61,10 +59,7 @@ using namespace std;
 
 #define Unused(x) ((void)(x))
 
-#define ENABLE_PRINT 1
-
 #if ENABLE_PRINT
-#pragma message("Printing enabled.")
 #define Print(...) { \
     char print_buffer[256]; \
     snprintf(print_buffer, sizeof(print_buffer), __VA_ARGS__); \
@@ -90,6 +85,7 @@ using namespace std;
 }
 #endif
 
+#include "Config.h"
 #include "Utils.h"
 #include "ObjectPool.h"
 #include "Containers.h"
@@ -463,7 +459,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		}
 
 		glfwSwapBuffers(window);
-		DebugEndFrame();
+		DebugEndFrame(state);
 
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);
