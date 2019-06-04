@@ -419,7 +419,7 @@ static inline Block GetBlockSafe(RebasedPos p)
     if (p.chunk == nullptr)
     {
         assert(p.rY == -1 || p.rY == 1);
-        return p.rY == -1 ? BLOCK_STONE : BLOCK_AIR;
+        return p.rY == -1 ? BLOCK_KILL_ZONE : BLOCK_AIR;
     }
 
     return GetBlock(p.chunk, p.rX, p.rY, p.rZ);
@@ -502,23 +502,36 @@ static inline void SetBlock(ChunkGroup* group, int rX, int lwY, int rZ, Block bl
 static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkP lP, RelP rP, bool modified = true)
 {
     chunk->modified = modified;
+    chunk->pendingUpdate = true;
 
-    Chunk* chunkA = Rebase(world, lP, rP + DIR_LEFT_DOWN_BACK).chunk;
-    Chunk* chunkB = Rebase(world, lP, rP + DIR_RIGHT_UP_FRONT).chunk;
-
-    LChunkP a = chunkA == nullptr ? chunk->lcPos : chunkA->lcPos;
-    LChunkP b = chunkB == nullptr ? chunk->lcPos : chunkB->lcPos;
-
-    for (int z = a.z; z <= b.z; z++)
+    for (int z = -1; z <= 1; z++)
     {
-        for (int y = a.y; y <= b.y; y++)
+        for (int y = -1; y <= 1; y++)
         {
-            for (int x = a.x; x <= b.x; x++)
+            for (int x = -1; x <= 1; x++)
             {
-                Chunk* adj = GetChunk(world, x, y, z);
+                RelP r = rP + ivec3(x, y, z);
 
-                if (adj->state >= CHUNK_BUILDING)
-                    adj->pendingUpdate = true;
+                if (r.x < 0) GetChunk(world, lP + DIR_LEFT)->pendingUpdate = true;
+                else if (r.x >= CHUNK_SIZE_H) GetChunk(world, lP + DIR_RIGHT)->pendingUpdate = true;
+
+                if (r.z < 0) GetChunk(world, lP + DIR_BACK)->pendingUpdate = true;
+                else if (r.z >= CHUNK_SIZE_H) GetChunk(world, lP + DIR_FRONT)->pendingUpdate = true;
+
+                if (r.y < 0)
+                {
+                    chunk = GetChunkSafe(world, lP + DIR_DOWN);
+
+                    if (chunk != nullptr)
+                        chunk->pendingUpdate = true;
+                }
+                else if (r.y >= CHUNK_SIZE_V)
+                {
+                    chunk = GetChunkSafe(world, lP + DIR_UP);
+
+                    if (chunk != nullptr)
+                        chunk->pendingUpdate = true;
+                }
             }
         }
     }
