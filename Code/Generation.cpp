@@ -695,7 +695,7 @@ static void GenerateVolcanicTerrain(World* world, ChunkGroup* group)
                     if (wY <= height)
                         SetBlock(chunk, x, y, z, BLOCK_OBSIDIAN);
                     else if (wY > height && wY <= seaLevel)
-                        SetBlock(chunk, x, y, z, BLOCK_MAGMA);
+                        SetBlock(chunk, x, y, z, BLOCK_LAVA);
                 }
             }
         }

@@ -37,6 +37,12 @@ static inline void UseShader(Shader* shader)
     glUseProgram(shader->handle);
 }
 
+static inline void SetScreenFade(Renderer& rend, Color color, FadePriority priority)
+{
+	rend.fadeColor = color;
+	rend.fadePriority = priority;
+}
+
 static Graphic* CreateGraphic(Renderer& renderer, Shader* shader, Texture texture)
 {
 	Graphic* graphic = new Graphic();
@@ -353,15 +359,17 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 	
 	FillMeshData(rend.meshData2D, rend.fadeMesh, data, GL_STATIC_DRAW, MESH_NO_COLORS | MESH_NO_UVS);
 
-	rend.fadeColor = CLEAR_COLOR;
+	SetScreenFade(rend, CLEAR_COLOR, FADE_PRIORITY_NONE);
 }
 
-static inline void FadeScreenForTime(Renderer& rend, Color color, float time)
+static inline void FadeScreenForTime(Renderer& rend, Color color, float time, FadePriority priority)
 {
 	if (rend.fadeColor != color)
 	{
 		rend.prevFadeColor = rend.fadeColor;
+		rend.prevFadePriority = rend.fadePriority;
 		rend.fadeColor = color;
+		rend.fadePriority = priority;
 	}
 	
 	rend.fadeTimeLeft = time;
@@ -558,7 +566,10 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 		rend.fadeTimeLeft -= state->deltaTime;
 
 		if (rend.fadeTimeLeft <= 0.0f)
+		{
 			rend.fadeColor = rend.prevFadeColor;
+			rend.fadePriority = rend.prevFadePriority;
+		}
 	}
 
 	if (rend.fadeColor != CLEAR_COLOR)

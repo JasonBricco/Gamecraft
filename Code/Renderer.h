@@ -62,6 +62,13 @@ struct Camera
     Plane planes[6];
 };
 
+enum FadePriority
+{
+    FADE_PRIORITY_NONE,
+    FADE_PRIORITY_FLUID,
+    FADE_PRIORITY_DAMAGE
+};
+
 struct Renderer
 {
     mat4 perspective;
@@ -75,6 +82,7 @@ struct Renderer
 
     // Screen fading.
     Color prevFadeColor, fadeColor;
+    FadePriority prevFadePriority, fadePriority;
     Shader* fadeShader;
     Mesh2D fadeMesh;
     float fadeTimeLeft;

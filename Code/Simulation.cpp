@@ -191,7 +191,7 @@ static void TeleportPlayer(GameState* state, WorldLocation p)
 
 static void KillPlayer(GameState* state, Player* player)
 {
-	state->renderer.fadeColor = player->damageFade;
+	SetScreenFade(state->renderer, player->damageFade, FADE_PRIORITY_DAMAGE);
 	state->renderer.fadeTimeLeft = FLT_MAX;
 	Pause(state, PLAYER_DEAD);
 }
@@ -199,7 +199,7 @@ static void KillPlayer(GameState* state, Player* player)
 static void ApplyDamage(GameState* state, Player* player, int amount)
 {
 	player->health = Max(player->health - amount, 0);
-	FadeScreenForTime(state->renderer, player->damageFade, 0.1f);
+	FadeScreenForTime(state->renderer, player->damageFade, 0.1f, FADE_PRIORITY_DAMAGE);
 
 	if (player->health <= 0) KillPlayer(state, player);
 }
@@ -543,7 +543,7 @@ static void HandleEditInput(GameState* state, Input& input, World* world, float 
 	}
 }
 
-static inline bool ListContainsBlock(vector<Block>& list, Block block)
+static inline bool ListContainsFluid(vector<Block>& list, Block block)
 {
 	for (Block next : list)
 	{
@@ -579,7 +579,16 @@ static void ApplyOverTimeDamage(GameState* state, Player* player, float deltaTim
 	}
 }
 
-static void SetMoveParams(Player* player, Input& input, vec3& accel, float& gravity)
+static inline void GetPlayerInsideFluid(World* world, bool& lower, bool& upper)
+{
+	auto isFluid = [world](Block block) {  return IsFluid(world, block); };
+
+	Player* player = world->player;
+	lower = find_if(player->lowerOverlap.begin(), player->lowerOverlap.end(), isFluid) != player->lowerOverlap.end();
+	upper = find_if(player->upperOverlap.begin(), player->upperOverlap.end(), isFluid) != player->upperOverlap.end();
+}
+
+static void SetMoveParams(World* world, Player* player, Input& input, vec3& accel, float& gravity)
 {
 	gravity = -30.0f;
 
@@ -594,7 +603,10 @@ static void SetMoveParams(Player* player, Input& input, vec3& accel, float& grav
 			if ((player->colFlags & HIT_DOWN) && KeyHeld(input, KEY_SPACE))
 				player->velocity.y = player->jumpVelocity;
 
-			if (ListContainsBlock(player->lowerOverlap, BLOCK_WATER) || ListContainsBlock(player->upperOverlap, BLOCK_WATER))
+			bool lower, upper;
+			GetPlayerInsideFluid(world, lower, upper);
+
+			if (lower || upper)
 				player->moveState = MOVE_SWIMMING;
 		} break;
 
@@ -620,10 +632,10 @@ static void SetMoveParams(Player* player, Input& input, vec3& accel, float& grav
 			player->friction = -10.0f;
 			gravity = 0.0f;
 
-			bool below = ListContainsBlock(player->lowerOverlap, BLOCK_WATER);
-			bool above = ListContainsBlock(player->upperOverlap, BLOCK_WATER);
+			bool lower, upper;
+			GetPlayerInsideFluid(world, lower, upper);
 
-			if (!above && !below)
+			if (!upper && !lower)
 				player->moveState = MOVE_NORMAL;
 			else
 			{
@@ -678,7 +690,7 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 
 	float gravity;
 	
-	SetMoveParams(player, input, accel, gravity);
+	SetMoveParams(world, player, input, accel, gravity);
 	MovePlayer(state, world, accel, deltaTime, gravity);
 
 	// Delete impassible blocks the player has entered.
@@ -707,21 +719,21 @@ static void Simulate(GameState* state, World* world, Player* player, float delta
 	vec3 eyePos = vec3(cam->pos.x, cam->pos.y - 0.1f, cam->pos.z);
 	Block eyeBlock = GetBlock(world, BlockPos(eyePos));
 
-	Color waterFade = Color(0.17f, 0.45f, 0.69f, 0.75f);
-
-	if (eyeBlock == BLOCK_WATER)
+	if (IsFluid(world, eyeBlock))
 	{
+		Color tint = GetScreenTint(world, eyeBlock);
+
 		if (rend.fadeColor.a == 0.0f)
 		{
-			rend.fadeColor = waterFade;
+			SetScreenFade(rend, tint, FADE_PRIORITY_FLUID);
 			rend.disableFluidCull = true;
 		}
 	}
 	else
 	{
-		if (rend.fadeColor == waterFade)
+		if (rend.fadePriority <= FADE_PRIORITY_FLUID)
 		{
-			rend.fadeColor = CLEAR_COLOR;
+			SetScreenFade(rend, CLEAR_COLOR, FADE_PRIORITY_NONE);
 			rend.disableFluidCull = false;
 		}
 	}

@@ -82,6 +82,16 @@ static inline OverTimeDamage GetOverTimeDamage(World* world, Block block)
     return world->blockData[block].overTimeDamage;
 }
 
+static inline bool IsFluid(World* world, Block block)
+{
+    return world->blockData[block].isFluid;
+}
+
+static inline Color GetScreenTint(World* world, Block block)
+{
+    return world->blockData[block].tint;
+}
+
 static inline void SetBlockTextures(BlockData& data, uint16_t top, uint16_t bottom, uint16_t front, uint16_t back, uint16_t right, uint16_t left)
 {
     data.textures[FACE_TOP] = top;
@@ -155,6 +165,8 @@ static void CreateBlockData(GameState* state, BlockData* data)
     water.passable = true;
     water.lightStep = 2;
     water.alpha = 127;
+    water.isFluid = true;
+    water.tint = Color(0.17f, 0.45f, 0.69f, 0.75f);
     water.name = "Water";
 
     BlockData& sand = CreateDefaultBlock(state, data, BLOCK_SAND);
@@ -234,6 +246,18 @@ static void CreateBlockData(GameState* state, BlockData* data)
     killZone.lightStep = 1;
     killZone.collideFunc = KillCollideFunc;
     killZone.name = "Kill Zone";
+
+    BlockData& lava = CreateDefaultBlock(state, data, BLOCK_LAVA);
+    SetBlockTextures(lava, IMAGE_LAVA);
+    lava.meshType = MESH_FLUID;
+    lava.cull = CULL_TRANSPARENT;
+    lava.passable = true;
+    lava.lightStep = 1;
+    lava.lightEmitted = 10;
+    lava.alpha = 127;
+    lava.isFluid = true;
+    lava.tint = Color(0.75f, 0.16f, 0.0f, 0.75f);
+    lava.name = "Lava";
 
     Renderer& rend = state->renderer;
 

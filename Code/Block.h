@@ -31,6 +31,7 @@ enum BlockType : Block
     BLOCK_COOLED_MAGMA,
     BLOCK_OBSIDIAN,
     BLOCK_KILL_ZONE,
+    BLOCK_LAVA,
     BLOCK_COUNT
 };
 
@@ -80,7 +81,7 @@ struct BlockAnimation
 struct BlockData
 {
     uint16_t textures[6];
-    bool invisible, passable;
+    bool invisible, passable, isFluid;
     BlockMeshType meshType;
     CullType cull;
     BuildBlockFunc buildFunc;
@@ -90,6 +91,7 @@ struct BlockData
     Sound onSetSound;
     BlockSurface surface;
     OverTimeDamage overTimeDamage;
+    Color tint;
     char* name;
 };
 
