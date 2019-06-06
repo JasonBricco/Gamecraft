@@ -2,13 +2,8 @@
 // Gamecraft
 //
 
-#define PROFILING 1
-#define ENABLE_PRINT 1
+#define DEBUG_SERVICES 1
 
-#if PROFILING
+#if DEBUG_SERVICES
 #pragma message("Profiling enabled.")
-#endif
-
-#if ENABLE_PRINT
-#pragma message("Printing enabled.")
 #endif

@@ -549,6 +549,8 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 
 	DrawMeshesOfType(rend, shader, MESH_FLUID);
 
+	DEBUG_DRAW(rend, cam);
+
 	// If we didn't already disable culling, disable it now for particle drawing.
 	if (!rend.disableFluidCull)
 		glDisable(GL_CULL_FACE);
@@ -649,8 +651,6 @@ static void OutputShaderError(GLuint shader, char* mode)
     glGetProgramInfoLog(shader, length, NULL, errorLog);
     
    	Print("Error! Shader program failed to %s. Log: %s\n", mode, length == 0 ? "No error given." : errorLog);
-   	
-    Unused(mode);
 }
 
 static bool ShaderHasErrors(GLuint shader, ShaderType type)

@@ -115,3 +115,5 @@ static inline void SetUniform(GLint loc, vec2 v);
 static inline void SetUniform(GLint loc, vec3 v);
 static inline void SetUniform(GLint loc, vec4 v);
 static inline void SetUniform(GLint loc, mat4 m);
+
+static bool ShaderHasErrors(GLuint shader, ShaderType type);

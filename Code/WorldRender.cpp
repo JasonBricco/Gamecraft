@@ -207,6 +207,7 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
                         ChunkMesh cM = { mesh, (vec3)chunk->lwPos };
                         vector<ChunkMesh>& list = rend.meshLists[m];
                         list.push_back(cM);
+                        DRAW_CHUNK_OUTLINE(chunk);
                     }
                 }
             } break;

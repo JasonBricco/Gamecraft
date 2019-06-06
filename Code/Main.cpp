@@ -59,14 +59,18 @@ using namespace std;
 
 #define Unused(x) ((void)(x))
 
-#if ENABLE_PRINT
+#if _DEBUG
 #define Print(...) { \
     char print_buffer[256]; \
     snprintf(print_buffer, sizeof(print_buffer), __VA_ARGS__); \
     OutputDebugString(print_buffer); \
 }
 #else
-#define Print(...)
+#define Print(...) { \
+    char print_buffer[256]; \
+    snprintf(print_buffer, sizeof(print_buffer), __VA_ARGS__); \
+    MessageBox(NULL, print_buffer, NULL, MB_OK | MB_ICONINFORMATION); \
+}
 #endif
 
 #if _DEBUG
@@ -385,6 +389,8 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	GameState* state = new GameState();
 
+	DEBUG_INIT();
+
 	char savePath[MAX_PATH];
 	state->savePath = PathToExe("Saves", savePath, MAX_PATH);
 	CreateDirectory(state->savePath, NULL);
@@ -459,7 +465,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		}
 
 		glfwSwapBuffers(window);
-		DebugEndFrame(state);
+		DEBUG_END_FRAME(state);
 
 		double endTime = glfwGetTime();
 		deltaTime = Min((float)(endTime - lastTime), 0.0666f);

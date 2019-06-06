@@ -2,7 +2,7 @@
 // Gamecraft
 // 
 
-#if PROFILING
+#if DEBUG_SERVICES
 
 #define MAX_DEBUG_EVENTS 65536
 #define MAX_DEBUG_EVENT_ARRAYS 32
@@ -57,6 +57,25 @@ struct DebugThread
     stack<OpeningEvent> openEvents;
 };
 
+struct DebugMesh
+{
+    GLuint va, vertices;
+    int count;
+};
+
+struct DebugOutline
+{
+    vec3 pos;
+    vec3 scale;
+    Color color;
+};
+
+struct DebugShader
+{
+    GLuint handle;
+    GLint model, view, proj, color;
+};
+
 enum ProfilerState
 {
     PROFILER_STOPPED,
@@ -94,6 +113,11 @@ struct DebugTable
     DebugRecord records[MAX_DEBUG_RECORDS];
 
     ProfilerState profilerState = PROFILER_RECORDING;
+
+    DebugShader shader;
+    DebugMesh outlineMesh;
+
+    vector<DebugOutline> outlines;
 };
 
 static DebugTable g_debugTable;
@@ -128,6 +152,11 @@ struct TimedFunction
 #define STOP_PROFILING() g_debugTable.profilerState = PROFILER_STOPPED
 #define IS_PROFILING() (g_debugTable.profilerState == PROFILER_RECORDING)
 
+#define DEBUG_INIT() DebugInit()
+#define DEBUG_DRAW(renderer, camera) DebugDraw(renderer, camera)
+#define DEBUG_END_FRAME(state) DebugEndFrame(state)
+#define DRAW_CHUNK_OUTLINE(chunk) DrawChunkOutline(chunk)
+
 #else
 
 #define BEGIN_BLOCK(ID)
@@ -138,5 +167,10 @@ struct TimedFunction
 #define START_PROFILING()
 #define STOP_PROFILING()
 #define IS_PROFILING() false
+
+#define DEBUG_INIT()
+#define DEBUG_DRAW(renderer, camera)
+#define DEBUG_END_FRAME(state)
+#define DRAW_CHUNK_OUTLINE(chunk)
 
 #endif

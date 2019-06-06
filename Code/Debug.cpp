@@ -2,7 +2,7 @@
 // Gamecraft
 // 
 
-#if PROFILING
+#if DEBUG_SERVICES
 
 static inline void RecordDebugEvent(DebugEventType type, int id, char* func, int line)
 {
@@ -169,6 +169,161 @@ static void CollateDebugRecords(int inUseIndex)
 	}
 }
 
+static void CreateDebugMesh()
+{
+	vector<u8vec3> data;
+
+	data.push_back(u8vec3(0, 0, 1));
+    data.push_back(u8vec3(0, 1, 1));
+
+    data.push_back(u8vec3(0, 1, 1));
+    data.push_back(u8vec3(1, 1, 1));
+
+    data.push_back(u8vec3(1, 1, 1));
+    data.push_back(u8vec3(1, 0, 1));
+
+    data.push_back(u8vec3(1, 0, 1));
+    data.push_back(u8vec3(0, 0, 1));
+
+    data.push_back(u8vec3(0, 0, 1));
+    data.push_back(u8vec3(0, 0, 0));
+
+    data.push_back(u8vec3(0, 0, 0));
+    data.push_back(u8vec3(1, 0, 0));
+
+    data.push_back(u8vec3(1, 0, 0));
+    data.push_back(u8vec3(1, 0, 1));
+
+    data.push_back(u8vec3(0, 0, 0));
+    data.push_back(u8vec3(0, 1, 0));
+
+    data.push_back(u8vec3(0, 1, 0));
+    data.push_back(u8vec3(1, 1, 0));
+
+    data.push_back(u8vec3(1, 1, 0));
+    data.push_back(u8vec3(1, 0, 0));
+
+    data.push_back(u8vec3(1, 1, 0));
+    data.push_back(u8vec3(1, 1, 1));
+
+    data.push_back(u8vec3(0, 1, 0));
+    data.push_back(u8vec3(0, 1, 1));
+
+    DebugMesh& mesh = g_debugTable.outlineMesh;
+
+    glGenVertexArrays(1, &mesh.va);
+    glBindVertexArray(mesh.va);
+
+    glGenBuffers(1, &mesh.vertices);
+	glBindBuffer(GL_ARRAY_BUFFER, mesh.vertices);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(u8vec3) * data.size(), data.data(), GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_BYTE, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(0);
+
+	mesh.count = (int)data.size();
+}
+
+static void CreateDebugShader()
+{
+	char* vert = 
+		"#version 440 core\n"
+		"layout (location = 0) in vec3 pos;\n"
+		"uniform mat4 model;\n"
+		"uniform mat4 view;\n"
+		"uniform mat4 projection;\n"
+		"void main()\n"
+		"{\n"
+			"gl_Position = projection * view * model * vec4(pos, 1.0);\n"
+		"}\n";
+
+	char* frag =
+		"#version 440 core\n"
+		"out vec4 outColor;\n"
+		"uniform vec4 color;\n"
+		"uniform sampler2D tex;\n"
+		"void main()\n"
+		"{\n"
+			"outColor = color;\n"
+		"}\n";
+
+	int vertLength = (int)strlen(vert);
+	int fragLength = (int)strlen(frag);
+
+	GLuint vS = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vS, 1, &vert, &vertLength);
+    glCompileShader(vS);
+
+    if (ShaderHasErrors(vS, VERTEX_SHADER))
+       	Error("Failed to compile the debug vertex shader.\n");
+
+    GLuint fS = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fS, 1, &frag, &fragLength);
+    glCompileShader(fS);
+    
+    if (ShaderHasErrors(fS, FRAGMENT_SHADER))
+        Error("Failed to compile the debug fragment shader.\n");
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vS);
+    glAttachShader(program, fS);
+    glLinkProgram(program);
+    
+    if (ShaderHasErrors(program, SHADER_PROGRAM))
+        Error("Failed to link the debug shaders into the program.\n");
+
+    glDeleteShader(vS);
+    glDeleteShader(fS);
+
+    DebugShader& shader = g_debugTable.shader;
+    shader.handle = program;
+    shader.view = glGetUniformLocation(shader.handle, "view");
+    shader.model = glGetUniformLocation(shader.handle, "model");
+    shader.proj = glGetUniformLocation(shader.handle, "projection");
+    shader.color = glGetUniformLocation(shader.handle, "color");
+}
+
+static void DrawDebugMesh(DebugMesh& mesh, vec3 pos, vec3 size, Color color)
+{
+	DebugShader& shader = g_debugTable.shader;
+
+	mat4 model = translate(mat4(1.0f), pos);
+	model = scale(model, size);
+
+	SetUniform(shader.model, model);
+	SetUniform(shader.color, color);
+
+	glBindVertexArray(mesh.va);
+	glDrawArrays(GL_LINES, 0, mesh.count);
+}
+
+static void DrawChunkOutline(Chunk* chunk)
+{
+	DebugOutline outline = { chunk->lwPos, vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H), RED_COLOR };
+	g_debugTable.outlines.push_back(outline);
+}
+
+static void DebugInit()
+{
+	CreateDebugMesh();
+	CreateDebugShader();
+}
+
+static void DebugDraw(Renderer& rend, Camera* cam)
+{
+	DebugShader& shader = g_debugTable.shader;
+
+	glUseProgram(shader.handle);
+	SetUniform(shader.proj, rend.perspective);
+	SetUniform(shader.view, cam->view);
+
+	DebugMesh& mesh = g_debugTable.outlineMesh;
+	auto& outlines = g_debugTable.outlines;
+
+	for (DebugOutline outline : outlines)
+		DrawDebugMesh(mesh, outline.pos, outline.scale, outline.color);
+}
+
 static void DebugEndFrame(GameState* state)
 {	
 	DebugTable& t = g_debugTable;
@@ -189,10 +344,8 @@ static void DebugEndFrame(GameState* state)
 		if (t.profilerState == PROFILER_RECORD_ONCE)
 			t.profilerState = PROFILER_STOPPED;
 	}
+
+	g_debugTable.outlines.clear();
 }
-
-#else
-
-static inline void DebugEndFrame() {}
 
 #endif

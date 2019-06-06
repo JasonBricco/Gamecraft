@@ -601,7 +601,7 @@ static void CreateProfilerUI()
     MultiSpacing(4);
     ImGui::Text(fpsText);
 
-    #if PROFILING
+    #if DEBUG_SERVICES
 
     ImGui::Spacing();
 

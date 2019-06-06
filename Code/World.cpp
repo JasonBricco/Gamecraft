@@ -511,27 +511,30 @@ static void FlagChunkForUpdate(World* world, Chunk* chunk, LChunkP lP, RelP rP, 
             for (int x = -1; x <= 1; x++)
             {
                 RelP r = rP + ivec3(x, y, z);
+                LChunkP target = lP;
 
-                if (r.x < 0) GetChunk(world, lP + DIR_LEFT)->pendingUpdate = true;
-                else if (r.x >= CHUNK_SIZE_H) GetChunk(world, lP + DIR_RIGHT)->pendingUpdate = true;
+                if (r.x < 0) target += DIR_LEFT;
+                else if (r.x >= CHUNK_SIZE_H) target += DIR_RIGHT;
 
-                if (r.z < 0) GetChunk(world, lP + DIR_BACK)->pendingUpdate = true;
-                else if (r.z >= CHUNK_SIZE_H) GetChunk(world, lP + DIR_FRONT)->pendingUpdate = true;
+                if (r.z < 0) target += DIR_BACK;
+                else if (r.z >= CHUNK_SIZE_H) target += DIR_FRONT;
 
                 if (r.y < 0)
                 {
-                    chunk = GetChunkSafe(world, lP + DIR_DOWN);
+                    LChunkP temp = target + DIR_DOWN;
 
-                    if (chunk != nullptr)
-                        chunk->pendingUpdate = true;
+                    if (temp.y >= 0)
+                        target = temp;
                 }
                 else if (r.y >= CHUNK_SIZE_V)
                 {
-                    chunk = GetChunkSafe(world, lP + DIR_UP);
+                    LChunkP temp = target + DIR_UP;
 
-                    if (chunk != nullptr)
-                        chunk->pendingUpdate = true;
+                    if (temp.y < WORLD_CHUNK_HEIGHT)
+                        target = temp;
                 }
+
+                GetChunk(world, target)->pendingUpdate = true;
             }
         }
     }
