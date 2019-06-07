@@ -419,20 +419,29 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
     noise->SetSeed(world->properties.seed);
 
     noise->SetNoiseType(Noise::SimplexFractal);
-    noise->SetFractalType(Noise::Billow);
-    noise->SetFrequency(0.025f);
-    float* base = GetNoise2D(noise, start.x, 0, start.z, 0.25f);
+    noise->SetFrequency(0.015f);
+    noise->SetFractalOctaves(4);
+    noise->SetFractalType(Noise::RigidMulti);
+    float* ridged = GetNoise2D(noise, start.x, 0, start.z, 0.5f);
 
-    noise->SetNoiseType(Noise::PerlinFractal);
-    noise->SetFractalOctaves(3);
+    noise->SetNoiseType(Noise::SimplexFractal);
+    noise->SetFrequency(0.025f);
+    noise->SetFractalType(Noise::Billow);
+    float* base = GetNoise2D(noise, start.x, 0, start.z, 0.5f);
+
+    noise->SetFrequency(0.005f);
     noise->SetFractalType(Noise::FBM);
-    noise->SetFrequency(0.01f);
-    float* ice = GetNoise2D(noise, start.x, 0, start.z, 0.5f);
+    noise->SetFractalOctaves(3);
+    float* biome = GetNoise2D(noise, start.x, 0, start.z);
 
     int surfaceMap[CHUNK_SIZE_2];
+
+    bool iceMap[CHUNK_SIZE_2];
+    memset(iceMap, 0, sizeof(iceMap));
+
     int maxY = 0;
 
-    int seaLevel = 16;
+    int seaLevel = 20;
 
     for (int x = 0; x < CHUNK_SIZE_H; x++)
     {
@@ -442,11 +451,35 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
 
             if (IsWithinIsland(world, start, x, z, p))
             {
-                float terrainVal = GetNoiseValue2D(base, x, z);
-                terrainVal = ((terrainVal * 0.2f) * 60.0f) + 12.0f;
+                float terrainVal;
+                float biomeVal = GetRawNoiseValue2D(biome, x, z);
+
+                float seaFloor = GetNoiseValue2D(base, x, z);
+                seaFloor = ((seaFloor * 0.2f) * 20.0f) + 5.0f;
+
+                float land = GetNoiseValue2D(ridged, x, z);
+                land = ((land * 0.2f) * 10.0f) + 20.0f;
+
+                int index = z * CHUNK_SIZE_H + x;
+
+                float lower = -0.4f;
+                float upper = 0.0f;
+
+                if (biomeVal < lower)
+                    terrainVal = seaFloor;
+                else if (biomeVal > upper)
+                    terrainVal = land;
+                else
+                {
+                    if (biomeVal >= -0.25f && biomeVal <= 0.0f)
+                        iceMap[index] = true;
+
+                    float a = SCurve3((biomeVal - lower) / (upper - lower));
+                    terrainVal = Lerp(seaFloor, land, a);
+                }
 
                 int height = (int)(terrainVal * p);
-                surfaceMap[z * CHUNK_SIZE_H + x] = height;
+                surfaceMap[index] = height;
 
                 maxY = Max(maxY, Max(height, seaLevel));
             }
@@ -482,7 +515,8 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
 
                 for (int x = 0; x < CHUNK_SIZE_H; x++)
                 {
-                    int height = surfaceMap[z * CHUNK_SIZE_H + x];
+                    int index = z * CHUNK_SIZE_H + x;
+                    int height = surfaceMap[index];
                     float compVal = GetNoiseValue3D(comp, x, wY, z, maxY);
 
                     if (wY <= height - 4)
@@ -500,8 +534,7 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
                         SetBlock(chunk, x, y, z, BLOCK_WATER);
                     else if (wY == seaLevel)
                     {
-                        if (GetNoiseValue2D(ice, x, z) > 0.5f)
-                            SetBlock(chunk, x, y, z, BLOCK_ICE);
+                        if (iceMap[index]) SetBlock(chunk, x, y, z, BLOCK_ICE);
                         else SetBlock(chunk, x, y, z, BLOCK_WATER);
                     }
                     else 
@@ -515,7 +548,9 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
     }
 
     Noise::FreeNoiseSet(comp);
+    Noise::FreeNoiseSet(ridged);
     Noise::FreeNoiseSet(base);
+    Noise::FreeNoiseSet(biome);
 
     delete noise;
 }

@@ -501,7 +501,7 @@ static void WorldConfigUI(GameState* state, World* world, WorldConfig& config)
     ImVec2 btSize = ImGui::CalcTextSize("Biome ");
     ImGui::SameLine();
 
-    int numPerLine[] = { 3, 3, 2 };
+    int numPerLine[] = { 3, 3, 3 };
     int curBiome = 0;
 
     ImVec2 baseCursor = ImGui::GetCursorPos();

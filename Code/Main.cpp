@@ -134,6 +134,7 @@ static inline void CenterCursor();
 #include "Lighting.cpp"
 #include "WorldRender.cpp"
 #include "Particles.cpp"
+#include "Dungeon.cpp"
 #include "Environment.cpp"
 #include "Generation.cpp"
 #include "WorldIO.cpp"

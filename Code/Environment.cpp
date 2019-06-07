@@ -124,4 +124,11 @@ static void CreateBiomes(GameState* state, World* world)
     empty.func = GenerateVoidTerrain;
     empty.skyColor = vec3(0.0f);
     empty.weather.emitter = &state->rain;
+
+    Biome& dungeon = world->biomes[BIOME_DUNGEON];
+    dungeon.name = "Dungeon";
+    dungeon.type = BIOME_DUNGEON;
+    dungeon.func = GenerateDungeon;
+    dungeon.skyColor = vec3(0.0f);
+    dungeon.weather.emitter = &state->rain;
 }
