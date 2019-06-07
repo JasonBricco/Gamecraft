@@ -386,23 +386,13 @@ static inline Colori VertexLight(World* world, Chunk* chunk, Axis axis, RelP pos
 
 // Returns true if the current block should draw its face when placed
 // next to the adjacent block.
-static inline bool CanDrawFace(World* world, CullType cur, Block block, Block adjBlock)
+static inline bool CanDrawFace(World* world, int cur, Block block, Block adjBlock)
 {
-    CullType adj = GetCullType(world, adjBlock);
-
-    switch (cur)
-    {
-        case CULL_OPAQUE:
-            return adj >= CULL_TRANSPARENT;
-        
-        case CULL_TRANSPARENT:
-            return adj >= CULL_TRANSPARENT && adjBlock != block;
-    }
-
-    return false;
+    int adj = GetCull(world, adjBlock);
+    return cur < adj && adjBlock != block;
 }
 
-static inline bool CheckFace(World* world, CullType cull, Block block, RebasedPos p, int& vAdded)
+static inline bool CheckFace(World* world, int cull, Block block, RebasedPos p, int& vAdded)
 {
     if (CanDrawFace(world, cull, block, GetBlockSafe(p)))
     {
@@ -428,7 +418,7 @@ static inline bool ChunkOverflowed(World* world, Chunk* chunk, int x, int y, int
 
     if (block != BLOCK_AIR)
     {
-        CullType cull = GetCullType(world, block);
+        int cull = GetCull(world, block);
 
         // The number of vertices we'll add by building this block. If it exceeds the 
         // chunk limit, we'll return immediately.
@@ -458,7 +448,7 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
 
     ivec3 rP = ivec3(xi, yi, zi);
 
-    CullType cull = GetCullType(world, block);
+    int cull = GetCull(world, block);
     int meshIndex = GetMeshType(world, block);
 
     int vAdded = 0;

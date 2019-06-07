@@ -17,18 +17,16 @@ static inline float GetNoiseValue3D(float* noiseSet, int x, int y, int z, int ma
     return (noiseSet[z + CHUNK_SIZE_H * (y + maxY * x)] + 1.0f) / 2.0f;
 }
 
-static inline float* GetNoise2D(Noise* noise, Noise::NoiseType type, int x, int y, int z, float scale = 1.0f)
+static inline float* GetNoise2D(Noise* noise, int x, int y, int z, float scale = 1.0f)
 {
-    noise->SetNoiseType(type);
     int sizeX = CHUNK_SIZE_H;
     int sizeY = 1;
     int sizeZ = CHUNK_SIZE_H;
     return noise->GetNoiseSet(x, y, z, sizeX, sizeY, sizeZ, scale);
 }
 
-static inline float* GetNoise3D(Noise* noise, Noise::NoiseType type, int x, int z, int maxY, float scale = 1.0f)
+static inline float* GetNoise3D(Noise* noise, int x, int z, int maxY, float scale = 1.0f)
 {
-    noise->SetNoiseType(type);
     int sizeX = CHUNK_SIZE_H;
     int sizeZ = CHUNK_SIZE_H;
     return noise->GetNoiseSet(x, 0, z, sizeX, maxY, sizeZ, scale);
@@ -91,17 +89,20 @@ static void GenerateForestTerrain(World* world, ChunkGroup* group)
     Noise* noise = Noise::NewFastNoiseSIMD();
     noise->SetSeed(world->properties.seed);
 
+    noise->SetNoiseType(Noise::SimplexFractal);
     noise->SetFrequency(0.015f);
     noise->SetFractalOctaves(4);
     noise->SetFractalType(Noise::RigidMulti);
-    float* ridged = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.5f);
+    float* ridged = GetNoise2D(noise, start.x, 0, start.z, 0.5f);
 
+    noise->SetNoiseType(Noise::SimplexFractal);
     noise->SetFrequency(0.025f);
     noise->SetFractalType(Noise::Billow);
-    float* base = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.5f);
+    float* base = GetNoise2D(noise, start.x, 0, start.z, 0.5f);
 
+    noise->SetNoiseType(Noise::Simplex);
     noise->SetFrequency(0.01f);
-    float* biome = GetNoise2D(noise, Noise::Simplex, start.x, 0, start.z);
+    float* biome = GetNoise2D(noise, start.x, 0, start.z);
 
     int surfaceMap[CHUNK_SIZE_2];
     int maxY = 0;
@@ -153,10 +154,11 @@ static void GenerateForestTerrain(World* world, ChunkGroup* group)
         }
     }
 
+    noise->SetNoiseType(Noise::SimplexFractal);
     noise->SetFractalOctaves(2);
     noise->SetFrequency(0.015f);
     noise->SetFractalType(Noise::FBM);
-    float* comp = GetNoise3D(noise, Noise::SimplexFractal, start.x, start.z, maxY + 1, 0.2f);
+    float* comp = GetNoise3D(noise, start.x, start.z, maxY + 1, 0.2f);
 
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
@@ -232,17 +234,20 @@ static void GenerateIslandsTerrain(World* world, ChunkGroup* group)
     Noise* noise = Noise::NewFastNoiseSIMD();
     noise->SetSeed(world->properties.seed);
 
+    noise->SetNoiseType(Noise::SimplexFractal);
     noise->SetFrequency(0.015f);
     noise->SetFractalOctaves(4);
     noise->SetFractalType(Noise::RigidMulti);
-    float* ridged = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.5f);
+    float* ridged = GetNoise2D(noise, start.x, 0, start.z, 0.5f);
 
+    noise->SetNoiseType(Noise::SimplexFractal);
     noise->SetFrequency(0.025f);
     noise->SetFractalType(Noise::Billow);
-    float* base = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.5f);
+    float* base = GetNoise2D(noise, start.x, 0, start.z, 0.5f);
 
+    noise->SetNoiseType(Noise::Simplex);
     noise->SetFrequency(0.01f);
-    float* biome = GetNoise2D(noise, Noise::Simplex, start.x, 0, start.z);
+    float* biome = GetNoise2D(noise, start.x, 0, start.z);
 
     int surfaceMap[CHUNK_SIZE_2];
     int maxY = 0;
@@ -292,10 +297,11 @@ static void GenerateIslandsTerrain(World* world, ChunkGroup* group)
         }
     }
 
+    noise->SetNoiseType(Noise::SimplexFractal);
     noise->SetFractalOctaves(2);
     noise->SetFrequency(0.015f);
     noise->SetFractalType(Noise::FBM);
-    float* comp = GetNoise3D(noise, Noise::SimplexFractal, start.x, start.z, maxY + 1, 0.2f);
+    float* comp = GetNoise3D(noise, start.x, start.z, maxY + 1, 0.2f);
 
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
@@ -412,14 +418,21 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
     Noise* noise = Noise::NewFastNoiseSIMD();
     noise->SetSeed(world->properties.seed);
 
-    noise->SetFrequency(0.025f);
+    noise->SetNoiseType(Noise::SimplexFractal);
     noise->SetFractalType(Noise::Billow);
-    float* base = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.25f);
+    noise->SetFrequency(0.025f);
+    float* base = GetNoise2D(noise, start.x, 0, start.z, 0.25f);
+
+    noise->SetNoiseType(Noise::PerlinFractal);
+    noise->SetFractalOctaves(3);
+    noise->SetFractalType(Noise::FBM);
+    noise->SetFrequency(0.01f);
+    float* ice = GetNoise2D(noise, start.x, 0, start.z, 0.5f);
 
     int surfaceMap[CHUNK_SIZE_2];
     int maxY = 0;
 
-    int seaLevel = 14;
+    int seaLevel = 16;
 
     for (int x = 0; x < CHUNK_SIZE_H; x++)
     {
@@ -430,7 +443,7 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
             if (IsWithinIsland(world, start, x, z, p))
             {
                 float terrainVal = GetNoiseValue2D(base, x, z);
-                terrainVal = ((terrainVal * 0.2f) * 30.0f) + 12.0f;
+                terrainVal = ((terrainVal * 0.2f) * 60.0f) + 12.0f;
 
                 int height = (int)(terrainVal * p);
                 surfaceMap[z * CHUNK_SIZE_H + x] = height;
@@ -445,10 +458,11 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
         }
     }
 
+    noise->SetNoiseType(Noise::SimplexFractal);
     noise->SetFractalOctaves(2);
     noise->SetFrequency(0.015f);
     noise->SetFractalType(Noise::FBM);
-    float* comp = GetNoise3D(noise, Noise::SimplexFractal, start.x, start.z, maxY + 1, 0.2f);
+    float* comp = GetNoise3D(noise, start.x, start.z, maxY + 1, 0.2f);
 
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {
@@ -482,8 +496,14 @@ static void GenerateSnowTerrain(World* world, ChunkGroup* group)
 
                     if (wY == height)
                         SetBlock(chunk, x, y, z, BLOCK_SNOW);
-                    else if (wY > height && wY <= seaLevel)
+                    else if (wY > height && wY < seaLevel)
                         SetBlock(chunk, x, y, z, BLOCK_WATER);
+                    else if (wY == seaLevel)
+                    {
+                        if (GetNoiseValue2D(ice, x, z) > 0.5f)
+                            SetBlock(chunk, x, y, z, BLOCK_ICE);
+                        else SetBlock(chunk, x, y, z, BLOCK_WATER);
+                    }
                     else 
                     {
                         if (wY < height)
@@ -509,9 +529,10 @@ static void GenerateDesertTerrain(World* world, ChunkGroup* group)
     Noise* noise = Noise::NewFastNoiseSIMD();
     noise->SetSeed(world->properties.seed);
 
+    noise->SetNoiseType(Noise::SimplexFractal);
     noise->SetFrequency(0.05f);
     noise->SetFractalType(Noise::Billow);
-    float* base = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.25f);
+    float* base = GetNoise2D(noise, start.x, 0, start.z, 0.25f);
 
     int surfaceMap[CHUNK_SIZE_2];
     int maxY = 0;
@@ -597,17 +618,20 @@ static void GenerateVolcanicTerrain(World* world, ChunkGroup* group)
     Noise* noise = Noise::NewFastNoiseSIMD();
     noise->SetSeed(world->properties.seed);
 
+    noise->SetNoiseType(Noise::SimplexFractal);
     noise->SetFrequency(0.015f);
     noise->SetFractalOctaves(4);
     noise->SetFractalType(Noise::RigidMulti);
-    float* ridged = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.5f);
+    float* ridged = GetNoise2D(noise, start.x, 0, start.z, 0.5f);
 
+    noise->SetNoiseType(Noise::SimplexFractal);
     noise->SetFrequency(0.025f);
     noise->SetFractalType(Noise::Billow);
-    float* base = GetNoise2D(noise, Noise::SimplexFractal, start.x, 0, start.z, 0.5f);
+    float* base = GetNoise2D(noise, start.x, 0, start.z, 0.5f);
 
+    noise->SetNoiseType(Noise::Simplex);
     noise->SetFrequency(0.005f);
-    float* biome = GetNoise2D(noise, Noise::Simplex, start.x, 0, start.z);
+    float* biome = GetNoise2D(noise, start.x, 0, start.z);
 
     int surfaceMap[CHUNK_SIZE_2];
     int maxY = 0;
@@ -657,10 +681,11 @@ static void GenerateVolcanicTerrain(World* world, ChunkGroup* group)
         }
     }
 
+    noise->SetNoiseType(Noise::SimplexFractal);
     noise->SetFractalOctaves(2);
     noise->SetFrequency(0.015f);
     noise->SetFractalType(Noise::FBM);
-    float* comp = GetNoise3D(noise, Noise::SimplexFractal, start.x, start.z, maxY + 1, 0.2f);
+    float* comp = GetNoise3D(noise, start.x, start.z, maxY + 1, 0.2f);
 
     for (int i = 0; i < WORLD_CHUNK_HEIGHT; i++)
     {

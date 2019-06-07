@@ -112,7 +112,9 @@ struct DebugTable
     DebugRecord* scopeToRecord;
     DebugRecord records[MAX_DEBUG_RECORDS];
 
-    ProfilerState profilerState = PROFILER_RECORDING;
+    ProfilerState profilerState = PROFILER_STOPPED;
+
+    bool showOutlines;
 
     DebugShader shader;
     DebugMesh outlineMesh;
@@ -148,10 +150,6 @@ struct TimedFunction
 #define _TIMED_FUNCTION(ID, func, line) TimedFunction timedFunction##ID(ID, func, line)
 #define TIMED_FUNCTION _TIMED_FUNCTION(__COUNTER__, __FUNCTION__, __LINE__)
 
-#define START_PROFILING() g_debugTable.profilerState = PROFILER_RECORDING
-#define STOP_PROFILING() g_debugTable.profilerState = PROFILER_STOPPED
-#define IS_PROFILING() (g_debugTable.profilerState == PROFILER_RECORDING)
-
 #define DEBUG_INIT() DebugInit()
 #define DEBUG_DRAW(renderer, camera) DebugDraw(renderer, camera)
 #define DEBUG_END_FRAME(state) DebugEndFrame(state)
@@ -163,10 +161,6 @@ struct TimedFunction
 #define END_BLOCK(ID)
 #define FRAME_MARKER
 #define TIMED_FUNCTION
-
-#define START_PROFILING()
-#define STOP_PROFILING()
-#define IS_PROFILING() false
 
 #define DEBUG_INIT()
 #define DEBUG_DRAW(renderer, camera)

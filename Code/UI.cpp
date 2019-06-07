@@ -274,7 +274,13 @@ static inline ImVec2 GetButtonLoc(ImVec2 btnSize, float winW, float y)
 
 static void CreatePauseUI(GameState* state, World* world, GLFWwindow* window)
 {
-    ImVec2 size = CenteredUIWindow(175.0f, 255.0f);
+    float windowOffset = 0.0f;
+
+    #if DEBUG_SERVICES
+    windowOffset = -90.0f;
+    #endif
+
+    ImVec2 size = CenteredUIWindow(175.0f, 255.0f, windowOffset);
 
     ImGui::Begin("Pause", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
     WindowHeader("Paused", size.x);
@@ -339,6 +345,55 @@ static void CreatePauseUI(GameState* state, World* world, GLFWwindow* window)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 
     ImGui::End();
+
+    #if DEBUG_SERVICES
+
+    DebugTable& t = g_debugTable;
+
+    size = CenteredUIWindow(175.0f, 255.0f, 90.0f);
+
+    ImGui::Begin("DebugPause", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
+    WindowHeader("Debug Menu", size.x);
+
+    btnSize = ImVec2(140.0f, 30.0f);
+    cursorPos = GetButtonLoc(btnSize, size.x, 35.0f);
+    ImGui::SetCursorPos(cursorPos);
+
+    bool recording = t.profilerState >= PROFILER_RECORDING;
+    char* profileText = recording ? "Stop Profiling" : "Start Profiling";
+
+    if (ImGui::Button(profileText, btnSize))
+    {
+        if (recording)
+        {
+            state->savedInputMode = glfwGetInputMode(window, GLFW_CURSOR);
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            t.profilerState = PROFILER_STOPPED;
+            state->pauseState = PLAYING;
+        }
+        else
+        {
+            glfwSetInputMode(window, GLFW_CURSOR, state->savedInputMode);
+            CenterCursor();
+            t.profilerState = PROFILER_RECORDING;
+            Unpause(state);
+        }
+    }
+
+    cursorPos.y += 35.0f;
+    ImGui::SetCursorPos(cursorPos);
+
+    char* outlineText = t.showOutlines ? "Hide Chunk Outlines" : "Show Chunk Outlines";
+
+    if (ImGui::Button(outlineText, btnSize))
+    {
+        t.showOutlines = !t.showOutlines;
+        Unpause(state);
+    }
+
+    ImGui::End();
+
+    #endif
 }
 
 static void CreateDeathUI(GameState* state, World* world, GLFWwindow* window)

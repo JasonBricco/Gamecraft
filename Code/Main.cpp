@@ -120,6 +120,7 @@ static void Pause(GameState* state, PauseState pauseState);
 static void Unpause(GameState* state);
 static void BeginLoadingScreen(GameState* state, float fadeTime, function<void(GameState*, World*)> callback);
 static inline ivec2 FramebufferSize();
+static inline void CenterCursor();
 
 #include "Debug.cpp"
 #include "Audio.cpp"
@@ -283,22 +284,6 @@ static void OnSelectingBlock(GameState* state)
 static void Update(GameState* state, Player* player, World* world, float deltaTime)
 {
 	Input& input = state->input;
-
-	if (state->debugDisplay == DEBUG_DISPLAY_PROFILER && KeyPressed(input, KEY_BACKSLASH))
-	{
-		if (IS_PROFILING())
-		{
-			state->savedInputMode = glfwGetInputMode(window, GLFW_CURSOR);
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-			STOP_PROFILING();
-		}
-		else
-		{
-			glfwSetInputMode(window, GLFW_CURSOR, state->savedInputMode);
-			CenterCursor();
-			START_PROFILING();
-		}
-	}
 
 	switch (state->pauseState)
 	{

@@ -299,8 +299,11 @@ static void DrawDebugMesh(DebugMesh& mesh, vec3 pos, vec3 size, Color color)
 
 static void DrawChunkOutline(Chunk* chunk)
 {
-	DebugOutline outline = { chunk->lwPos, vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H), RED_COLOR };
-	g_debugTable.outlines.push_back(outline);
+	if (g_debugTable.showOutlines)
+	{
+		DebugOutline outline = { chunk->lwPos, vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H), RED_COLOR };
+		g_debugTable.outlines.push_back(outline);
+	}
 }
 
 static void DebugInit()

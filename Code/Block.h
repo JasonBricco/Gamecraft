@@ -45,13 +45,6 @@ enum BlockFace
     FACE_LEFT
 };
 
-enum CullType
-{
-    CULL_OPAQUE,
-    CULL_TRANSPARENT,
-    CULL_ALL
-};
-
 enum BlockSurface
 {
     SURFACE_NORMAL,
@@ -83,7 +76,7 @@ struct BlockData
     uint16_t textures[6];
     bool invisible, passable, isFluid;
     BlockMeshType meshType;
-    CullType cull;
+    int cull;
     BuildBlockFunc buildFunc;
     BlockCollideFunc collideFunc;
     uint8_t alpha;

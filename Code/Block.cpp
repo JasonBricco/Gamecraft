@@ -7,7 +7,7 @@ static inline uint16_t* GetTextures(World* world, Block block)
     return world->blockData[block].textures;
 }
 
-static inline CullType GetCullType(World* world, Block block)
+static inline int GetCull(World* world, Block block)
 {
     return world->blockData[block].cull;
 }
@@ -39,7 +39,7 @@ static inline Sound GetSetSound(World* world, Block block)
 
 static inline bool IsTransparent(World* world, Block block)
 {
-    return GetCullType(world, block) != CULL_OPAQUE;
+    return world->blockData[block].alpha < 255;
 }
 
 static inline char* GetName(World* world, Block block)
@@ -132,6 +132,7 @@ static inline BlockData& CreateDefaultBlock(GameState* state, BlockData* dataArr
     data.onSetSound = GetSound(state, SOUND_STONE);
     data.collideFunc = DefaultCollideFunc;
     data.lightStep = INT_MAX;
+    data.alpha = 255;
     return data;
 }
 
@@ -139,7 +140,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
 {
     BlockData& air = CreateDefaultBlock(state, data, BLOCK_AIR);
     air.invisible = true;
-    air.cull = CULL_ALL;
+    air.cull = INT_MAX;
     air.passable = true;
     air.onSetSound = GetSound(state, SOUND_LEAVES);
     air.lightStep = 1;
@@ -161,7 +162,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
     BlockData& water = CreateDefaultBlock(state, data, BLOCK_WATER);
     SetBlockTextures(water, IMAGE_WATER);
     water.meshType = MESH_FLUID;
-    water.cull = CULL_TRANSPARENT;
+    water.cull = 2;
     water.passable = true;
     water.lightStep = 2;
     water.alpha = 127;
@@ -204,6 +205,10 @@ static void CreateBlockData(GameState* state, BlockData* data)
     BlockData& ice = CreateDefaultBlock(state, data, BLOCK_ICE);
     SetBlockTextures(ice, IMAGE_ICE);
     ice.surface = SURFACE_ICE;
+    ice.meshType = MESH_TRANSPARENT;
+    ice.cull = 1;
+    ice.lightStep = 2;
+    ice.alpha = 190;
     ice.name = "Ice";
 
     BlockData& lantern = CreateDefaultBlock(state, data, BLOCK_LANTERN);
@@ -242,7 +247,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
 
     BlockData& killZone = CreateDefaultBlock(state, data, BLOCK_KILL_ZONE);
     killZone.invisible = true;
-    killZone.cull = CULL_ALL;
+    killZone.cull = INT_MAX;
     killZone.lightStep = 1;
     killZone.collideFunc = KillCollideFunc;
     killZone.name = "Kill Zone";
@@ -250,7 +255,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
     BlockData& lava = CreateDefaultBlock(state, data, BLOCK_LAVA);
     SetBlockTextures(lava, IMAGE_LAVA);
     lava.meshType = MESH_FLUID;
-    lava.cull = CULL_TRANSPARENT;
+    lava.cull = 2;
     lava.passable = true;
     lava.lightStep = 1;
     lava.lightEmitted = 10;
