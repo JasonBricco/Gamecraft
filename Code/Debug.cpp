@@ -340,7 +340,7 @@ static void DebugEndFrame(GameState* state)
 
 	t.eventIndex = 0;
 
-	if (state->debugDisplay == DEBUG_DISPLAY_PROFILER && t.profilerState >= PROFILER_RECORDING)
+	if (state->debugDisplay && t.profilerState >= PROFILER_RECORDING)
 	{
 		CollateDebugRecords(t.eventArrayIndex);
 

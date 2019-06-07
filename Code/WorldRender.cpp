@@ -207,6 +207,7 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
                         ChunkMesh cM = { mesh, (vec3)chunk->lwPos };
                         vector<ChunkMesh>& list = rend.meshLists[m];
                         list.push_back(cM);
+
                         DRAW_CHUNK_OUTLINE(chunk);
                     }
                 }
@@ -224,6 +225,7 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
 static void WorldRenderUpdate(GameState* state, World* world, Camera* cam)
 {    
     TIMED_FUNCTION;
+    RESET_TRACKED_CHUNKS;
     
     world->visibleChunks.clear();
     world->groupsToProcess.clear();
@@ -288,14 +290,17 @@ static void WorldRenderUpdate(GameState* state, World* world, Camera* cam)
                     continue;
                 }
                 
-                ivec3 cP = LChunkToLWorldP(chunk->lcPos);
-                vec3 min = vec3(cP.x, cP.y, cP.z);
+                ivec3 lwP = LChunkToLWorldP(chunk->lcPos);
+                vec3 min = vec3(lwP.x, lwP.y, lwP.z);
                 vec3 max = min + (vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H) - 1.0f);
 
                 FrustumVisibility visibility = TestFrustum(cam, min, max);
 
                 if (visibility >= FRUSTUM_VISIBLE)
+                {
+                    TRACK_CHUNK;
                     world->visibleChunks.push_back(chunk);
+                }
             }
         }
     }
@@ -382,8 +387,6 @@ static inline Colori VertexLight(World* world, Chunk* chunk, Axis axis, RelP pos
     }
 }
 
-#define LIGHT(a, o1, o2, o3) VertexLight(world, chunk, AXIS_##a, rP, o1, o2, o3)
-
 // Returns true if the current block should draw its face when placed
 // next to the adjacent block.
 static inline bool CanDrawFace(World* world, int cur, Block block, Block adjBlock)
@@ -439,6 +442,8 @@ static inline bool ChunkOverflowed(World* world, Chunk* chunk, int x, int y, int
 
     return false;
 }
+
+#define LIGHT(a, o1, o2, o3) VertexLight(world, chunk, AXIS_##a, rP, o1, o2, o3)
 
 // Builds mesh data for a single block. x, y, and z are relative to the
 // chunk in local world space.
@@ -551,3 +556,5 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
     assert(!DebugOverflowCheck(chunk, vAdded));
     chunk->totalVertices += vAdded;
 }
+
+#undef LIGHT

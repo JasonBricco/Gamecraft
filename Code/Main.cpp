@@ -307,16 +307,7 @@ static void Update(GameState* state, Player* player, World* world, float deltaTi
 	}
 
 	if (KeyPressed(input, KEY_F1))
-	{
-		DebugDisplay& d = state->debugDisplay;
-		d = d == DEBUG_DISPLAY_HUD ? DEBUG_DISPLAY_NONE : DEBUG_DISPLAY_HUD;
-	}
-
-	if (KeyPressed(input, KEY_F2))
-	{
-		DebugDisplay& d = state->debugDisplay;
-		d = d == DEBUG_DISPLAY_PROFILER ? DEBUG_DISPLAY_NONE : DEBUG_DISPLAY_PROFILER;
-	}
+		state->debugDisplay = !state->debugDisplay;
 
 	UpdateAudio(&state->audio, deltaTime);
 	UpdateWorld(state, world, state->camera, player);

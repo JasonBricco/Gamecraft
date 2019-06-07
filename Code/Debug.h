@@ -78,6 +78,7 @@ struct DebugShader
 
 enum ProfilerState
 {
+    PROFILER_HIDDEN,
     PROFILER_STOPPED,
     PROFILER_RECORDING,
     PROFILER_RECORD_ONCE
@@ -112,7 +113,7 @@ struct DebugTable
     DebugRecord* scopeToRecord;
     DebugRecord records[MAX_DEBUG_RECORDS];
 
-    ProfilerState profilerState = PROFILER_STOPPED;
+    ProfilerState profilerState;
 
     bool showOutlines;
 
@@ -120,6 +121,8 @@ struct DebugTable
     DebugMesh outlineMesh;
 
     vector<DebugOutline> outlines;
+
+    int visibleChunks;
 };
 
 static DebugTable g_debugTable;
@@ -155,6 +158,9 @@ struct TimedFunction
 #define DEBUG_END_FRAME(state) DebugEndFrame(state)
 #define DRAW_CHUNK_OUTLINE(chunk) DrawChunkOutline(chunk)
 
+#define TRACK_CHUNK g_debugTable.visibleChunks++
+#define RESET_TRACKED_CHUNKS g_debugTable.visibleChunks = 0
+
 #else
 
 #define BEGIN_BLOCK(ID)
@@ -166,5 +172,8 @@ struct TimedFunction
 #define DEBUG_DRAW(renderer, camera)
 #define DEBUG_END_FRAME(state)
 #define DRAW_CHUNK_OUTLINE(chunk)
+
+#define TRACK_CHUNK
+#define RESET_TRACKED_CHUNKS
 
 #endif

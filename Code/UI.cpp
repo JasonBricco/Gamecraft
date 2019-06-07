@@ -359,23 +359,43 @@ static void CreatePauseUI(GameState* state, World* world, GLFWwindow* window)
     cursorPos = GetButtonLoc(btnSize, size.x, 35.0f);
     ImGui::SetCursorPos(cursorPos);
 
-    bool recording = t.profilerState >= PROFILER_RECORDING;
-    char* profileText = recording ? "Stop Profiling" : "Start Profiling";
-
-    if (ImGui::Button(profileText, btnSize))
+    if (t.profilerState == PROFILER_HIDDEN)
     {
-        if (recording)
+        if (ImGui::Button("Show Profiler", btnSize))
         {
-            state->savedInputMode = glfwGetInputMode(window, GLFW_CURSOR);
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            t.profilerState = PROFILER_STOPPED;
-            state->pauseState = PLAYING;
-        }
-        else
-        {
-            glfwSetInputMode(window, GLFW_CURSOR, state->savedInputMode);
-            CenterCursor();
             t.profilerState = PROFILER_RECORDING;
+            Unpause(state);
+        }
+    }
+    else
+    {
+        bool recording = t.profilerState >= PROFILER_RECORDING;
+        char* profileText = recording ? "Stop Profiling" : "Start Profiling";
+
+        if (ImGui::Button(profileText, btnSize))
+        {
+            if (recording)
+            {
+                state->savedInputMode = glfwGetInputMode(window, GLFW_CURSOR);
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                t.profilerState = PROFILER_STOPPED;
+                state->pauseState = PLAYING;
+            }
+            else
+            {
+                glfwSetInputMode(window, GLFW_CURSOR, state->savedInputMode);
+                CenterCursor();
+                t.profilerState = PROFILER_RECORDING;
+                Unpause(state);
+            }
+        }
+
+        cursorPos.y += 35.0f;
+        ImGui::SetCursorPos(cursorPos);
+
+        if (ImGui::Button("Hide Profiler", btnSize))
+        {
+            t.profilerState = PROFILER_HIDDEN;
             Unpause(state);
         }
     }
@@ -637,37 +657,19 @@ static double GetFPS()
     return fps;
 }
 
-static void CreateProfilerUI()
+static void CreateProfilerUI(ivec2 windowSize)
 {
-    ivec2 size = FramebufferSize();
-
-    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-
-    ImVec2 windowSize = ImVec2((float)size.x, (float)size.y);
-    ImGui::SetNextWindowSize(windowSize);
-
-    ImGui::Begin("Profiler", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-
-    double fps = GetFPS();
-
-    char fpsText[16];
-    sprintf(fpsText, "FPS: %.1f", fps);
-
-    MultiSpacing(4);
-    ImGui::Text(fpsText);
-
-    #if DEBUG_SERVICES
-
-    ImGui::Spacing();
-
     DebugTable& t = g_debugTable;
+
+    if (t.profilerState == PROFILER_HIDDEN)
+        return;
 
     float laneHeight = 5.0f;
     int laneCount = t.chartLaneCount;
     float barHeight = laneHeight * laneCount;
     float spacing = barHeight + 30.0f;
-    float chartWidth = 800.0f;
-    float chartMinX = 100.0f;
+    float chartWidth = 650.0f;
+    float chartMinX = 300.0f;
     float scale = t.chartScale * chartWidth;
 
     ImVec2 mouse = ImGui::GetMousePos();
@@ -749,10 +751,6 @@ static void CreateProfilerUI()
         if (t.profilerState == PROFILER_STOPPED)
             t.profilerState = PROFILER_RECORD_ONCE;
     }
-
-    #endif
-
-    ImGui::End();
 }
 
 static void CreateHUD(GameState* state, World* world)
@@ -773,23 +771,30 @@ static void CreateHUD(GameState* state, World* world)
 
     ImGui::Text(healthText);
 
-    if (state->debugDisplay == DEBUG_DISPLAY_HUD)
+    if (state->debugDisplay)
     {
+        double fps = GetFPS();
+
+        char fpsText[16];
+        snprintf(fpsText, 16, "FPS: %.1f", fps);
+
+        ImGui::Text(fpsText);
+
         char buildText[32];
-        sprintf(buildText, "Build: %i, Mode: %s", g_buildID, g_buildType);
+        snprintf(buildText, 32, "Build: %i, Mode: %s", g_buildID, g_buildType);
 
         ImGui::Text(buildText);
 
         Biome& biome = GetCurrentBiome(world);
 
         char biomeText[32];
-        sprintf(biomeText, "Biome: %s", biome.name);
+        snprintf(biomeText, 32, "Biome: %s", biome.name);
         ImGui::Text(biomeText);
 
         WorldP playerBlock = LWorldToWorldP(world, BlockPos(world->player->pos));
 
         char playerP[64];
-        sprintf(playerP, "Player Position: %i, %i, %i", playerBlock.x, playerBlock.y, playerBlock.z);
+        snprintf(playerP, 64, "Player Position: %i, %i, %i", playerBlock.x, playerBlock.y, playerBlock.z);
 
         ImGui::Text(playerP);
         
@@ -801,11 +806,29 @@ static void CreateHUD(GameState* state, World* world)
             ivec3 lwP = world->cursorBlockPos;
             WorldP p = LWorldToWorldP(world, lwP);
 
-            char blockText[128];
-            sprintf_s(blockText, 64, "Block: %s, Position: %i, %i, %i (%i, %i, %i)", name, lwP.x, lwP.y, lwP.z, p.x, p.y, p.z);
+            char blockText[64];
+            snprintf(blockText, 64, "Block: %s", name);
 
             ImGui::Text(blockText);
+
+            char blockPosText[128];
+            snprintf(blockPosText, 128, "Block Position: %i, %i, %i (%i, %i, %i)", lwP.x, lwP.y, lwP.z, p.x, p.y, p.z);
+
+            ImGui::Text(blockPosText);
         }
+
+        #if DEBUG_SERVICES
+
+        MultiSpacing(2);
+
+        char visibleChunksText[32];
+        snprintf(visibleChunksText, 32, "Visible Chunks: %d", g_debugTable.visibleChunks);
+
+        ImGui::Text(visibleChunksText);
+
+        CreateProfilerUI(size);
+
+        #endif
     }
 
     ImGui::End();
@@ -923,13 +946,6 @@ static void CreateUI(GameState* state, GLFWwindow* window, World* world, WorldCo
     }
 
     CreateHUD(state, world);
-
-    switch (state->debugDisplay)
-    {
-        case DEBUG_DISPLAY_PROFILER:
-            CreateProfilerUI();
-            break;
-    }
 }
 
 static void SaveGameSettings(GameState* state)
