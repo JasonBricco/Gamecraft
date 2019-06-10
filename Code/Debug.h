@@ -122,7 +122,7 @@ struct DebugTable
 
     vector<DebugOutline> outlines;
 
-    int visibleChunks;
+    int visibleMeshes;
 };
 
 static DebugTable g_debugTable;
@@ -158,8 +158,8 @@ struct TimedFunction
 #define DEBUG_END_FRAME(state) DebugEndFrame(state)
 #define DRAW_CHUNK_OUTLINE(chunk) DrawChunkOutline(chunk)
 
-#define TRACK_CHUNK g_debugTable.visibleChunks++
-#define RESET_TRACKED_CHUNKS g_debugTable.visibleChunks = 0
+#define TRACK_MESH g_debugTable.visibleMeshes++
+#define RESET_TRACKED_MESHES g_debugTable.visibleMeshes = 0
 
 #else
 
@@ -173,7 +173,7 @@ struct TimedFunction
 #define DEBUG_END_FRAME(state)
 #define DRAW_CHUNK_OUTLINE(chunk)
 
-#define TRACK_CHUNK
-#define RESET_TRACKED_CHUNKS
+#define TRACK_MESH
+#define RESET_TRACKED_MESHES
 
 #endif

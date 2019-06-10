@@ -370,24 +370,24 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 
 	float ocVerts[] = 
 	{
-		0.0f, 0.0f, 0.0f, // 0 - 0 0 0
-		1.0f, 0.0f, 0.0f, // 1 - 1 0 0
-		1.0f, 1.0f, 0.0f, // 2 - 1 1 0
-		0.0f, 1.0f, 0.0f, // 3 - 0 1 0
-		0.0f, 0.0f, 1.0f, // 4 - 0 0 1
-		1.0f, 0.0f, 1.0f, // 5 - 1 0 1
-		1.0f, 1.0f, 1.0f, // 6 - 1 1 1
-		0.0f, 1.0f, 1.0f // 7 - 0 1 1
+		0.0f, 0.0f, 0.0f, // 0
+		1.0f, 0.0f, 0.0f, // 1
+		1.0f, 1.0f, 0.0f, // 2
+		0.0f, 1.0f, 0.0f, // 3
+		0.0f, 0.0f, 1.0f, // 4
+		1.0f, 0.0f, 1.0f, // 5
+		1.0f, 1.0f, 1.0f, // 6
+		0.0f, 1.0f, 1.0f // 7
 	};
 
-	uint16_t ocQuads[] = 
+	uint16_t ocIndices[] = 
 	{ 
-		0, 3, 2, 0, 2, 1,
-		4, 7, 3, 4, 3, 0,
-		7, 6, 2, 7, 2, 3,
-		0, 4, 5, 0, 5, 1,
-		4, 7, 6, 4, 6, 5,
-		1, 5, 6, 1, 6, 2
+		1, 0, 3, 1, 3, 2, // Back.
+		0, 4, 7, 0, 7, 3, // Left.
+		2, 3, 7, 2, 7, 6, // Top.
+		5, 4, 0, 5, 0, 1, // Bottom.
+		5, 1, 2, 5, 2, 6, // Right.
+		4, 5, 6, 4, 6, 7 // Front.
 	};
 
 	glGenVertexArrays(1, &ocMesh.va);
@@ -395,14 +395,14 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 
 	glGenBuffers(1, &ocMesh.vertices);
 	glBindBuffer(GL_ARRAY_BUFFER, ocMesh.vertices);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * 24, ocVerts, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * ArrayCount(ocVerts), ocVerts, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(0);
 
 	glGenBuffers(1, &ocMesh.indices);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ocMesh.indices);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint16_t) * 24, ocQuads, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint16_t) * ArrayCount(ocIndices), ocIndices, GL_STATIC_DRAW);
 }
 
 static inline void FadeScreenForTime(Renderer& rend, Color color, float time, FadePriority priority)
@@ -537,19 +537,25 @@ static void DrawMeshesOfType(Renderer& rend, Shader* shader, BlockMeshType type)
 		ChunkMesh cM = rend.meshLists[type][i];
 		Mesh& mesh = cM.mesh;
 
-        GLuint available = 0;
-
-        glGetQueryObjectuiv(mesh.occlusionQuery, GL_QUERY_RESULT_AVAILABLE, &available);
-
-        if (available)
+		if (mesh.occlusionState != OCCLUSION_NONE)
 		{
-			GLuint passed = 0;
-			glGetQueryObjectuiv(mesh.occlusionQuery, GL_QUERY_RESULT, &passed);
-			mesh.occlusionState = passed ? OCCLUSION_VISIBLE : OCCLUSION_HIDDEN;
+	        GLuint available = 0;
+
+	        glGetQueryObjectuiv(mesh.occlusionQuery, GL_QUERY_RESULT_AVAILABLE, &available);
+
+	        if (available)
+			{
+				GLuint passed = 0;
+				glGetQueryObjectuiv(mesh.occlusionQuery, GL_QUERY_RESULT, &passed);
+				mesh.occlusionState = passed ? OCCLUSION_VISIBLE : OCCLUSION_HIDDEN;
+			}
 		}
 
-		if (mesh.occlusionState == OCCLUSION_VISIBLE)
+		if (mesh.occlusionState >= OCCLUSION_VISIBLE)
+		{
+			TRACK_MESH;
 			DrawMesh(cM.mesh, shader, cM.pos, type);
+		}
 	}
 }
 
@@ -575,7 +581,7 @@ static void RunOcclusionQueries(GameState* state, Renderer& rend, Camera* cam)
 			cM.mesh.occlusionState = OCCLUSION_WAITING;
 
 			mat4 model = translate(mat4(1.0f), cM.pos);
-			model = scale(model, vec3(CHUNK_SIZE_H - 1, CHUNK_SIZE_V, CHUNK_SIZE_H - 1));
+			model = scale(model, vec3(CHUNK_SIZE_H - 1, CHUNK_SIZE_V - 1, CHUNK_SIZE_H - 1));
 
 			SetUniform(shader->model, model);
 
@@ -592,13 +598,13 @@ static void RunOcclusionQueries(GameState* state, Renderer& rend, Camera* cam)
 static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 {
 	TIMED_FUNCTION;
-	RESET_TRACKED_CHUNKS;
+	RESET_TRACKED_MESHES;
 
 	if (rend.samplesAA > 0)
 		glBindFramebuffer(GL_FRAMEBUFFER, rend.fboAA);
 	else glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
 	UpdateViewMatrix(cam);
@@ -654,6 +660,7 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 
 	rend.emitters.clear();
 
+	RunOcclusionQueries(state, rend, cam);
 	glDisable(GL_DEPTH_TEST);
 
 	// Screen fading.
@@ -680,9 +687,6 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 
 	glDisable(GL_BLEND);
 	glEnable(GL_CULL_FACE);
-
-	RunOcclusionQueries(state, rend, cam);
-	glClear(GL_DEPTH_BUFFER_BIT);
 
 	if (rend.samplesAA > 0)
 	{

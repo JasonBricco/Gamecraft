@@ -821,10 +821,10 @@ static void CreateHUD(GameState* state, World* world)
 
         MultiSpacing(2);
 
-        char visibleChunksText[32];
-        snprintf(visibleChunksText, 32, "Visible Chunks: %d", g_debugTable.visibleChunks);
+        char visibleMeshesText[32];
+        snprintf(visibleMeshesText, 32, "Visible Meshes: %d", g_debugTable.visibleMeshes);
 
-        ImGui::Text(visibleChunksText);
+        ImGui::Text(visibleMeshesText);
 
         CreateProfilerUI(size);
 

@@ -22,6 +22,7 @@ struct MeshIndices
 
 enum OcclusionState
 {
+    OCCLUSION_NONE,
     OCCLUSION_HIDDEN,
     OCCLUSION_VISIBLE,
     OCCLUSION_WAITING
