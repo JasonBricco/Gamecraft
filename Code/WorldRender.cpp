@@ -162,6 +162,8 @@ static void OnGroupPreprocessed(GameState*, World* world, void*)
 static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
 {
     TIMED_FUNCTION;
+
+    rend.meshRef.clear();
     
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
         rend.meshLists[i].clear();
@@ -196,7 +198,10 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
                     chunk->pendingUpdate = false;
                 }
 
-                Mesh mesh = chunk->mesh;
+                bool renderMesh = false;
+
+                Mesh& mesh = chunk->mesh;
+                ChunkMesh cM = { mesh, (vec3)chunk->lwPos };
 
                 for (int m = 0; m < MESH_TYPE_COUNT; m++)
                 {
@@ -204,13 +209,17 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
 
                     if (indices.count > 0)
                     {
-                        ChunkMesh cM = { mesh, (vec3)chunk->lwPos };
                         vector<ChunkMesh>& list = rend.meshLists[m];
                         list.push_back(cM);
+                        renderMesh = true;
 
                         DRAW_CHUNK_OUTLINE(chunk);
                     }
                 }
+
+                if (renderMesh)
+                    rend.meshRef.push_back(cM);
+
             } break;
         }
     }
@@ -225,7 +234,6 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
 static void WorldRenderUpdate(GameState* state, World* world, Camera* cam)
 {    
     TIMED_FUNCTION;
-    RESET_TRACKED_CHUNKS;
     
     world->visibleChunks.clear();
     world->groupsToProcess.clear();
@@ -297,10 +305,7 @@ static void WorldRenderUpdate(GameState* state, World* world, Camera* cam)
                 FrustumVisibility visibility = TestFrustum(cam, min, max);
 
                 if (visibility >= FRUSTUM_VISIBLE)
-                {
-                    TRACK_CHUNK;
                     world->visibleChunks.push_back(chunk);
-                }
             }
         }
     }

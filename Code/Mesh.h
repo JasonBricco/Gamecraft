@@ -20,10 +20,25 @@ struct MeshIndices
     int count;
 };
 
+enum OcclusionState
+{
+    OCCLUSION_HIDDEN,
+    OCCLUSION_VISIBLE,
+    OCCLUSION_WAITING
+};
+
+struct OcclusionMesh
+{
+    GLuint va, vertices;
+    GLuint indices;
+};
+
 struct Mesh
 {
     GLuint va, vertices;
     MeshIndices indices[MESH_TYPE_COUNT];
+    GLuint occlusionQuery;
+    OcclusionState occlusionState;
     bool hasData;
 };
 

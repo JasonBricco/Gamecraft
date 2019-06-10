@@ -59,6 +59,9 @@ static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshD
 	
 	assert(meshData->vertCount > 0);
 
+	glGenQueries(1, &mesh.occlusionQuery);
+	assert(mesh.occlusionQuery != 0);
+
 	glGenVertexArrays(1, &mesh.va);
 	glBindVertexArray(mesh.va);
 
@@ -185,6 +188,8 @@ static void DestroyMesh(Mesh& mesh)
 	if (!mesh.hasData)
 		return;
 
+	glDeleteQueries(1, &mesh.occlusionQuery);
+
 	for (int i = 0; i < MESH_TYPE_COUNT; i++)
 	{
 		MeshIndices& indices = mesh.indices[i];
@@ -198,6 +203,7 @@ static void DestroyMesh(Mesh& mesh)
 
 	glDeleteBuffers(1, &mesh.vertices);
 	glDeleteVertexArrays(1, &mesh.va);
+	glDeleteQueries(1, &mesh.occlusionQuery);
 
 	mesh.hasData = false;
 }

@@ -241,7 +241,6 @@ static void CreateDebugShader()
 		"#version 440 core\n"
 		"out vec4 outColor;\n"
 		"uniform vec4 color;\n"
-		"uniform sampler2D tex;\n"
 		"void main()\n"
 		"{\n"
 			"outColor = color;\n"
