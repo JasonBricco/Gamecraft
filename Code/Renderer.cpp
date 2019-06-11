@@ -289,6 +289,7 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 {
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
 
 	#if _DEBUG
 	glEnable(GL_DEBUG_OUTPUT);
@@ -365,44 +366,6 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 	FillMeshData(rend.meshData2D, rend.fadeMesh, data, GL_STATIC_DRAW, MESH_NO_COLORS | MESH_NO_UVS);
 
 	SetScreenFade(rend, CLEAR_COLOR, FADE_PRIORITY_NONE);
-
-	OcclusionMesh& ocMesh = rend.ocMesh;
-
-	float ocVerts[] = 
-	{
-		0.0f, 0.0f, 0.0f, // 0
-		1.0f, 0.0f, 0.0f, // 1
-		1.0f, 1.0f, 0.0f, // 2
-		0.0f, 1.0f, 0.0f, // 3
-		0.0f, 0.0f, 1.0f, // 4
-		1.0f, 0.0f, 1.0f, // 5
-		1.0f, 1.0f, 1.0f, // 6
-		0.0f, 1.0f, 1.0f // 7
-	};
-
-	uint16_t ocIndices[] = 
-	{ 
-		1, 0, 3, 1, 3, 2, // Back.
-		0, 4, 7, 0, 7, 3, // Left.
-		2, 3, 7, 2, 7, 6, // Top.
-		5, 4, 0, 5, 0, 1, // Bottom.
-		5, 1, 2, 5, 2, 6, // Right.
-		4, 5, 6, 4, 6, 7 // Front.
-	};
-
-	glGenVertexArrays(1, &ocMesh.va);
-	glBindVertexArray(ocMesh.va);
-
-	glGenBuffers(1, &ocMesh.vertices);
-	glBindBuffer(GL_ARRAY_BUFFER, ocMesh.vertices);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * ArrayCount(ocVerts), ocVerts, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	glEnableVertexAttribArray(0);
-
-	glGenBuffers(1, &ocMesh.indices);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ocMesh.indices);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint16_t) * ArrayCount(ocIndices), ocIndices, GL_STATIC_DRAW);
 }
 
 static inline void FadeScreenForTime(Renderer& rend, Color color, float time, FadePriority priority)
@@ -467,8 +430,6 @@ static inline void GetCameraPlanes(Camera* cam)
 	cam->planes[5] = { nc + cam->right * cam->nearW, n };
 }
 
-// Returns the farthest positive vertex from an AABB defined by min and max
-// along the given normal.
 static inline vec3 FarthestPositiveVertex(vec3 min, vec3 max, vec3 normal)
 {
 	vec3 v = min;
@@ -489,13 +450,13 @@ static inline vec3 FarthestNegativeVertex(vec3 min, vec3 max, vec3 normal)
 {
 	vec3 v = max;
 
-	if (normal.x >= 0.0f)
+	if (normal.x <= 0.0f)
 		v.x = min.x;
 
-	if (normal.y >= 0.0f)
+	if (normal.y <= 0.0f)
 		v.y = min.y;
 
-	if (normal.z >= 0.0f)
+	if (normal.z <= 0.0f)
 		v.z = min.z;
 
 	return v;
@@ -534,65 +495,10 @@ static void DrawMeshesOfType(Renderer& rend, Shader* shader, BlockMeshType type)
 
 	for (int i = 0; i < count; i++)
 	{
+		TRACK_MESH;
 		ChunkMesh cM = rend.meshLists[type][i];
-		Mesh& mesh = cM.mesh;
-
-		if (mesh.occlusionState != OCCLUSION_NONE)
-		{
-	        GLuint available = 0;
-
-	        glGetQueryObjectuiv(mesh.occlusionQuery, GL_QUERY_RESULT_AVAILABLE, &available);
-
-	        if (available)
-			{
-				GLuint passed = 0;
-				glGetQueryObjectuiv(mesh.occlusionQuery, GL_QUERY_RESULT, &passed);
-				mesh.occlusionState = passed ? OCCLUSION_VISIBLE : OCCLUSION_HIDDEN;
-			}
-		}
-
-		if (mesh.occlusionState >= OCCLUSION_VISIBLE)
-		{
-			TRACK_MESH;
-			DrawMesh(cM.mesh, shader, cM.pos, type);
-		}
+		DrawMesh(cM.mesh, shader, cM.pos, type);
 	}
-}
-
-static void RunOcclusionQueries(GameState* state, Renderer& rend, Camera* cam)
-{
-	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-  	glDepthMask(GL_FALSE);
-
-  	Shader* shader = GetShader(state, SHADER_OCCLUSION);
-
-	UseShader(shader);
-	SetUniform(shader->view, cam->view);
-	SetUniform(shader->proj, rend.perspective);
-
-	glBindVertexArray(rend.ocMesh.va);
-
-	for (int i = 0; i < rend.meshRef.size(); i++)
-	{
-		ChunkMesh cM = rend.meshRef[i];
-		
-		if (cM.mesh.occlusionState != OCCLUSION_WAITING)
-		{
-			cM.mesh.occlusionState = OCCLUSION_WAITING;
-
-			mat4 model = translate(mat4(1.0f), cM.pos);
-			model = scale(model, vec3(CHUNK_SIZE_H - 1, CHUNK_SIZE_V - 1, CHUNK_SIZE_H - 1));
-
-			SetUniform(shader->model, model);
-
-			glBeginQuery(GL_ANY_SAMPLES_PASSED, cM.mesh.occlusionQuery);
-			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
-			glEndQuery(GL_ANY_SAMPLES_PASSED);
-		}
-	}
-
-	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-  	glDepthMask(GL_TRUE);
 }
 
 static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
@@ -605,8 +511,6 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	else glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
-
 	UpdateViewMatrix(cam);
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, GetBlockTextureArray(state).id);
@@ -660,7 +564,6 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 
 	rend.emitters.clear();
 
-	RunOcclusionQueries(state, rend, cam);
 	glDisable(GL_DEPTH_TEST);
 
 	// Screen fading.
@@ -687,6 +590,7 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 
 	glDisable(GL_BLEND);
 	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
 
 	if (rend.samplesAA > 0)
 	{

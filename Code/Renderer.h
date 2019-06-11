@@ -73,14 +73,7 @@ struct Renderer
 {
     mat4 perspective;
 
-    // A list of all chunk meshes being considered for rendering.
-    // 'meshLists' puts a copy of the chunk mesh in each mesh slot
-    // that it has indices for.
-    vector<ChunkMesh> meshRef;
     vector<ChunkMesh> meshLists[MESH_TYPE_COUNT];
-
-    OcclusionMesh ocMesh;
-    
     vector<ParticleEmitter*> emitters;
 
     BlockAnimation blockAnimation[MESH_TYPE_COUNT];
