@@ -198,6 +198,8 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
                     chunk->pendingUpdate = false;
                 }
 
+                bool renderMesh = false;
+
                 Mesh& mesh = chunk->mesh;
                 ChunkMesh cM = { mesh, (vec3)chunk->lwPos };
 
@@ -209,10 +211,18 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
                     {
                         vector<ChunkMesh>& list = rend.meshLists[m];
                         list.push_back(cM);
+                        renderMesh = true;
 
                         DRAW_CHUNK_OUTLINE(chunk);
                     }
                 }
+
+                #if OCCLUSION_CULLING
+
+                if (renderMesh)
+                    rend.meshRef.push_back(cM);
+
+                #endif
 
             } break;
         }

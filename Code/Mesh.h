@@ -14,6 +14,20 @@ enum BlockMeshType
     MESH_TYPE_COUNT
 };
 
+enum OcclusionState
+{
+    OCCLUSION_HIDDEN,
+    OCCLUSION_VISIBLE,
+    OCCLUSION_WAITING,
+    OCCLUSION_NONE
+};
+
+struct OcclusionMesh
+{
+    GLuint va, vertices;
+    GLuint indices;
+};
+
 struct MeshIndices
 {
     GLuint handle;
@@ -24,6 +38,8 @@ struct Mesh
 {
     GLuint va, vertices;
     MeshIndices indices[MESH_TYPE_COUNT];
+    GLuint occlusionQuery;
+    OcclusionState occlusionState;
     bool hasData;
 };
 
