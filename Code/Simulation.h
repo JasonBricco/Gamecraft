@@ -66,9 +66,13 @@ struct Player
     vector<OverTimeDamage> overTimeDamage;
 };
 
+static inline MinMaxAABB MinMaxAABBFromCorner(vec3 corner, vec3 size);
+static inline MinMaxAABB MinMaxAABBFromCenter(vec3 center, vec3 radius);
+
 static void SpawnPlayer(GameState* state, World* world, Player* player, Rectf spawnBound);
 static void TeleportPlayer(GameState* state, WorldLocation p);
 
+static inline bool OverlapAABB(MinMaxAABB a, MinMaxAABB b);
 static bool OverlapsBlock(Player* player, int bX, int bY, int bZ);
 
 // Collision handling functions.

@@ -165,6 +165,8 @@ static void PrepareWorldRender(GameState* state, World* world, Renderer& rend)
 {
     TIMED_FUNCTION;
 
+    rend.meshRef.clear();
+
     for (int i = 0; i < MESH_TYPE_COUNT; i++)
         rend.meshLists[i].clear();
 

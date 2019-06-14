@@ -536,7 +536,7 @@ static void DrawMeshesOfType(Renderer& rend, Shader* shader, BlockMeshType type)
 		ChunkMesh cM = rend.meshLists[type][i];
 		Mesh& mesh = cM.mesh;
 
-		if (mesh.occlusionState != OCCLUSION_NONE)
+		if (mesh.occlusionState == OCCLUSION_WAITING)
 		{
 	        GLuint available = 0;
 
@@ -560,10 +560,8 @@ static void DrawMeshesOfType(Renderer& rend, Shader* shader, BlockMeshType type)
 
 static void RunOcclusionQueries(GameState* state, Renderer& rend, Camera* cam)
 {
-	// TODO: The occlusion culling system runs into problems when the chunk
-	// the occluder mesh is bounding itself occludes the occluder mesh.
-	// This causes the occluded state to alternate every frame.
-	
+	MinMaxAABB eyeBB = MinMaxAABBFromCenter(cam->pos, vec3(1.0f));
+
 	glDisable(GL_BLEND);
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
   	glDepthMask(GL_FALSE);
@@ -584,14 +582,22 @@ static void RunOcclusionQueries(GameState* state, Renderer& rend, Camera* cam)
 		{
 			cM.mesh.occlusionState = OCCLUSION_WAITING;
 
-			mat4 model = translate(mat4(1.0f), cM.pos);
-			model = scale(model, vec3(CHUNK_SIZE_H - 1, CHUNK_SIZE_V - 1, CHUNK_SIZE_H - 1));
+			vec3 size = vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H);
+			MinMaxAABB bounds = MinMaxAABBFromCorner(cM.pos, size);
 
-			SetUniform(shader->model, model);
+			if (OverlapAABB(eyeBB, bounds))
+				cM.mesh.occlusionState = OCCLUSION_VISIBLE;
+			else
+			{
+				mat4 model = translate(mat4(1.0f), cM.pos);
+				model = scale(model, vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H));
 
-			glBeginQuery(GL_ANY_SAMPLES_PASSED, cM.mesh.occlusionQuery);
-			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
-			glEndQuery(GL_ANY_SAMPLES_PASSED);
+				SetUniform(shader->model, model);
+
+				glBeginQuery(GL_ANY_SAMPLES_PASSED, cM.mesh.occlusionQuery);
+				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
+				glEndQuery(GL_ANY_SAMPLES_PASSED);
+			}
 		}
 	}
 

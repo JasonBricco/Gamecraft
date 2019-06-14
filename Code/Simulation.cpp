@@ -13,6 +13,18 @@ static inline AABB AABBFromCenter(vec3 center, vec3 size)
 	return { center, size * 0.5f };
 }
 
+static inline MinMaxAABB MinMaxAABBFromCorner(vec3 corner, vec3 size)
+{
+	return { corner, corner + size };
+}
+
+static inline MinMaxAABB MinMaxAABBFromCenter(vec3 center, vec3 radius)
+{
+	vec3 min = center - radius;
+	vec3 max = center + radius;
+	return { min, max };
+}
+
 static inline void ExpandAABB(AABB& bb, vec3 amount)
 {
 	bb.radius += amount;
@@ -36,9 +48,16 @@ static inline void GetLowerUpperAABB(Player* player, AABB& lower, AABB& upper)
 
 static inline MinMaxAABB GetMinMaxAABB(AABB bb)
 {
-	vec3 min = bb.center - bb.radius;
-	vec3 max = bb.center + bb.radius;
-	return { min, max };
+	return MinMaxAABBFromCenter(bb.center, bb.radius);
+}
+
+static inline bool OverlapAABB(MinMaxAABB a, MinMaxAABB b)
+{
+	bool overlapX = a.min.x <= b.max.x && a.max.x >= b.min.x;
+	bool overlapY = a.min.y <= b.max.y && a.max.y >= b.min.y;
+	bool overlapZ = a.min.z <= b.max.z && a.max.z >= b.min.z;
+
+	return overlapX && overlapY && overlapZ;
 }
 
 static inline bool OverlapAABB(AABB a, AABB b)
@@ -46,11 +65,7 @@ static inline bool OverlapAABB(AABB a, AABB b)
 	MinMaxAABB mmA = GetMinMaxAABB(a);
 	MinMaxAABB mmB = GetMinMaxAABB(b);
 
-	bool overlapX = mmA.min.x <= mmB.max.x && mmA.max.x >= mmB.min.x;
-	bool overlapY = mmA.min.y <= mmB.max.y && mmA.max.y >= mmB.min.y;
-	bool overlapZ = mmA.min.z <= mmB.max.z && mmA.max.z >= mmB.min.z;
-
-	return overlapX && overlapY && overlapZ;
+	return OverlapAABB(mmA, mmB);
 }
 
 static float BlockRayIntersection(vec3 blockPos, Ray ray)
