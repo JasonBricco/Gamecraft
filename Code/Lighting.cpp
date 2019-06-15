@@ -2,6 +2,9 @@
 // Gamecraft
 //
 
+// TODO: Fix a light propagation bug. If you create an enclosed room, light will not update
+// when breaking the wall; it only updates when breaking the ceiling.
+
 static inline void ComputeSurfaceAt(ChunkGroup* group, int x, int z)
 {
     int index = z * CHUNK_SIZE_H + x;

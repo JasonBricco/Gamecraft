@@ -43,6 +43,8 @@ static bool HasCustomMips(string file)
 
 static bool IsMip(string file, size_t dPos)
 {
+	// TODO: This is hacky. We should use a text file system to store
+	// information with assets more properly.
 	size_t diff = file.size() - dPos;
 	return diff > 6;
 }

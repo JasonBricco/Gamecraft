@@ -568,6 +568,9 @@ static void DrawMeshesOfType(Renderer& rend, Shader* shader, BlockMeshType type)
 			}
 		}
 
+		// TODO: Handle the waiting state better. We currently assume chunks are visible if they
+		// are in the waiting state, but the waiting state often alternates every frame due to
+		// slow queries. Furthermore, transparent meshes are mostly in the waiting state.
 		if (mesh.occlusionState >= OCCLUSION_VISIBLE)
 		{
 			TRACK_MESH;
@@ -600,6 +603,7 @@ static void RunOcclusionQueries(GameState* state, Renderer& rend, Camera* cam)
 		{
 			cM.mesh.occlusionState = OCCLUSION_WAITING;
 
+			// TODO: Need bounding boxes that better fit the actual blocks in the chunk.
 			vec3 size = vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H);
 			MinMaxAABB bounds = MinMaxAABBFromCorner(cM.pos, size);
 
@@ -620,7 +624,6 @@ static void RunOcclusionQueries(GameState* state, Renderer& rend, Camera* cam)
 	}
 
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-  	glDepthMask(GL_TRUE);
   	glEnable(GL_BLEND);
 }
 
@@ -666,6 +669,22 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 
 	DrawMeshesOfType(rend, shader, MESH_CUTOUT);
 
+	DEBUG_DRAW(rend, cam);
+
+	// Particles.
+	glDisable(GL_CULL_FACE);
+
+	for (int i = 0; i < rend.emitters.size(); i++)
+		DrawParticles(state, *rend.emitters[i], cam);
+
+	rend.emitters.clear();
+
+	glEnable(GL_CULL_FACE);
+
+	#if OCCLUSION_CULLING
+	RunOcclusionQueries(state, rend, cam);
+	#endif
+
 	// Transparent pass.
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -689,21 +708,6 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 
 	DrawMeshesOfType(rend, shader, MESH_FLUID);
 
-	DEBUG_DRAW(rend, cam);
-
-	// If we didn't already disable culling, disable it now for particle drawing.
-	if (!rend.disableFluidCull)
-		glDisable(GL_CULL_FACE);
-
-	for (int i = 0; i < rend.emitters.size(); i++)
-		DrawParticles(state, *rend.emitters[i], cam);
-
-	rend.emitters.clear();
-
-	#if OCCLUSION_CULLING
-	RunOcclusionQueries(state, rend, cam);
-	#endif
-
 	glDisable(GL_DEPTH_TEST);
 
 	// Screen fading.
@@ -726,11 +730,15 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 		DrawMesh(rend.fadeMesh);
 	}
 
+	if (!rend.disableFluidCull)
+		glDisable(GL_CULL_FACE);
+
 	RenderUI(state, rend, state->ui);
 
 	glDisable(GL_BLEND);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
 
 	if (rend.samplesAA > 0)
 	{
