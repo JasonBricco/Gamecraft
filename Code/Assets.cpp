@@ -46,18 +46,22 @@ static void LoadAssets(GameState* state)
 
     // Load block images.
     ImageData* blockData = (ImageData*)(data + header->blockImages);
-    unique_ptr<ImageData[]> texArray = make_unique<ImageData[]>(header->blockImageCount);
     
     int count = 0;
 
     for (uint32_t i = 0; i < header->blockImageCount; i++)
     {
         ImageData image = *(blockData + i);
-        texArray[count++] = image;
-        db.images[i] = LoadTexture(image.width, image.height, (uint8_t*)(data + image.pixels));
+        db.images[count++] = LoadTexture(image.width, image.height, (uint8_t*)(data + image.pixels));
+
+        if (image.customMips)
+        {
+            i += 5;
+            continue;
+        }
     }
        
-    db.blockArray = LoadTextureArray(texArray.get(), count, data);
+    db.blockArray = LoadTextureArray(blockData, count, header->blockImageCount, (uint8_t*)data);
 
     // Load images.
     ImageData* imageData = (ImageData*)(data + header->images);
@@ -65,7 +69,7 @@ static void LoadAssets(GameState* state)
     for (uint32_t i = 0; i < header->imageCount; i++)
     {
         ImageData image = *(imageData + i);
-        db.images[header->blockImageCount + i] = LoadTexture(image.width, image.height, (uint8_t*)(data + image.pixels));
+        db.images[count + i] = LoadTexture(image.width, image.height, (uint8_t*)(data + image.pixels));
     }
 
     // Load sounds.

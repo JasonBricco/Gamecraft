@@ -194,7 +194,7 @@ static ImVec2 CenteredUIWindow(float width, float height, float offsetX = 0.0f, 
 
 static void CreateBlockUI(World* world, GameState* state)
 {
-    ImVec2 size = CenteredUIWindow(248.0f, 210.0f);
+    ImVec2 size = CenteredUIWindow(248.0f, 242.0f);
 
     char* blockName = NULL;
 
@@ -240,6 +240,8 @@ static void CreateBlockUI(World* world, GameState* state)
     BlockButton(world, state, IMAGE_OBSIDIAN, BLOCK_OBSIDIAN, &blockName);
     ImGui::SameLine();
     BlockButton(world, state, IMAGE_LAVA, BLOCK_LAVA, &blockName);
+    ImGui::Spacing();
+    BlockButton(world, state, IMAGE_GLASS, BLOCK_GLASS, &blockName);
 
     ImGui::PopStyleColor();
 
@@ -668,8 +670,8 @@ static void CreateProfilerUI(ivec2 windowSize)
     int laneCount = t.chartLaneCount;
     float barHeight = laneHeight * laneCount;
     float spacing = barHeight + 30.0f;
-    float chartWidth = 650.0f;
-    float chartMinX = 300.0f;
+    float chartWidth = 550.0f;
+    float chartMinX = 400.0f;
     float scale = t.chartScale * chartWidth;
 
     ImVec2 mouse = ImGui::GetMousePos();

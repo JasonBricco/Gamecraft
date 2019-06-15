@@ -140,7 +140,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
 {
     BlockData& air = CreateDefaultBlock(state, data, BLOCK_AIR);
     air.invisible = true;
-    air.cull = INT_MAX;
+    air.cull = CULL_INVISIBLE;
     air.passable = true;
     air.onSetSound = GetSound(state, SOUND_LEAVES);
     air.lightStep = 1;
@@ -162,7 +162,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
     BlockData& water = CreateDefaultBlock(state, data, BLOCK_WATER);
     SetBlockTextures(water, IMAGE_WATER);
     water.meshType = MESH_FLUID;
-    water.cull = 2;
+    water.cull = CULL_FLUID;
     water.passable = true;
     water.lightStep = 2;
     water.alpha = 127;
@@ -206,7 +206,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
     SetBlockTextures(ice, IMAGE_ICE);
     ice.surface = SURFACE_ICE;
     ice.meshType = MESH_TRANSPARENT;
-    ice.cull = 1;
+    ice.cull = CULL_TRANSPARENT;
     ice.lightStep = 2;
     ice.alpha = 190;
     ice.name = "Ice";
@@ -247,7 +247,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
 
     BlockData& killZone = CreateDefaultBlock(state, data, BLOCK_KILL_ZONE);
     killZone.invisible = true;
-    killZone.cull = INT_MAX;
+    killZone.cull = CULL_INVISIBLE;
     killZone.lightStep = 1;
     killZone.collideFunc = KillCollideFunc;
     killZone.name = "Kill Zone";
@@ -255,7 +255,7 @@ static void CreateBlockData(GameState* state, BlockData* data)
     BlockData& lava = CreateDefaultBlock(state, data, BLOCK_LAVA);
     SetBlockTextures(lava, IMAGE_LAVA);
     lava.meshType = MESH_FLUID;
-    lava.cull = 2;
+    lava.cull = CULL_FLUID;
     lava.passable = true;
     lava.lightStep = 1;
     lava.lightEmitted = 10;
@@ -263,6 +263,13 @@ static void CreateBlockData(GameState* state, BlockData* data)
     lava.isFluid = true;
     lava.tint = Color(0.75f, 0.16f, 0.0f, 0.75f);
     lava.name = "Lava";
+
+    BlockData& glass = CreateDefaultBlock(state, data, BLOCK_GLASS);
+    SetBlockTextures(glass, IMAGE_GLASS);
+    glass.meshType = MESH_CUTOUT;
+    glass.cull = CULL_CUTOUT;
+    glass.lightStep = 1;
+    glass.name = "Glass";
 
     Renderer& rend = state->renderer;
 

@@ -8,6 +8,7 @@
 enum BlockMeshType
 {
     MESH_OPAQUE,
+    MESH_CUTOUT,
     MESH_TRANSPARENT,
     MESH_FLUID,
     MESH_MAGMA,
@@ -61,7 +62,7 @@ struct VertexInfo
 struct MeshData
 {
     VertexInfo vertices[MAX_VERTICES];
-    MeshIndexData indices[MESH_TYPE_COUNT];
+    MeshIndexData* indices[MESH_TYPE_COUNT];
 
     int vertCount;
 };

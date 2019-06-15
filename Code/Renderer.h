@@ -111,7 +111,7 @@ struct Renderer
 
 static void LoadShader(Shader* shader, int vertLength, char* vertCode, int fragLength, char* fragCode);
 static Texture LoadTexture(int width, int height, uint8_t* pixels);
-static Texture LoadTextureArray(ImageData* data, int count, char* assetData);
+static Texture LoadTextureArray(ImageData* data, int arrayCount, int total, uint8_t* assetData);
 
 static inline void SetUniform(GLint loc, GLfloat f);
 static inline void SetUniform(GLint loc, vec2 v);

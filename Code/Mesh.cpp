@@ -7,10 +7,21 @@ static MeshData* GetMeshData(ObjectPool<MeshData>& pool)
 	MeshData* meshData = pool.Get();
 	meshData->vertCount = 0;
 
-	for (int i = 0; i < MESH_TYPE_COUNT; i++)
-		meshData->indices[i].count = 0;
-
 	return meshData;
+}
+
+static void ReturnMeshData(ObjectPool<MeshData>& pool, MeshData* data)
+{
+	for (int i = 0; i < MESH_TYPE_COUNT; i++)
+	{
+		if (data->indices[i] != nullptr)
+		{
+			delete data->indices[i];
+			data->indices[i] = nullptr;
+		}
+	}
+
+	pool.Return(data);
 }
 
 static MeshData2D* GetMeshData(ObjectPool<MeshData2D>& pool)
@@ -21,17 +32,21 @@ static MeshData2D* GetMeshData(ObjectPool<MeshData2D>& pool)
 static inline void SetIndices(MeshData* meshData, int index)
 {
 	uint16_t offset = (uint16_t)meshData->vertCount;
-	int count = meshData->indices[index].count;
 
-	meshData->indices[index].data[count] = offset + 2;
-	meshData->indices[index].data[count + 1] = offset + 1;
-	meshData->indices[index].data[count + 2] = offset;
+	MeshIndexData* i = meshData->indices[index];
+	assert(i != nullptr);
 
-	meshData->indices[index].data[count + 3] = offset + 3;
-	meshData->indices[index].data[count + 4] = offset + 2;
-	meshData->indices[index].data[count + 5] = offset;
+	int count = i->count;
 
-	meshData->indices[index].count += 6;
+	i->data[count] = offset + 2;
+	i->data[count + 1] = offset + 1;
+	i->data[count + 2] = offset;
+
+	i->data[count + 3] = offset + 3;
+	i->data[count + 4] = offset + 2;
+	i->data[count + 5] = offset;
+
+	i->count += 6;
 }
 
 static inline void SetIndices(MeshData2D* meshData)
@@ -94,9 +109,12 @@ static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshD
 
 	for (int i = 0; i < MESH_TYPE_COUNT; i++)
 	{
-		MeshIndexData& indexData = meshData->indices[i];
+		MeshIndexData* iData = meshData->indices[i];
 
-		if (indexData.count > 0)
+		if (iData == nullptr)
+			continue;
+
+		if (iData->count > 0)
 		{
 			MeshIndices& indices = mesh.indices[i];
 			assert(indices.count == 0);
@@ -104,15 +122,15 @@ static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshD
 			// Index buffer.
 			glGenBuffers(1, &indices.handle);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices.handle);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint16_t) * indexData.count, indexData.data, type);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint16_t) * iData->count, iData->data, type);
 
-			indices.count = indexData.count;
+			indices.count = iData->count;
 			assert(indices.count > 0);
 		}
 	}
 
 	mesh.hasData = true;
-	pool.Return(meshData);
+	ReturnMeshData(pool, meshData);
 }
 
 static void FillMeshData(ObjectPool<MeshData2D>& pool, Mesh2D& mesh, MeshData2D* meshData, GLenum type, int32_t flags)

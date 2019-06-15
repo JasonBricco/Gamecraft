@@ -31,6 +31,22 @@ using namespace std;
 
 #define ArrayLength(array) (sizeof(array) / sizeof((array)[0]))
 
+static bool HasCustomMips(string file)
+{
+	size_t p = file.find('-');
+
+	if (p != string::npos)
+		return file[p + 1] == 'M' && file[p + 2] == '0';
+
+	return false;
+}
+
+static bool IsMip(string file, size_t dPos)
+{
+	size_t diff = file.size() - dPos;
+	return diff > 6;
+}
+
 static void* ReadFileData(const char* path, uint32_t* sizePtr)
 {
     HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
@@ -66,6 +82,8 @@ static void PrintData(char* title, char* pre, vector<string>& files, bool assign
 {
 	printf("\n--- %s ---\n", title);
 
+	int id = 0;
+
 	for (int i = 0; i < files.size(); i++)
 	{
 		string cur = files[i];
@@ -75,19 +93,29 @@ static void PrintData(char* title, char* pre, vector<string>& files, bool assign
 		{
 			if (cur[p + 1] == 'A')
 				cur.erase(p, 2);
-			else continue;
+			else if (cur[p + 1] == 'M' && cur[p + 2] == '0')
+				cur.erase(p, 3);
+			else
+			{
+				if (!IsMip(cur, p))
+					id++;
+
+				continue;
+			}
 		}
 
 		string fStr = string(pre) + cur;
 		fStr = fStr.substr(0, fStr.find_last_of("."));
 
 		if (assignIDs)
-			fStr.append(" = " + to_string(i));
+			fStr.append(" = " + to_string(id));
 
 		fStr.append(",");
 
 		transform(fStr.begin(), fStr.end(), fStr.begin(), [](char c) { return (char)(::toupper(c)); });
 		printf("%s\n", fStr.c_str());
+
+		id++;
 	}
 }
 
@@ -188,7 +216,11 @@ int main()
 		sort(blockImageNames.begin(), blockImageNames.end());
 
 		for (int i = 0; i < blockImageNames.size(); i++)
-			blockImages.push_back(WriteImage(file, blocksDir, blockImageNames[i].c_str()));
+		{
+			ImageData data = WriteImage(file, blocksDir, blockImageNames[i].c_str());
+			data.customMips = HasCustomMips(blockImageNames[i]);
+			blockImages.push_back(data);
+		}
 
 		header.blockImages = ftell(file);
 		header.blockImageCount = (uint32_t)blockImages.size();
@@ -203,7 +235,10 @@ int main()
 		sort(imageNames.begin(), imageNames.end());
 
 		for (int i = 0; i < imageNames.size(); i++)
-			images.push_back(WriteImage(file, imageDir, imageNames[i].c_str()));
+		{
+			ImageData data = WriteImage(file, imageDir, imageNames[i].c_str());
+			images.push_back(data);
+		}
 
 		header.images = ftell(file);
 		header.imageCount = (uint32_t)images.size();

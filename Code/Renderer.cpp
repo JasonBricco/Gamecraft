@@ -280,6 +280,10 @@ static void ApplyClearColor(GameState* state, Renderer& rend)
 	UseShader(opaque);
 	SetUniform(opaque->fogColor, rend.clearColor);
 
+	Shader* cutout = &db.shaders[SHADER_BLOCK_CUTOUT];
+	UseShader(cutout);
+	SetUniform(cutout->fogColor, rend.clearColor);
+
 	Shader* alpha = &db.shaders[SHADER_BLOCK_TRANSPARENT];
 	UseShader(alpha);
     SetUniform(alpha->fogColor, rend.clearColor);
@@ -313,6 +317,20 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
     UseShader(opaque);
     SetUniform(opaque->fogStart, fogStart);
     SetUniform(opaque->fogEnd, fogEnd);
+
+    Shader* cutout = &db.shaders[SHADER_BLOCK_CUTOUT];
+    cutout->view = glGetUniformLocation(cutout->handle, "view");
+    cutout->model = glGetUniformLocation(cutout->handle, "model");
+    cutout->proj = glGetUniformLocation(cutout->handle, "projection");
+    cutout->ambient = glGetUniformLocation(cutout->handle, "ambient");
+    cutout->fogStart = glGetUniformLocation(cutout->handle, "fogStart");
+    cutout->fogEnd = glGetUniformLocation(cutout->handle, "fogEnd");
+    cutout->fogColor = glGetUniformLocation(cutout->handle, "fogColor");
+    cutout->animIndex = glGetUniformLocation(cutout->handle, "animIndex");
+
+    UseShader(cutout);
+    SetUniform(cutout->fogStart, fogStart);
+    SetUniform(cutout->fogEnd, fogEnd);
 
     Shader* transparent = &db.shaders[SHADER_BLOCK_TRANSPARENT];
     transparent->view = glGetUniformLocation(transparent->handle, "view");
@@ -631,10 +649,22 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 
 	DrawMeshesOfType(rend, shader, MESH_OPAQUE);
 
+	// Magma pass.
 	int animIndex = ComputeAnimationFrame(rend.blockAnimation[MESH_MAGMA], state->deltaTime);
 	SetUniform(shader->animIndex, animIndex);
 
 	DrawMeshesOfType(rend, shader, MESH_MAGMA);
+
+	// Cutout pass.
+	shader = GetShader(state, SHADER_BLOCK_CUTOUT);
+
+	UseShader(shader);
+	SetUniform(shader->view, cam->view);
+	SetUniform(shader->proj, rend.perspective);
+	SetUniform(shader->ambient, rend.ambient);
+	SetUniform(shader->animIndex, 0);
+
+	DrawMeshesOfType(rend, shader, MESH_CUTOUT);
 
 	// Transparent pass.
 	glEnable(GL_BLEND);
@@ -650,6 +680,7 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 
 	DrawMeshesOfType(rend, shader, MESH_TRANSPARENT);
 
+	// Fluid pass.
 	animIndex = ComputeAnimationFrame(rend.blockAnimation[MESH_FLUID], state->deltaTime);
 	SetUniform(shader->animIndex, animIndex);
 
@@ -730,7 +761,7 @@ static Texture LoadTexture(int width, int height, uint8_t* pixels)
     return tex;
 }
 
-static Texture LoadTextureArray(ImageData* data, int count, char* assetData)
+static Texture LoadTextureArray(ImageData* data, int arrayCount, int total, uint8_t* assetData)
 {
 	Texture tex;
 
@@ -739,10 +770,25 @@ static Texture LoadTextureArray(ImageData* data, int count, char* assetData)
 
     ImageData first = data[0];
     int width = first.width, height = first.height;
-    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 6, GL_RGBA8, width, height, count);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 6, GL_RGBA8, width, height, arrayCount);
 
-	for (int i = 0; i < count; i++)
-		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, assetData + data[i].pixels);
+    vector<pair<int, int>> customMips;
+
+    int slot = 0;
+
+	for (int i = 0; i < total; i++)
+	{
+		ImageData* img = data + i;
+		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, slot, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, assetData + img->pixels);
+
+		if (img->customMips)
+		{
+			customMips.push_back(make_pair(i, slot));
+			i += 5;
+		}
+
+		slot++;
+	}
 
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP);
@@ -750,6 +796,19 @@ static Texture LoadTextureArray(ImageData* data, int count, char* assetData)
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+
+    for (auto pair : customMips)
+    {
+    	int start = pair.first;
+    	slot = pair.second;
+
+    	for (int i = 1; i <= 5; i++)
+    	{
+    		ImageData* mip = data + start + i;
+    		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, i, 0, 0, slot, mip->width, mip->height, 1, GL_RGBA, GL_UNSIGNED_BYTE, assetData + mip->pixels);
+    	}
+    }
+
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 
     return tex;

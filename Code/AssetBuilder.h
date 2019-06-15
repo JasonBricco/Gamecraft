@@ -28,6 +28,7 @@ struct ImageData
 {
 	uint32_t width, height;
 	uint32_t pixels;
+	bool customMips;
 };
 
 struct SoundData

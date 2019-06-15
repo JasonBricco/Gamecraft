@@ -10,7 +10,7 @@ static char* g_buildType = "RELEASE";
 
 #define SWAP_INTERVAL 1
 
-static int g_buildID = 293;
+static int g_buildID = 304;
 
 #pragma warning(push, 0)
 

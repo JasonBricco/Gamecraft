@@ -19,9 +19,7 @@ static void BuildChunkAsync(GameState*, World* world, void* chunkPtr)
                 if (block != BLOCK_AIR)
                 {
                     if (IsVisible(world, block))
-                    {
                         BuildFunc(world, block)(world, chunk, chunk->meshData, x, y, z, block);
-                    }
                 }
             }
         }
@@ -98,7 +96,7 @@ static void ReturnChunkMesh(Renderer& rend, Chunk* chunk)
 
     if (data != nullptr)
     {
-        rend.meshData.Return(data);
+        ReturnMeshData(rend.meshData, data);
         chunk->meshData = nullptr;
     }
 }
@@ -120,7 +118,7 @@ static void FillChunkMesh(Renderer& rend, Chunk* chunk)
         FillMeshData(rend.meshData, chunk->mesh, data, GL_DYNAMIC_DRAW);
         chunk->hasMeshes = true;
     }
-    else rend.meshData.Return(data);
+    else ReturnMeshData(rend.meshData, data);
 
     chunk->meshData = nullptr;
 }
@@ -466,6 +464,13 @@ static void BuildBlock(World* world, Chunk* chunk, MeshData* data, int xi, int y
 
     int cull = GetCull(world, block);
     int meshIndex = GetMeshType(world, block);
+
+    if (data->indices[meshIndex] == nullptr)
+    {
+        MeshIndexData* indexData = new MeshIndexData;
+        indexData->count = 0;
+        data->indices[meshIndex] = indexData;
+    }
 
     int vAdded = 0;
     NeighborBlocks adj = GetNeighborBlocks(world, chunk, xi, yi, zi);

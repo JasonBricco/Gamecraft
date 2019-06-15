@@ -32,7 +32,17 @@ enum BlockType : Block
     BLOCK_OBSIDIAN,
     BLOCK_KILL_ZONE,
     BLOCK_LAVA,
+    BLOCK_GLASS,
     BLOCK_COUNT
+};
+
+enum CullValue
+{
+    CULL_OPAQUE,
+    CULL_CUTOUT,
+    CULL_TRANSPARENT,
+    CULL_FLUID,
+    CULL_INVISIBLE
 };
 
 enum BlockFace
