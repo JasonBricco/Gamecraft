@@ -173,7 +173,7 @@ struct World
 
     // Cursor block information for the debug HUD.
     bool cursorOnBlock;
-    ivec3 cursorBlockPos;
+    ivec3 cursorBlockPos, adjBlockPos;
 };
 
 struct RebasedPos

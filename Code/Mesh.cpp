@@ -74,10 +74,6 @@ static void FillMeshData(ObjectPool<MeshData>& pool, Mesh& mesh, MeshData* meshD
 	
 	assert(meshData->vertCount > 0);
 
-	glGenQueries(1, &mesh.occlusionQuery);
-	mesh.occlusionState = OCCLUSION_NONE;
-	assert(mesh.occlusionQuery != 0);
-
 	glGenVertexArrays(1, &mesh.va);
 	glBindVertexArray(mesh.va);
 
@@ -219,7 +215,6 @@ static void DestroyMesh(Mesh& mesh)
 	}
 
 	glDeleteBuffers(1, &mesh.vertices);
-	glDeleteQueries(1, &mesh.occlusionQuery);
 	glDeleteVertexArrays(1, &mesh.va);
 
 	mesh.hasData = false;

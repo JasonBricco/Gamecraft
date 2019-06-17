@@ -73,11 +73,8 @@ struct Renderer
 {
     mat4 perspective;
 
-    vector<ChunkMesh> meshRef;
     vector<ChunkMesh> meshLists[MESH_TYPE_COUNT];
     vector<ParticleEmitter*> emitters;
-    
-    OcclusionMesh ocMesh;
 
     BlockAnimation blockAnimation[MESH_TYPE_COUNT];
 

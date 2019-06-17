@@ -817,6 +817,22 @@ static void CreateHUD(GameState* state, World* world)
             snprintf(blockPosText, 128, "Block Position: %i, %i, %i (%i, %i, %i)", lwP.x, lwP.y, lwP.z, p.x, p.y, p.z);
 
             ImGui::Text(blockPosText);
+
+            LWorldP adjP = world->adjBlockPos;
+
+            LChunkP lcP = LWorldToLChunkP(adjP);
+            RelP rP = LWorldToRelP(adjP);
+            Chunk* chunk = GetChunk(world, lcP);
+
+            int index = BlockIndex(rP);
+
+            uint8_t sunlight = GetSunlight(chunk, rP.x, adjP.y, rP.z, index);
+            uint8_t light = chunk->blockLight[index];
+
+            char lightText[64];
+            snprintf(lightText, 64, "Sunlight: %u, Block Light: %u\n", sunlight, light);
+
+            ImGui::Text(lightText);
         }
 
         #if DEBUG_SERVICES

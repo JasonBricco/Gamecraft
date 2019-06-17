@@ -540,6 +540,7 @@ static void HandleEditInput(GameState* state, Input& input, World* world, float 
 	{
 		world->cursorOnBlock = true;
 		world->cursorBlockPos = info.hitPos;
+		world->adjBlockPos = info.adjPos;
 
 		if (KeyPressed(input, KEY_R))
 			world->blockToSet = (BlockType)GetBlock(world, world->cursorBlockPos);

@@ -93,9 +93,7 @@ static void PrintData(char* title, char* pre, vector<string>& files, bool assign
 
 		if (p != string::npos)
 		{
-			if (cur[p + 1] == 'A')
-				cur.erase(p, 2);
-			else if (cur[p + 1] == 'M' && cur[p + 2] == '0')
+			if (cur[p + 1] == 'A' || (cur[p + 1] == 'M' && cur[p + 2] == '0'))
 				cur.erase(p, 3);
 			else
 			{

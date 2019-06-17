@@ -2,9 +2,6 @@
 // Gamecraft
 //
 
-// TODO: Fix a light propagation bug. If you create an enclosed room, light will not update
-// when breaking the wall; it only updates when breaking the ceiling.
-
 static inline void ComputeSurfaceAt(ChunkGroup* group, int x, int z)
 {
     int index = z * CHUNK_SIZE_H + x;
@@ -334,7 +331,6 @@ static void RecomputeSunlight(World* world, Chunk* chunk, int rX, int rY, int rZ
     {
     	if (IsOpaque(world, GetBlock(chunk, rX, rY, rZ)))
     	{
-    		chunk->sunlight[BlockIndex(rX, rY, rZ)] = MIN_LIGHT;
     		sunNodes.Enqueue(ivec3(lwX, chunk->lwPos.y + rY, lwZ));
     		RemoveSunlightNodes(world, sunNodes);
     	}

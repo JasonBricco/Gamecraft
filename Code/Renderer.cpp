@@ -361,11 +361,6 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
     particle->view = glGetUniformLocation(particle->handle, "view");
     particle->proj = glGetUniformLocation(particle->handle, "projection");
 
-    Shader* occlusion = &db.shaders[SHADER_OCCLUSION];
-    occlusion->view = glGetUniformLocation(occlusion->handle, "view");
-    occlusion->model = glGetUniformLocation(occlusion->handle, "model");
-    occlusion->proj = glGetUniformLocation(occlusion->handle, "projection");
-
 	Graphic* graphic = CreateGraphic(rend, GetShader(state, SHADER_CROSSHAIR), GetTexture(state, IMAGE_CROSSHAIR));
 	SetCrosshairPos(graphic, screenWidth, screenHeight);
 	
@@ -384,44 +379,6 @@ static void InitRenderer(GameState* state, Renderer& rend, int screenWidth, int 
 	FillMeshData(rend.meshData2D, rend.fadeMesh, data, GL_STATIC_DRAW, MESH_NO_COLORS | MESH_NO_UVS);
 
 	SetScreenFade(rend, CLEAR_COLOR, FADE_PRIORITY_NONE);
-
-	OcclusionMesh& ocMesh = rend.ocMesh;
-
-	float ocVerts[] = 
-	{
-		0.0f, 0.0f, 0.0f, // 0
-		1.0f, 0.0f, 0.0f, // 1
-		1.0f, 1.0f, 0.0f, // 2
-		0.0f, 1.0f, 0.0f, // 3
-		0.0f, 0.0f, 1.0f, // 4
-		1.0f, 0.0f, 1.0f, // 5
-		1.0f, 1.0f, 1.0f, // 6
-		0.0f, 1.0f, 1.0f // 7
-	};
-
-	uint16_t ocIndices[] = 
-	{ 
-		1, 0, 3, 1, 3, 2, // Back.
-		0, 4, 7, 0, 7, 3, // Left.
-		2, 3, 7, 2, 7, 6, // Top.
-		5, 4, 0, 5, 0, 1, // Bottom.
-		5, 1, 2, 5, 2, 6, // Right.
-		4, 5, 6, 4, 6, 7 // Front.
-	};
-
-	glGenVertexArrays(1, &ocMesh.va);
-	glBindVertexArray(ocMesh.va);
-
-	glGenBuffers(1, &ocMesh.vertices);
-	glBindBuffer(GL_ARRAY_BUFFER, ocMesh.vertices);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * ArrayCount(ocVerts), ocVerts, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	glEnableVertexAttribArray(0);
-
-	glGenBuffers(1, &ocMesh.indices);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ocMesh.indices);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint16_t) * ArrayCount(ocIndices), ocIndices, GL_STATIC_DRAW);
 }
 
 static inline void FadeScreenForTime(Renderer& rend, Color color, float time, FadePriority priority)
@@ -551,80 +508,10 @@ static void DrawMeshesOfType(Renderer& rend, Shader* shader, BlockMeshType type)
 
 	for (int i = 0; i < count; i++)
 	{
+		TRACK_MESH;
 		ChunkMesh cM = rend.meshLists[type][i];
-		Mesh& mesh = cM.mesh;
-
-		if (mesh.occlusionState == OCCLUSION_WAITING)
-		{
-	        GLuint available = 0;
-
-	        glGetQueryObjectuiv(mesh.occlusionQuery, GL_QUERY_RESULT_AVAILABLE, &available);
-
-	        if (available)
-			{
-				GLuint passed = 0;
-				glGetQueryObjectuiv(mesh.occlusionQuery, GL_QUERY_RESULT, &passed);
-				mesh.occlusionState = passed ? OCCLUSION_VISIBLE : OCCLUSION_HIDDEN;
-			}
-		}
-
-		// TODO: Handle the waiting state better. We currently assume chunks are visible if they
-		// are in the waiting state, but the waiting state often alternates every frame due to
-		// slow queries. Furthermore, transparent meshes are mostly in the waiting state.
-		if (mesh.occlusionState >= OCCLUSION_VISIBLE)
-		{
-			TRACK_MESH;
-			DrawMesh(cM.mesh, shader, cM.pos, type);
-		}
+		DrawMesh(cM.mesh, shader, cM.pos, type);
 	}
-}
-
-static void RunOcclusionQueries(GameState* state, Renderer& rend, Camera* cam)
-{
-	MinMaxAABB eyeBB = MinMaxAABBFromCenter(cam->pos, vec3(1.0f));
-
-	glDisable(GL_BLEND);
-	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-  	glDepthMask(GL_FALSE);
-
-  	Shader* shader = GetShader(state, SHADER_OCCLUSION);
-
-	UseShader(shader);
-	SetUniform(shader->view, cam->view);
-	SetUniform(shader->proj, rend.perspective);
-
-	glBindVertexArray(rend.ocMesh.va);
-
-	for (int i = 0; i < rend.meshRef.size(); i++)
-	{
-		ChunkMesh cM = rend.meshRef[i];
-		
-		if (cM.mesh.occlusionState != OCCLUSION_WAITING)
-		{
-			cM.mesh.occlusionState = OCCLUSION_WAITING;
-
-			// TODO: Need bounding boxes that better fit the actual blocks in the chunk.
-			vec3 size = vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H);
-			MinMaxAABB bounds = MinMaxAABBFromCorner(cM.pos, size);
-
-			if (OverlapAABB(eyeBB, bounds))
-				cM.mesh.occlusionState = OCCLUSION_VISIBLE;
-			else
-			{
-				mat4 model = translate(mat4(1.0f), cM.pos);
-				model = scale(model, vec3(CHUNK_SIZE_H, CHUNK_SIZE_V, CHUNK_SIZE_H));
-
-				SetUniform(shader->model, model);
-
-				glBeginQuery(GL_ANY_SAMPLES_PASSED, cM.mesh.occlusionQuery);
-				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
-				glEndQuery(GL_ANY_SAMPLES_PASSED);
-			}
-		}
-	}
-
-	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-  	glEnable(GL_BLEND);
 }
 
 static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
@@ -680,10 +567,7 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	rend.emitters.clear();
 
 	glEnable(GL_CULL_FACE);
-
-	#if OCCLUSION_CULLING
-	RunOcclusionQueries(state, rend, cam);
-	#endif
+	glDepthMask(GL_FALSE);
 
 	// Transparent pass.
 	glEnable(GL_BLEND);

@@ -280,6 +280,11 @@ static inline int BlockIndex(int x, int y, int z)
     return x + CHUNK_SIZE_H * (y + CHUNK_SIZE_V * z);
 }
 
+static inline int BlockIndex(ivec3 p)
+{
+    return BlockIndex(p.x, p.y, p.z);
+}
+
 static inline Block GetBlock(Chunk* chunk, int rX, int rY, int rZ)
 {
     assert(rY >= 0 && rY < CHUNK_SIZE_V);
