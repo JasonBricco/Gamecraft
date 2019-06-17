@@ -70,6 +70,11 @@ static inline bool IsInt(char* arg, int& value)
 	return true;
 }
 
+static inline bool StringEquals(char* a, char* b)
+{
+	return strcmp(a, b) == 0;
+}
+
 static CommandResult PlayerSpeedCommand(GameState*, void* playerPtr, vector<char*>& args)
 {
 	if (args.size() != 2) return { "Usage: speed <value>" };
@@ -82,7 +87,7 @@ static CommandResult PlayerSpeedCommand(GameState*, void* playerPtr, vector<char
 	Player* player = (Player*)playerPtr;
 	player->walkSpeed = Clamp(speed, 5.0f, 1000.0f);
 
-	return { nullptr, PLAYING };
+	return { nullptr };
 }
 
 static CommandResult PlayerFlySpeedCommand(GameState*, void* playerPtr, vector<char*>& args)
@@ -97,7 +102,7 @@ static CommandResult PlayerFlySpeedCommand(GameState*, void* playerPtr, vector<c
 	Player* player = (Player*)playerPtr;
 	player->flySpeed = Clamp(speed, 5.0f, 1000.0f);
 
-	return { nullptr, PLAYING };
+	return { nullptr };
 }
 
 static CommandResult PlayerHealthCommand(GameState*, void* playerPtr, vector<char*>& args)
@@ -112,14 +117,14 @@ static CommandResult PlayerHealthCommand(GameState*, void* playerPtr, vector<cha
 	Player* player = (Player*)playerPtr;
 	player->health = Clamp(health, 0, player->maxHealth);
 
-	return { nullptr, PLAYING };
+	return { nullptr };
 }
 
 static CommandResult PlayerKillCommand(GameState*, void* playerPtr, vector<char*>&)
 {
 	Player* player = (Player*)playerPtr;
 	player->health = 0;
-	return { nullptr, PLAYING };
+	return { nullptr };
 }
 
 static CommandResult PlayerJumpCommand(GameState*, void* playerPtr, vector<char*>& args)
@@ -134,14 +139,14 @@ static CommandResult PlayerJumpCommand(GameState*, void* playerPtr, vector<char*
 	Player* player = (Player*)playerPtr;
 	player->jumpVelocity = Clamp(vel, 3.0f, 80.0f);
 
-	return { nullptr, PLAYING };
+	return { nullptr };
 }
 
 static CommandResult PlayerTeleportCommand(GameState* state, void* worldPtr, vector<char*>& args)
 {
 	if (args.size() == 2)
 	{
-		if (strcmp(args[1], "home") == 0)
+		if (StringEquals(args[1], "home"))
 		{
 			World* world = (World*)worldPtr;
 			TeleportHome(state, world);
@@ -174,5 +179,74 @@ static CommandResult SetHomeCommand(GameState*, void* worldPtr, vector<char*>&)
 {
 	World* world = (World*)worldPtr;
 	SetHomePos(world, world->player);
-	return { nullptr, PLAYING };
+	return { nullptr };
 }
+
+#if DEBUG_SERVICES
+
+static CommandResult ChunkOutlinesCommand(GameState*, void*, vector<char*>&)
+{
+	 g_debugTable.showOutlines = !g_debugTable.showOutlines;
+	 return { nullptr };
+}
+
+static void StopProfilerCommand(GameState* state, void* windowPtr)
+{
+	GLFWwindow* window = (GLFWwindow*)windowPtr;
+	state->savedInputMode = glfwGetInputMode(window, GLFW_CURSOR);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    g_debugTable.profilerState = PROFILER_STOPPED;
+}
+
+static void StartProfilerCommand(GameState* state, void* windowPtr)
+{
+	GLFWwindow* window = (GLFWwindow*)windowPtr;
+	glfwSetInputMode(window, GLFW_CURSOR, state->savedInputMode);
+    CenterCursor();
+    g_debugTable.profilerState = PROFILER_RECORDING;
+    state->debugDisplay = true;
+}
+
+static CommandResult ProfilerCommand(GameState* state, void* windowPtr, vector<char*>& args)
+{
+	if (args.size() != 2)
+		return { "Usage: profiler <start, stop, hide>" };
+
+	DebugTable& t = g_debugTable;
+
+	if (StringEquals(args[1], "hide"))
+	{
+		t.profilerState = PROFILER_HIDDEN;
+		return { nullptr };
+	}
+
+	if (StringEquals(args[1], "stop"))
+	{
+		if (t.profilerState != PROFILER_HIDDEN)
+			StopProfilerCommand(state, windowPtr);
+		
+        return { nullptr, PLAYING };
+	}
+
+	if (StringEquals(args[1], "start"))
+	{
+		StartProfilerCommand(state, windowPtr);
+        return { nullptr };
+	}
+
+	return { "Invalid argument given to the profiler command." };
+}
+
+static CommandResult FastProfilerToggleCommand(GameState* state, void* windowPtr, vector<char*>&)
+{
+	DebugTable& t = g_debugTable;
+
+	if (t.profilerState == PROFILER_STOPPED)
+		StartProfilerCommand(state, windowPtr);
+	else if (t.profilerState == PROFILER_RECORDING)
+		StopProfilerCommand(state, windowPtr);
+
+	return { nullptr };
+}
+
+#endif

@@ -4,6 +4,7 @@
 
 enum PauseState
 {
+	NONE,
 	PLAYING,
 	PAUSED,
 	SELECTING_BLOCK,
@@ -56,7 +57,7 @@ struct GameState
 	ParticleEmitter rain;
 	ParticleEmitter snow;
 
-	PauseState pauseState;
+	PauseState pauseState = PLAYING;
 	LoadingInfo loadInfo;
 
 	char* savePath;

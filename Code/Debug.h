@@ -153,7 +153,7 @@ struct TimedFunction
 #define _TIMED_FUNCTION(ID, func, line) TimedFunction timedFunction##ID(ID, func, line)
 #define TIMED_FUNCTION _TIMED_FUNCTION(__COUNTER__, __FUNCTION__, __LINE__)
 
-#define DEBUG_INIT() DebugInit()
+#define DEBUG_INIT(state, window) DebugInit(state, window)
 #define DEBUG_DRAW(renderer, camera) DebugDraw(renderer, camera)
 #define DEBUG_END_FRAME(state) DebugEndFrame(state)
 #define DRAW_CHUNK_OUTLINE(chunk) DrawChunkOutline(chunk)
@@ -168,7 +168,7 @@ struct TimedFunction
 #define FRAME_MARKER
 #define TIMED_FUNCTION
 
-#define DEBUG_INIT()
+#define DEBUG_INIT(state, window)
 #define DEBUG_DRAW(renderer, camera)
 #define DEBUG_END_FRAME(state)
 #define DRAW_CHUNK_OUTLINE(chunk)

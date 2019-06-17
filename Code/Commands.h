@@ -38,3 +38,9 @@ static CommandResult PlayerKillCommand(GameState* state, void* playerPtr, vector
 static CommandResult PlayerJumpCommand(GameState* state, void* playerPtr, vector<char*>&);
 static CommandResult PlayerTeleportCommand(GameState* state, void* worldPtr, vector<char*>&);
 static CommandResult SetHomeCommand(GameState* state, void* worldPtr, vector<char*>& args);
+
+#if DEBUG_SERVICES
+static CommandResult ChunkOutlinesCommand(GameState*, void*, vector<char*>&);
+static CommandResult ProfilerCommand(GameState* state, void* windowPtr, vector<char*>& args);
+static CommandResult FastProfilerToggleCommand(GameState* state, void* windowPtr, vector<char*>&);
+#endif

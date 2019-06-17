@@ -305,10 +305,14 @@ static void DrawChunkOutline(Chunk* chunk)
 	}
 }
 
-static void DebugInit()
+static void DebugInit(GameState* state, GLFWwindow* window)
 {
 	CreateDebugMesh();
 	CreateDebugShader();
+
+	RegisterCommand(state, "outlines", ChunkOutlinesCommand, nullptr);
+	RegisterCommand(state, "profiler", ProfilerCommand, window);
+	RegisterCommand(state, "p", FastProfilerToggleCommand, window);
 }
 
 static void DebugDraw(Renderer& rend, Camera* cam)

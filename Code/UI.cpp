@@ -278,10 +278,6 @@ static void CreatePauseUI(GameState* state, World* world, GLFWwindow* window)
 {
     float windowOffset = 0.0f;
 
-    #if DEBUG_SERVICES
-    windowOffset = -90.0f;
-    #endif
-
     ImVec2 size = CenteredUIWindow(175.0f, 255.0f, windowOffset);
 
     ImGui::Begin("Pause", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
@@ -347,75 +343,6 @@ static void CreatePauseUI(GameState* state, World* world, GLFWwindow* window)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 
     ImGui::End();
-
-    #if DEBUG_SERVICES
-
-    DebugTable& t = g_debugTable;
-
-    size = CenteredUIWindow(175.0f, 255.0f, 90.0f);
-
-    ImGui::Begin("DebugPause", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav);
-    WindowHeader("Debug Menu", size.x);
-
-    btnSize = ImVec2(140.0f, 30.0f);
-    cursorPos = GetButtonLoc(btnSize, size.x, 35.0f);
-    ImGui::SetCursorPos(cursorPos);
-
-    if (t.profilerState == PROFILER_HIDDEN)
-    {
-        if (ImGui::Button("Show Profiler", btnSize))
-        {
-            t.profilerState = PROFILER_RECORDING;
-            Unpause(state);
-        }
-    }
-    else
-    {
-        bool recording = t.profilerState >= PROFILER_RECORDING;
-        char* profileText = recording ? "Stop Profiling" : "Start Profiling";
-
-        if (ImGui::Button(profileText, btnSize))
-        {
-            if (recording)
-            {
-                state->savedInputMode = glfwGetInputMode(window, GLFW_CURSOR);
-                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-                t.profilerState = PROFILER_STOPPED;
-                state->pauseState = PLAYING;
-            }
-            else
-            {
-                glfwSetInputMode(window, GLFW_CURSOR, state->savedInputMode);
-                CenterCursor();
-                t.profilerState = PROFILER_RECORDING;
-                Unpause(state);
-            }
-        }
-
-        cursorPos.y += 35.0f;
-        ImGui::SetCursorPos(cursorPos);
-
-        if (ImGui::Button("Hide Profiler", btnSize))
-        {
-            t.profilerState = PROFILER_HIDDEN;
-            Unpause(state);
-        }
-    }
-
-    cursorPos.y += 35.0f;
-    ImGui::SetCursorPos(cursorPos);
-
-    char* outlineText = t.showOutlines ? "Hide Chunk Outlines" : "Show Chunk Outlines";
-
-    if (ImGui::Button(outlineText, btnSize))
-    {
-        t.showOutlines = !t.showOutlines;
-        Unpause(state);
-    }
-
-    ImGui::End();
-
-    #endif
 }
 
 static void CreateDeathUI(GameState* state, World* world, GLFWwindow* window)
@@ -620,7 +547,7 @@ static void CreateCommandUI(GameState* state)
 
         if (result.error == nullptr)
         {
-            if (result.newState != PLAYING)
+            if (result.newState != NONE)
                 state->pauseState = (PauseState)result.newState;
             else Unpause(state);
         }
@@ -658,6 +585,8 @@ static double GetFPS()
     frameCount++;
     return fps;
 }
+
+#if DEBUG_SERVICES
 
 static void CreateProfilerUI(ivec2 windowSize)
 {
@@ -754,6 +683,8 @@ static void CreateProfilerUI(ivec2 windowSize)
             t.profilerState = PROFILER_RECORD_ONCE;
     }
 }
+
+#endif
 
 static void CreateHUD(GameState* state, World* world)
 {
