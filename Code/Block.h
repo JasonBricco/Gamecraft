@@ -33,6 +33,7 @@ enum BlockType : Block
     BLOCK_KILL_ZONE,
     BLOCK_LAVA,
     BLOCK_GLASS,
+    BLOCK_SHOCKER,
     BLOCK_COUNT
 };
 

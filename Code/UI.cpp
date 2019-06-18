@@ -194,7 +194,7 @@ static ImVec2 CenteredUIWindow(float width, float height, float offsetX = 0.0f, 
 
 static void CreateBlockUI(World* world, GameState* state)
 {
-    ImVec2 size = CenteredUIWindow(248.0f, 242.0f);
+    ImVec2 size = CenteredUIWindow(248.0f, 250.0f);
 
     char* blockName = NULL;
 
@@ -242,6 +242,8 @@ static void CreateBlockUI(World* world, GameState* state)
     BlockButton(world, state, IMAGE_LAVA, BLOCK_LAVA, &blockName);
     ImGui::Spacing();
     BlockButton(world, state, IMAGE_GLASS, BLOCK_GLASS, &blockName);
+    ImGui::SameLine();
+    BlockButton(world, state, IMAGE_SHOCKER, BLOCK_SHOCKER, &blockName);
 
     ImGui::PopStyleColor();
 
@@ -249,7 +251,7 @@ static void CreateBlockUI(World* world, GameState* state)
     {
         ImVec2 cursor = ImGui::GetCursorPos();
         ImVec2 textSize = ImGui::CalcTextSize(blockName);
-        ImVec2 cursorPos = ImVec2(size.x * 0.5f - (textSize.x * 0.5f), size.y - 25.0f);
+        ImVec2 cursorPos = ImVec2(size.x * 0.5f - (textSize.x * 0.5f), size.y - 20.0f);
 
         ImGui::SetCursorPos(cursorPos);
         ImGui::Text(blockName);
@@ -309,9 +311,12 @@ static void CreatePauseUI(GameState* state, World* world, GLFWwindow* window)
     {
         weather.emitter->active = !weatherOn;
 
-        if (!weatherOn)
-            FadeAmbient(world, state->renderer, 0.6f, 3.0f);
-        else FadeAmbient(world, state->renderer, 1.0f, 3.0f);
+        if (weather.ambientFade)
+        {
+            if (!weatherOn)
+                FadeAmbient(world, state->renderer, 0.6f, 3.0f);
+            else FadeAmbient(world, state->renderer, 1.0f, 3.0f);
+        }
 
         Unpause(state);
     }

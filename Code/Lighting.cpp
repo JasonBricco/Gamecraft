@@ -352,7 +352,7 @@ static inline void RemoveLightNodes(World* world, Queue<ivec3>& lightNodes)
         int index = BlockIndex(rel.x, rel.y, rel.z);
         int light = chunk->blockLight[index] - 1;
 
-        chunk->blockLight[index] = MIN_LIGHT;
+        chunk->blockLight[index] = 0;
 
         if (light <= MIN_LIGHT)
             continue;

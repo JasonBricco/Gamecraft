@@ -8,6 +8,7 @@ struct ChunkGroup;
 struct Weather
 {
 	ParticleEmitter* emitter;
+	bool ambientFade = true;
 };
 
 using BiomeFunc = void(*)(World*, ChunkGroup*);

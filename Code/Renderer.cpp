@@ -558,6 +558,10 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 
 	DEBUG_DRAW(rend, cam);
 
+	glDepthMask(GL_FALSE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	// Particles.
 	glDisable(GL_CULL_FACE);
 
@@ -567,12 +571,8 @@ static void RenderScene(GameState* state, Renderer& rend, Camera* cam)
 	rend.emitters.clear();
 
 	glEnable(GL_CULL_FACE);
-	glDepthMask(GL_FALSE);
 
 	// Transparent pass.
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 	shader = GetShader(state, SHADER_BLOCK_TRANSPARENT);
 
 	UseShader(shader);

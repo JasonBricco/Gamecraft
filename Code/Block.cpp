@@ -271,6 +271,11 @@ static void CreateBlockData(GameState* state, BlockData* data)
     glass.lightStep = 1;
     glass.name = "Glass";
 
+    BlockData& shocker = CreateDefaultBlock(state, data, BLOCK_SHOCKER);
+    SetBlockTextures(shocker, IMAGE_SHOCKER);
+    shocker.name = "Shocker";
+
+    // Block animation.
     Renderer& rend = state->renderer;
 
     BlockAnimation& opaqueAnim = rend.blockAnimation[MESH_OPAQUE];

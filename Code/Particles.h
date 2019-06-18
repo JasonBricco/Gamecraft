@@ -20,7 +20,7 @@ struct ParticleEmitter
 	Particle* particles;
 	int count, spawnCount;
 	int maxParticles;
-	float lifeTime, timer;
+	float lifetime, timePerSpawn, timer;
 	float radius;
 	ImageID image;
 	Mesh2D mesh;

@@ -63,11 +63,22 @@ static void ResetEnvironment(GameState* state, World* world)
 
 static void CreateBiomes(GameState* state, World* world)
 {
-	InitParticleEmitter(state->renderer, state->rain, 1, 8, 8000);
-	SetEmitterProperties(state->rain, IMAGE_RAIN, 12, 20.0f, 10.0f, UpdateRainParticles);
+    ParticleEmitter& rainEffect = state->rain;
+	InitParticleEmitter(state->renderer, rainEffect, IMAGE_RAIN, 1, 8, 8000);
+    rainEffect.spawnCount = 12;
+    rainEffect.lifetime = 10.0f;
+    rainEffect.update = UpdateRainParticles;
 
-	InitParticleEmitter(state->renderer, state->snow, 4, 4, 12000);
-	SetEmitterProperties(state->snow, IMAGE_SNOWFLAKE, 8, 20.0f, 20.0f, UpdateSnowParticles);
+	ParticleEmitter& snowEffect = state->snow;
+	InitParticleEmitter(state->renderer, snowEffect, IMAGE_SNOWFLAKE, 4, 4, 12000);
+    snowEffect.spawnCount = 8;
+    snowEffect.update = UpdateSnowParticles;
+
+    ParticleEmitter& ashEffect = state->ash;
+    InitParticleEmitter(state->renderer, ashEffect, IMAGE_ASH_PARTICLE, 4, 4, 10000);
+    ashEffect.spawnCount = 4;
+    ashEffect.lifetime = 30.0f;
+    ashEffect.update = UpdateAshParticles;
 
     Biome& forest = world->biomes[BIOME_FOREST];
     forest.name = "Forest";
@@ -102,7 +113,8 @@ static void CreateBiomes(GameState* state, World* world)
     volcanic.type = BIOME_VOLCANIC;
     volcanic.func = GenerateVolcanicTerrain;
     volcanic.skyColor = vec3(0.48f, 0.2f, 0.2f);
-    volcanic.weather.emitter = &state->rain;
+    volcanic.weather.emitter = &state->ash;
+    volcanic.weather.ambientFade = false;
 
     Biome& grid = world->biomes[BIOME_GRID];
     grid.name = "Grid";

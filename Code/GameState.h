@@ -56,6 +56,7 @@ struct GameState
 
 	ParticleEmitter rain;
 	ParticleEmitter snow;
+	ParticleEmitter ash;
 
 	PauseState pauseState = PLAYING;
 	LoadingInfo loadInfo;

@@ -2,8 +2,14 @@
 // Gamecraft
 //
 
-static void InitParticleEmitter(Renderer& rend, ParticleEmitter& emitter, int w, int h, int maxParticles)
+static void InitParticleEmitter(Renderer& rend, ParticleEmitter& emitter, ImageID image, int w, int h, int maxParticles)
 {
+	emitter.spawnCount = 10;
+	emitter.radius = 20.0f;
+	emitter.lifetime = 20.0f;
+	emitter.timePerSpawn = 0.01f;
+	emitter.image = image;
+
 	emitter.maxParticles = maxParticles;
 	emitter.particles = new Particle[maxParticles];
 
@@ -36,15 +42,6 @@ static void InitParticleEmitter(Renderer& rend, ParticleEmitter& emitter, int w,
 	}
 }
 
-static void SetEmitterProperties(ParticleEmitter& emitter, ImageID image, int spawnCount, float radius, float lifeTime, ParticleFunc updateFunc)
-{
-	emitter.spawnCount = spawnCount;
-	emitter.radius = radius;
-	emitter.lifeTime = lifeTime;
-	emitter.image = image;
-	emitter.update = updateFunc;
-}
-
 static inline void DestroyParticle(ParticleEmitter& emitter, int index)
 {
 	emitter.particles[index] = emitter.particles[emitter.count - 1];
@@ -70,14 +67,18 @@ static void SpawnParticles(ParticleEmitter& emitter, vec3 accel, vec3 velocity, 
 
 			Particle particle;
 			particle.pos = vec3(x, emitter.pos.y, z);
+			particle.wPos = vec3(emitter.pos.x + x, particle.pos.y, emitter.pos.z + z);
 			particle.accel = accel;
 			particle.velocity = velocity;
-			particle.timeLeft = emitter.lifeTime;
+			particle.timeLeft = emitter.lifetime;
 			emitter.particles[emitter.count++] = particle;
+
+			// TODO: Once we've finalized the max particle amounts, turn this into a
+			// condition that simply prevents a particle from spawning if there are too many.
 			assert(emitter.count < emitter.maxParticles);
 		}
 
-		emitter.timer = 0.01f;
+		emitter.timer = emitter.timePerSpawn;
 	}
 }
 
@@ -89,6 +90,19 @@ static inline void MoveParticleLocal(Particle& particle, vec3 emitterP, float de
 	particle.wPos = vec3(emitterP.x + particle.pos.x, particle.pos.y, emitterP.z + particle.pos.z);
 }
 
+static inline bool ShouldDestroyParticle(World* world, Particle& particle)
+{
+	if (particle.timeLeft <= 0.0f)
+		return true;
+
+	Block block = GetBlock(world, BlockPos(particle.wPos));
+	
+	if (!IsPassable(world, block))
+		return true;
+
+	return false;
+}
+
 static void UpdateRainParticles(ParticleEmitter& emitter, World* world, float deltaTime)
 {
 	SpawnParticles(emitter, vec3(0.0f, -15.0f, 0.0f), vec3(0.0f), deltaTime);
@@ -98,18 +112,13 @@ static void UpdateRainParticles(ParticleEmitter& emitter, World* world, float de
 		Particle& particle = emitter.particles[i];
 		particle.timeLeft -= deltaTime;
 
-		if (particle.timeLeft <= 0.0f)
+		if (ShouldDestroyParticle(world, particle))
 		{
 			DestroyParticle(emitter, i);
 			continue;
 		}
 
 		MoveParticleLocal(particle, emitter.pos, deltaTime);
-
-		Block block = GetBlock(world, BlockPos(particle.wPos));
-
-		if (!IsPassable(world, block))
-			DestroyParticle(emitter, i);
 	}
 }
 
@@ -122,7 +131,7 @@ static void UpdateSnowParticles(ParticleEmitter& emitter, World* world, float de
 		Particle& particle = emitter.particles[i];
 		particle.timeLeft -= deltaTime;
 
-		if (particle.timeLeft <= 0.0f)
+		if (ShouldDestroyParticle(world, particle))
 		{
 			DestroyParticle(emitter, i);
 			continue;
@@ -130,11 +139,26 @@ static void UpdateSnowParticles(ParticleEmitter& emitter, World* world, float de
 
 		particle.pos += (particle.velocity * deltaTime);
 		particle.wPos = vec3(emitter.pos.x + particle.pos.x, particle.pos.y, emitter.pos.z + particle.pos.z);
+	}
+}
 
-		Block block = GetBlock(world, BlockPos(particle.wPos));
+static void UpdateAshParticles(ParticleEmitter& emitter, World* world, float deltaTime)
+{
+	SpawnParticles(emitter, vec3(0.0f), vec3(RandNormal() * 5.0f, -10.0f, RandNormal() * 5.0f), deltaTime);
 
-		if (!IsPassable(world, block))
+	for (int i = emitter.count - 1; i >= 0; i--)
+	{
+		Particle& particle = emitter.particles[i];
+		particle.timeLeft -= deltaTime;
+
+		if (ShouldDestroyParticle(world, particle))
+		{
 			DestroyParticle(emitter, i);
+			continue;
+		}
+
+		particle.pos += (particle.velocity * deltaTime);
+		particle.wPos = vec3(emitter.pos.x + particle.pos.x, particle.pos.y, emitter.pos.z + particle.pos.z);
 	}
 }
 
