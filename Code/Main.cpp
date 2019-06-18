@@ -366,6 +366,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	GameState* state = new GameState();
 
+	RegisterCommand(state, "help", HelpCommand, nullptr);
 	DEBUG_INIT(state, window);
 
 	char savePath[MAX_PATH];

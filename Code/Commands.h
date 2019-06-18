@@ -25,12 +25,15 @@ struct CommandProcessor
 
 	float errorTime;
     char* error;
+
+    bool help;
 };
 
 static void RegisterCommand(GameState* state, char* text, CommandFunc func, void* data);
 static CommandResult ProcessCommand(GameState* state, CommandProcessor& processor);
 
 // Command functions.
+static CommandResult HelpCommand(GameState* state, void*, vector<char*>&);
 static CommandResult PlayerSpeedCommand(GameState* state, void* playerPtr, vector<char*>& args);
 static CommandResult PlayerHealthCommand(GameState* state, void* playerPtr, vector<char*>& args);
 static CommandResult PlayerFlySpeedCommand(GameState* state, void* playerPtr, vector<char*>& args);

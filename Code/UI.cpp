@@ -511,9 +511,47 @@ static void WorldConfigUI(GameState* state, World* world, WorldConfig& config)
     ImGui::End();
 }
 
+static inline void CommandHelpText(char* cmd, char* msg)
+{
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+    ImGui::Text(cmd);
+    ImGui::PopStyleColor();
+    ImGui::SameLine();
+    ImGui::TextWrapped(msg);
+}
+
+static void CreateCommandHelp(CommandProcessor& processor)
+{
+    ImVec2 size = CenteredUIWindow(500.0f, 400.0f, 0.0f, -100.0f);
+
+    ImGui::Begin("Command List", &processor.help, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | 
+        ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse);
+
+    CommandHelpText("help:", "shows the list of commands.");
+    CommandHelpText("speed <value>:", "change the player's walking speed. Value can be between 5 and 1000.");
+    CommandHelpText("flyspeed <value>:", "change the player's flying speed. Value can be between 5 and 1000.");
+    CommandHelpText("health <value>:", "change the player's health. Value can be between 0 and the max health.");
+    CommandHelpText("kill:", "kills the player.");
+    CommandHelpText("jump <value>:", "change the player's jump height. Value can be between 3 and 80.");
+    CommandHelpText("teleport <x> <y> <z>:", "teleports the player to the given location.");
+    CommandHelpText("teleport home:", "teleports the player to the saved home location.");
+    CommandHelpText("sethome:", "sets the saved home position to the player's current location.");
+
+    #if DEBUG_SERVICES
+    CommandHelpText("outlines:", "toggle debug chunk outlines.");
+    CommandHelpText("profiler <start, stop, hide>:", "start, stop, or hide the profiler.");
+    CommandHelpText("p:", "quickly toggle the profiler between paused and recording state.");
+    #endif
+
+    ImGui::End();
+}
+
 static void CreateCommandUI(GameState* state)
 {
     CommandProcessor& processor = state->cmdProcessor;
+
+    if (processor.help)
+        CreateCommandHelp(processor);
 
     if (processor.errorTime > 0.0f)
     {   
@@ -653,7 +691,7 @@ static void CreateProfilerUI(ivec2 windowSize)
             if (ImGui::IsMouseHoveringRect(ImVec2(start.x, end.y), ImVec2(end.x, start.y)))
             {
                 DebugRecord& record = region.record;
-                sprintf(hoverText, "%s (%d): %.0f\n", record.func, record.line, region.elapsed);
+                snprintf(hoverText, 128, "%s (%d): %.0f\n", record.func, record.line, region.elapsed);
                 hoverStart = start;
                 hoverEnd = end;
                 hasHoverText = true;
@@ -704,37 +742,21 @@ static void CreateHUD(GameState* state, World* world)
 
     Player* player = world->player;
 
-    char healthText[12];
-    sprintf(healthText, "Health: %d", player->health);
-
-    ImGui::Text(healthText);
+    ImGui::Text("Health: %d", player->health);
 
     if (state->debugDisplay)
     {
         double fps = GetFPS();
 
-        char fpsText[16];
-        snprintf(fpsText, 16, "FPS: %.1f", fps);
-
-        ImGui::Text(fpsText);
-
-        char buildText[32];
-        snprintf(buildText, 32, "Build: %i, Mode: %s", g_buildID, g_buildType);
-
-        ImGui::Text(buildText);
+        ImGui::Text("FPS: %.1f", fps);
+        ImGui::Text("Build: %d, Mode: %s", g_buildID, g_buildType);
 
         Biome& biome = GetCurrentBiome(world);
 
-        char biomeText[32];
-        snprintf(biomeText, 32, "Biome: %s", biome.name);
-        ImGui::Text(biomeText);
+        ImGui::Text("Biome: %s", biome.name);
 
         WorldP playerBlock = LWorldToWorldP(world, BlockPos(world->player->pos));
-
-        char playerP[64];
-        snprintf(playerP, 64, "Player Position: %i, %i, %i", playerBlock.x, playerBlock.y, playerBlock.z);
-
-        ImGui::Text(playerP);
+        ImGui::Text("Player Position: %i, %i, %i", playerBlock.x, playerBlock.y, playerBlock.z);
         
         if (world->cursorOnBlock)
         {
@@ -744,15 +766,8 @@ static void CreateHUD(GameState* state, World* world)
             ivec3 lwP = world->cursorBlockPos;
             WorldP p = LWorldToWorldP(world, lwP);
 
-            char blockText[64];
-            snprintf(blockText, 64, "Block: %s", name);
-
-            ImGui::Text(blockText);
-
-            char blockPosText[128];
-            snprintf(blockPosText, 128, "Block Position: %i, %i, %i (%i, %i, %i)", lwP.x, lwP.y, lwP.z, p.x, p.y, p.z);
-
-            ImGui::Text(blockPosText);
+            ImGui::Text("Block: %s", name);
+            ImGui::Text("Block Position: %i, %i, %i (%i, %i, %i)", lwP.x, lwP.y, lwP.z, p.x, p.y, p.z);
 
             LWorldP adjP = world->adjBlockPos;
 
@@ -765,20 +780,13 @@ static void CreateHUD(GameState* state, World* world)
             uint8_t sunlight = GetSunlight(chunk, rP.x, adjP.y, rP.z, index);
             uint8_t light = chunk->blockLight[index];
 
-            char lightText[64];
-            snprintf(lightText, 64, "Sunlight: %u, Block Light: %u\n", sunlight, light);
-
-            ImGui::Text(lightText);
+            ImGui::Text("Sunlight: %u, Block Light: %u\n", sunlight, light);
         }
 
         #if DEBUG_SERVICES
 
         MultiSpacing(2);
-
-        char visibleMeshesText[32];
-        snprintf(visibleMeshesText, 32, "Visible Meshes: %d", g_debugTable.visibleMeshes);
-
-        ImGui::Text(visibleMeshesText);
+        ImGui::Text("Visible Meshes: %d", g_debugTable.visibleMeshes);
 
         CreateProfilerUI(size);
 

@@ -75,6 +75,12 @@ static inline bool StringEquals(char* a, char* b)
 	return strcmp(a, b) == 0;
 }
 
+static CommandResult HelpCommand(GameState* state, void*, vector<char*>&)
+{
+	state->cmdProcessor.help = true;
+	return { nullptr, ENTERING_COMMAND };
+}
+
 static CommandResult PlayerSpeedCommand(GameState*, void* playerPtr, vector<char*>& args)
 {
 	if (args.size() != 2) return { "Usage: speed <value>" };
